@@ -1,0 +1,139 @@
+import { Component, booleanAttribute, computed, input, output } from '@angular/core';
+import { MatSliderModule } from '@angular/material/slider';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+
+/**
+ * One tunable number: label, slider, exact value. Optional rows carry a switch
+ * — off means the parameter is left out of the request entirely, which is not
+ * the same as sending its default.
+ */
+@Component({
+  selector: 'ms-param-row',
+  imports: [MatSliderModule, MatSlideToggleModule],
+  template: `
+    <div class="row" [class.off]="!active()">
+      <div class="head">
+        <span class="label">{{ label() }}</span>
+        @if (optional()) {
+          <mat-slide-toggle [checked]="active()" (change)="toggle($event.checked)" />
+        }
+      </div>
+
+      <div class="controls">
+        <mat-slider [min]="min()" [max]="max()" [step]="step()" [disabled]="!active()" discrete>
+          <input
+            matSliderThumb
+            [value]="active() ? value() : fallback()"
+            (valueChange)="valueChange.emit($event)"
+          />
+        </mat-slider>
+        <input
+          class="exact"
+          type="number"
+          [min]="min()"
+          [max]="max()"
+          [step]="step()"
+          [disabled]="!active()"
+          [value]="active() ? value() : ''"
+          [attr.placeholder]="active() ? null : 'not sent'"
+          (change)="commitExact($event)"
+        />
+      </div>
+
+      @if (hint()) {
+        <p class="ms-hint">{{ hint() }}</p>
+      }
+    </div>
+  `,
+  styles: `
+    .row {
+      padding: 0.35rem 0 0.15rem;
+    }
+
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .label {
+      font-size: 0.85rem;
+      color: var(--ms-ink);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    mat-slider {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+    }
+
+    .exact {
+      width: 5.5rem;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--ms-border);
+      border-radius: 8px;
+      background: var(--ms-surface-raised);
+      color: var(--ms-ink);
+      font: inherit;
+      font-size: 0.82rem;
+      text-align: right;
+    }
+
+    .exact:disabled {
+      color: var(--ms-muted);
+    }
+
+    .row.off .label {
+      color: var(--ms-muted);
+    }
+
+    p.ms-hint {
+      margin: 0.1rem 0 0;
+    }
+  `,
+})
+export class ParamRow {
+  readonly label = input.required<string>();
+  readonly hint = input('');
+  readonly min = input.required<number>();
+  readonly max = input.required<number>();
+  readonly step = input.required<number>();
+  readonly value = input<number | undefined>(undefined);
+  /** Optional rows can be left unset, and then are not sent at all. */
+  readonly optional = input(false, { transform: booleanAttribute });
+
+  readonly valueChange = output<number | undefined>();
+
+  protected readonly active = computed(() => !this.optional() || this.value() !== undefined);
+
+  /** Where an optional slider parks itself while switched off. */
+  protected readonly fallback = computed(() => this.min());
+
+  protected toggle(on: boolean): void {
+    this.valueChange.emit(on ? (this.value() ?? this.defaultFor()) : undefined);
+  }
+
+  protected commitExact(event: Event): void {
+    const raw = (event.target as HTMLInputElement).value;
+    if (raw === '') {
+      if (this.optional()) this.valueChange.emit(undefined);
+      return;
+    }
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    this.valueChange.emit(Math.min(this.max(), Math.max(this.min(), parsed)));
+  }
+
+  /** A switched-on parameter needs a sensible starting point, not zero. */
+  private defaultFor(): number {
+    const midpoint = this.min() + (this.max() - this.min()) / 2;
+    return Number(midpoint.toFixed(2));
+  }
+}

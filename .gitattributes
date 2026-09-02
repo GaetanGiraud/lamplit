@@ -1,0 +1,4 @@
+# Prettier writes LF; keep the repository LF everywhere so a Windows checkout
+# does not show every file as modified.
+* text=auto eol=lf
+*.ico binary

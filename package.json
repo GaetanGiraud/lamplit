@@ -1,0 +1,18 @@
+{
+  "name": "magicstories",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A chat-centred, text-only storytelling app talking straight to any OpenAI-compatible endpoint.",
+  "workspaces": [
+    "app",
+    "e2e"
+  ],
+  "scripts": {
+    "start": "npm run start -w app",
+    "build": "npm run build -w app",
+    "test": "npm run test -w app",
+    "e2e": "npm run test -w e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  }
+}
