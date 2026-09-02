@@ -151,23 +151,18 @@ interface Chapter {
   id: string;
   storyId: string;
   number: number; // 1, 2, 3… never reused, never renumbered
-  title: string; // "The Lantern Room"; defaults to the scene's place
-  scene: Scene; // written before the first message, always injected
+  title: string; // "The Lantern Room"; defaults to the scene's first line
+  // The scene, as one piece of prose. Written before the first message and
+  // always injected verbatim. Deliberately not a set of fields: a scene
+  // heading in a playscript is free text, the model reads prose perfectly
+  // well, and any schema we imposed here would be a schema someone has to
+  // fight. Required only in the sense that it must not be empty.
+  scene: string;
   status: 'writing' | 'closed';
   summary: string; // written by "close chapter", folded into world.storySoFar
   createdAt: string;
   updatedAt: string;
   messages: ChapterMessage[];
-}
-
-// The scene heading of a playscript: where we are, when, who is on stage, and
-// the stage direction that starts things moving. `place` is the only required
-// field — see 3.1.3 for why the bar is deliberately that low.
-interface Scene {
-  place: string; // "The lighthouse gallery"          (required)
-  time: string; // "Dusk, the first night of autumn"
-  present: string[]; // character names, plus the persona when they are in it
-  direction: string; // "Mara finds the lamp already lit."
 }
 
 interface ChapterMessage {
@@ -202,8 +197,9 @@ the same layer writes to `localStorage` so nothing is lost on reload.
              (scan window = the chapter's scene + user's new message + last N messages, N default
              4; case-insensitive substring by default, whole-word optional — same semantics ST
              uses in world-info.js)
-          5. This chapter: "Chapter <n>, <title>. <place>. <time>. Present: <present>.
-             <direction>" — the immediate setting, so it sits last, closest to the conversation
+          5. This chapter: "Chapter <n>, <title>. The scene:\n<scene>" — the scene text
+             verbatim, nothing parsed out of it. The immediate setting, so it sits last,
+             closest to the conversation
           6. Style rules: dialogue in "quotes", actions in plain prose, stay in character, never
              write for the persona in roleplay mode
 [history] chapter messages, oldest dropped first until (system + history + reserve for the reply)
@@ -283,15 +279,20 @@ client.
 ### 3.0 The chapter is the unit of the app
 
 There is no "chat" and no "new chat". A story is a sequence of **chapters**, and every chapter
-opens the way a scene opens in a playscript: you say where we are, when, who is on stage, and
-what is happening as the lights come up. Only then can anyone speak.
+opens the way a scene opens in a playscript: a few lines saying where we are, when, who is on
+stage, what is happening as the lights come up. Only then can anyone speak.
+
+The scene is one plain-text field. Whether it reads like a stage direction, a paragraph of
+narration or a single word is the writer's business — the model interprets prose, so the app
+does not need a schema and the writer does not need to learn one.
 
 That gives three hard rules the rest of step 2 follows:
 
-- **A chapter cannot be written into until its scene is set.** Creating a chapter opens the
+- **A chapter cannot be written into until its scene is written.** Creating a chapter opens the
   scene sheet, and the composer stays disabled behind it. This is the one compulsory step in the
   app, and it earns that status: it is also the cheapest possible fix for the usual failure mode
-  of these tools, a model with no idea where it is.
+  of these tools, a model with no idea where it is. Compulsory is not the same as onerous — any
+  non-empty text passes.
 - **A closed chapter is kept, always.** Closing summarises it into `world.storySoFar` and marks
   it `closed`; the chapter itself stays in the Chapters list, readable forever. Nothing asks
   whether to keep it and nothing deletes it. Deleting a chapter is a deliberate act from the
@@ -311,23 +312,29 @@ it on first load so it can be filled in; the existing messages are left alone.
    `features/chapters/`, so the word "chat" leaves the codebase with the concept. Top bar shows
    "Story title · Chapter N — Chapter title" and gains a Stories menu (new, switch, rename,
    duplicate, delete) and a Chapters menu (task 8).
-2. **Scene sheet** (`features/chapters/scene-dialog`), the modal that opens a chapter:
-   - **Place** (required, one line, autofocused) — "The lighthouse gallery".
-   - **When** (one line) — "Dusk, the first night of autumn".
-   - **Who is here** — chips picked from the story's characters and persona, plus free text for
-     a walk-on nobody has written down yet.
-   - **As the scene opens** (a few lines) — the stage direction. Optional, but the field is the
-     tallest one on the sheet because it is the one that does the most good.
-   - **Chapter title** — optional; when blank it defaults to Place.
-   - Footer: token cost of the scene block, so the price of a long stage direction is visible.
-   - Confirm is disabled until Place is non-empty. Escape and backdrop save a draft but do not
-     open the chapter — an unset scene is the one state that blocks the composer, and the
-     composer says so, with a button back to the sheet.
-   - Opening chapter N+1 pre-fills Place, When and Who from chapter N: continuing a scene is the
-     common case, and a pre-filled sheet turns a compulsory step into one Enter press.
-3. **Scene in the prompt**: a `scene` block per 1.4 item 5, sitting last among the system blocks.
-   The scene text also joins the lore scan window, so an entry named in the scene fires on the
-   first message of the chapter rather than only once someone mentions it.
+2. **Scene sheet** (`features/chapters/scene-dialog`), the modal that opens a chapter. It is
+   one field, not a form:
+   - **The scene** — a single large autofocused textarea, set in the reading serif at reading
+     size, because what goes in it is prose and should look like prose while it is written. No
+     place / time / who fields: the model reads a paragraph as well as it reads a schema, and a
+     schema is something the writer would have to fight the first time a scene does not fit it.
+   - Placeholder text carries the playscript idea without imposing it: _"A lighthouse gallery.
+     Dusk, the first night of autumn. Mara is alone, and the lamp is already lit."_ Guidance,
+     not structure — write a word or three pages.
+   - **Chapter title** — optional, one line; when blank it defaults to the scene's first line,
+     trimmed.
+   - Footer: word count and the token cost of the scene block, so the price of three pages is
+     visible while it is being written.
+   - Confirm is disabled while the scene is empty or only whitespace — that is the whole of the
+     validation. Escape and backdrop save a draft but do not open the chapter; an empty scene is
+     the one state that blocks the composer, and the composer says so, with a button back to the
+     sheet.
+   - Opening chapter N+1 pre-fills the sheet with chapter N's scene text, since continuing where
+     you were is the common case and editing a paragraph beats retyping one.
+3. **Scene in the prompt**: a `scene` block per 1.4 item 5, sitting last among the system blocks,
+   injected verbatim — nothing in the app parses the scene, ever. The scene text also joins the
+   lore scan window, so an entry named in the scene fires on the first message of the chapter
+   rather than only once someone mentions it.
 4. **Story modal**, three tabs:
    - **Mode**: big two-way toggle Narrator / Role-play with a one-line explanation of each.
      Narrator tab shows the default narrator prompt (read-only) with an "Override" switch that
@@ -347,10 +354,10 @@ it on first load so it can be filled in; the existing messages are left alone.
    Unit-tested, and it replaces the history-only `assemble()` that step 1 left in `ChatStore`.
 7. **"What the model sees"** modal, reachable from the composer pill, showing each block with its
    token cost, the scene block among them, and which lore entries fired and on which matched key.
-8. **Chapters menu** — the table of contents. One row per chapter: number, title, place, message
-   count, word count, and state (writing / closed). Actions: open (the closed ones open read-only
-   with a "Continue this chapter" button that flips it back to `writing`), edit scene, rename,
-   delete (confirm), and **New chapter** at the bottom.
+8. **Chapters menu** — the table of contents. One row per chapter: number, title, the scene's
+   first line as a subtitle, message count, word count, and state (writing / closed). Actions:
+   open (the closed ones open read-only with a "Continue this chapter" button that flips it back
+   to `writing`), edit scene, rename, delete (confirm), and **New chapter** at the bottom.
 9. **Chapter toolbar** (inside the chat area, above the composer, small pill buttons):
    - **Close chapter**: builds a summarisation request (existing story-so-far + this chapter's
      scene and messages + an instruction modelled on ST's memory extension default prompt),
@@ -368,29 +375,32 @@ it on first load so it can be filled in; the existing messages are left alone.
 ### 3.2 E2E test (live)
 
 1. Create story "The Lighthouse", Narrator mode, persona "Mara, a marine biologist".
-2. The scene sheet opens by itself and the composer is disabled. Confirm is greyed out until
-   **Place** has text. Fill in: place "The keeper's cottage", when "Late afternoon, low tide",
-   who "Mara", opening "Mara arrives to find the door unlatched." Confirm → the chapter opens
-   and the composer comes alive.
+2. The scene sheet opens by itself and the composer is disabled. Confirm is greyed out; type a
+   space and it stays greyed out. Write the scene as one piece of prose: _"The keeper's cottage,
+   late afternoon, low tide. Mara arrives to find the door unlatched and nobody answering."_
+   Title left blank. Confirm → the chapter opens, titled from the first line, composer alive.
 3. World: story so far "Mara has just arrived on the island."; lore "Old Tomas" (keys: tomas,
    keeper), "The Lantern Room" (keys: lantern, lamp room).
-4. Open "What the model sees" before typing anything: the scene block is there, and Old Tomas
-   has already fired on the word "keeper" in the scene — the Lantern Room has not.
-5. Send "I walk up to the door." → output is narration in third person, and it uses the place
-   and the time from the scene rather than inventing its own.
+4. Open "What the model sees" before typing anything: the scene block is there word for word,
+   and Old Tomas has already fired on "keeper" in the scene — the Lantern Room has not.
+5. Send "I walk up to the door." → output is narration in third person, and it picks up the
+   cottage, the hour and the unlatched door from the scene rather than inventing its own.
 6. Switch to Role-play, add character "Tomas" with a description, send a line → model answers as
    Tomas, in first person, does not speak for Mara.
 7. **Close chapter** → summary streams into the review modal, edit one word, confirm. Chapter 1
    goes `closed`, story-so-far gains the summary, and the Chapter 2 scene sheet opens pre-filled
-   with the cottage and Mara. Change place to "The lantern room", confirm → Chapter 2 opens
-   empty, and "What the model sees" now shows the Lantern Room lore firing.
-8. Chapters menu shows two rows: "1 — The keeper's cottage (closed)" and "2 — The lantern room
-   (writing)". Open Chapter 1 → read-only, its messages intact, with "Continue this chapter".
+   with chapter 1's scene text. Rewrite it as _"The lantern room, an hour later."_ — a single
+   short line, to prove nothing more is ever required — confirm → Chapter 2 opens empty, and
+   "What the model sees" now shows the Lantern Room lore firing.
+8. Chapters menu shows two rows: "1 — The keeper's cottage… (closed)" and "2 — The lantern
+   room… (writing)". Open Chapter 1 → read-only, its messages intact, with "Continue this
+   chapter".
 9. Reload → story, both chapters, both scenes and the story-so-far all intact.
-10. Playwright specs extended: the composer stays disabled until a scene is set, Place is
-    required, scene text reaches the prompt, scene text activates lore, mode switch changes the
-    system prompt, close-chapter keeps the chapter and pre-fills the next scene, and chapter
-    numbers survive a deletion — all against the fake server.
+10. Playwright specs extended: the composer stays disabled until a scene is written, whitespace
+    alone does not count, a one-word scene is accepted, the scene reaches the prompt verbatim,
+    scene text activates lore, the chapter title falls back to the scene's first line, mode
+    switch changes the system prompt, close-chapter keeps the chapter and pre-fills the next
+    scene, and chapter numbers survive a deletion — all against the fake server.
 
 ---
 

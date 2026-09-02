@@ -21,7 +21,7 @@ OpenAI-compatible endpoint — no backend in the way, no proxy, no SDK.
 - Everything auto-saves to `localStorage` (a real backend arrives in step 3).
 
 Step 2 turns this single conversation into **chapters**: a story is a sequence of them, each one
-opening on a compulsory scene (place, time, who is present, opening direction) the way a scene
+opening on a compulsory scene — one plain-text field, written however you like — the way a scene
 opens in a playscript, and closing into a summary that carries forward. Story setup, persona and
 world/lore arrive with it. Server persistence is step 3. See `PLAN.md` §3.
 
