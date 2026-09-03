@@ -19,6 +19,12 @@ import { fileURLToPath } from 'node:url';
  *      landing page is mostly raw HTML, so its internal links say `.html`
  *      already; anywhere else, `.md` in an href is a mistake.
  *
+ *   3. jekyll-optional-front-matter refuses to make a page out of four repo
+ *      meta-files — README, CONTRIBUTING, CODE_OF_CONDUCT, LICENSE — so a link
+ *      to one of those is raw markdown unless _config.yml names it under
+ *      `include`. Every page in the guide links to README.md, and this is the
+ *      fault that shipped.
+ *
  * Plus the ordinary one: a link or picture pointing at a file that is not there.
  *
  * Offline, deterministic, and in the release workflow, because the failure it
@@ -31,12 +37,25 @@ const DOCS = join(ROOT, 'docs');
 /** Written as HTML on purpose: it is the website's page and never read on GitHub. */
 const HTML_LINKS_ALLOWED = new Set(['index.md']);
 
+/** Jekyll will not build a page from these unless _config.yml asks it to. */
+const META_FILES = ['README.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md', 'LICENSE.md'];
+
 const problems = [];
 const files = (await readdir(DOCS)).filter((f) => f.endsWith('.md')).sort();
+// Normalised: this repo is edited on Windows, so every one of these files is
+// CRLF on disk, and a pattern anchored on \n silently matches nothing.
+const config = normalise(await readFile(join(DOCS, '_config.yml'), 'utf8'));
+// Only the `include:` block. `header_pages:` lists README.md too, and reading
+// both would have this check pass while the site served raw markdown.
+const included = new Set(
+  (config.match(/^include:\n((?:[ \t]+-[^\n]*\n)+)/m)?.[1] ?? '')
+    .split('\n')
+    .map((line) => line.replace(/^[ \t]*-[ \t]*/, '').trim())
+    .filter(Boolean),
+);
 
 for (const file of files) {
-  const raw = await readFile(join(DOCS, file), 'utf8');
-  const source = withoutCode(raw);
+  const source = withoutCode(normalise(await readFile(join(DOCS, file), 'utf8')));
 
   // [text](target) and ![alt](target); `s` so link text may span lines.
   for (const match of source.matchAll(/(!?)\[([^\]]*)\]\(([^)\s]+)\)/gs)) {
@@ -49,6 +68,16 @@ for (const file of files) {
       continue;
     }
     if (bang || !path.endsWith('.md')) continue;
+
+    const base = path.split('/').pop();
+    if (META_FILES.includes(base) && !included.has(base)) {
+      problems.push(
+        `${file}: links to ${base}, which jekyll-optional-front-matter skips, so no ` +
+          `${base.replace(/\.md$/, '.html')} is built and the visitor gets raw markdown. ` +
+          `Add "${base}" under include: in docs/_config.yml.`,
+      );
+      continue;
+    }
 
     if (text.includes('\n')) {
       problems.push(
@@ -75,6 +104,10 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(`check:docs — ${files.length} pages, every link resolves and will be rewritten.`);
+
+function normalise(text) {
+  return text.replace(/\r\n/g, '\n');
+}
 
 /** Code and comments talk *about* links; they do not contain any. */
 function withoutCode(source) {

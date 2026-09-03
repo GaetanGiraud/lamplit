@@ -11,11 +11,14 @@
 # index.md is the landing page. README.md stays the guide's index, at
 # README.html, which is where every page's "← Documentation" link already goes.
 #
-# That last part needs readme_index switched off. Its job is to publish a README
-# as the site's index when there is no index page; with index.md present it does
-# not do that — but it still takes README.md out of the pages, so README.html was
-# never written and every "← Documentation" link in the guide served raw markdown
-# instead. Found on the first deploy, 2026-09-03.
+# `include: README.md` is what makes that true, and it is not optional.
+# jekyll-optional-front-matter deliberately skips four repo meta-files —
+# README, CONTRIBUTING, CODE_OF_CONDUCT, LICENSE — so docs/README.md was never
+# made a page, README.html was never written, and every "← Documentation" link
+# in the guide served raw markdown. Naming it here is the documented way back in,
+# and it beats giving the file front matter, which GitHub would then render as a
+# table above the heading for anyone reading the guide in the repo.
+# Found on the first deploy, 2026-09-03.
 
 title: Lamplit
 description: >-
@@ -37,5 +40,5 @@ header_pages:
 # root. Setting them here would be one more thing to remember to change if the
 # repository is ever renamed.
 
-readme_index:
-  enabled: false
+include:
+  - README.md
