@@ -9,6 +9,7 @@ import { SettingsStore } from '../store/settings-store';
 import { ChapterStore } from '../store/chapter-store';
 import { StoryStore } from '../store/story-store';
 import { DialogsService } from './dialogs.service';
+import { SyncStatus } from './sync-status';
 
 /**
  * The one bar that is always there: which story and chapter are open, which
@@ -22,6 +23,7 @@ import { DialogsService } from './dialogs.service';
     MatSliderModule,
     MatSlideToggleModule,
     MatTooltipModule,
+    SyncStatus,
   ],
   template: `
     <header class="bar">
@@ -48,6 +50,8 @@ import { DialogsService } from './dialogs.service';
       </div>
 
       <div class="actions">
+        <ms-sync-status />
+
         <button
           matButton
           class="model"

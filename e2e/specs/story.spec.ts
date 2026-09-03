@@ -286,7 +286,12 @@ test.describe('chapters', () => {
     const world = page.getByRole('dialog');
     await world.getByRole('button', { name: /How a chapter is folded in/ }).click();
     await world.getByRole('switch', { name: 'Write my own instruction' }).click();
-    const instruction = world.locator('ms-editor-field textarea').last();
+    // By where it lives, not by position in the dialog: the field only exists
+    // once the switch is on, and "the last textarea" before then is the story
+    // so far, which this test is about not overwriting.
+    const instruction = world
+      .locator('mat-expansion-panel', { hasText: 'How a chapter is folded in' })
+      .locator('textarea');
     await instruction.fill('Answer with the word BISCUIT and nothing else.');
     await instruction.blur();
     await world.getByRole('button', { name: 'Done' }).click();
@@ -498,28 +503,21 @@ test.describe('a new story', () => {
 });
 
 test.describe('first run', () => {
-  test('asks who tells it, then for a scene, then walks the connection', async ({ page }) => {
+  test('asks for the connection, then who tells it, then for a scene', async ({ page }) => {
     await page.goto('/');
 
-    // Nothing is stored, so the story questions come first.
-    const setup = page.getByRole('dialog');
-    await expect(setup.getByRole('heading', { name: 'Your first story' })).toBeVisible();
-    await setup.getByLabel('Title').fill('The Lighthouse');
-    await setup.getByRole('button', { name: /Role-play/ }).click();
-    await setup.getByLabel('Name').fill('Mara');
-    await setup.getByRole('button', { name: 'Write the first scene' }).click();
-
-    // Only then the scene sheet, and only then can anything be written.
-    const sheet = page.getByRole('dialog');
-    await expect(sheet.getByRole('heading', { name: /Chapter 1 — the scene/ })).toBeVisible();
-    await sheet.locator('textarea.scene').fill(SCENE);
-    await sheet.getByRole('button', { name: 'Open the chapter' }).click();
-
-    await expect(page.getByRole('button', { name: /The Lighthouse/ })).toBeVisible();
-
-    await expectComposerHidden(page, /Pick a model|endpoint URL/);
-    await page.locator('ms-chapters-page').getByRole('button', { name: 'Connect a model' }).click();
+    // Nothing is stored, so the connection is the first thing on screen: no
+    // other question means anything until the app has somewhere to send the
+    // story, and this sheet does not take Escape for an answer.
     const dialog = page.getByRole('dialog');
+    await expect(
+      dialog.getByRole('heading', { name: /somewhere to send the story/ }),
+    ).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Done' })).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(
+      dialog.getByRole('heading', { name: /somewhere to send the story/ }),
+    ).toBeVisible();
 
     await dialog.getByRole('combobox', { name: 'Provider' }).click();
     await page.getByRole('option', { name: /Custom/ }).click();
@@ -534,7 +532,26 @@ test.describe('first run', () => {
     await dialog.getByRole('button', { name: 'Test' }).click();
     await expect(dialog.getByText(/The model answered/)).toBeVisible({ timeout: 20_000 });
 
-    await dialog.getByRole('button', { name: 'Done' }).click();
+    // Answered, so the way on lights up.
+    const done = dialog.getByRole('button', { name: 'Done' });
+    await expect(done).toBeEnabled();
+    await done.click();
+
+    // Only then the story questions.
+    const setup = page.getByRole('dialog');
+    await expect(setup.getByRole('heading', { name: 'Your first story' })).toBeVisible();
+    await setup.getByLabel('Title').fill('The Lighthouse');
+    await setup.getByRole('button', { name: /Role-play/ }).click();
+    await setup.getByLabel('Name').fill('Mara');
+    await setup.getByRole('button', { name: 'Write the first scene' }).click();
+
+    // Then the scene sheet, and only then can anything be written.
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: /Chapter 1 — the scene/ })).toBeVisible();
+    await sheet.locator('textarea.scene').fill(SCENE);
+    await sheet.getByRole('button', { name: 'Open the chapter' }).click();
+
+    await expect(page.getByRole('button', { name: /The Lighthouse/ })).toBeVisible();
     await expect(composer(page)).toBeEnabled();
 
     const bodies = await captureRequests(page);
@@ -543,5 +560,32 @@ test.describe('first run', () => {
     await expect(assistantMessages(page)).toHaveCount(1);
     // What the first sheet asked for is in the very first request.
     expect(systemOf(bodies[0])).toContain('never write words, thoughts or actions for Mara');
+  });
+
+  test('the way out of the connection sheet leaves the app blocked, and says so', async ({
+    page,
+  }) => {
+    await page.goto('/');
+
+    const dialog = page.getByRole('dialog');
+    await expect(
+      dialog.getByRole('heading', { name: /somewhere to send the story/ }),
+    ).toBeVisible();
+    await dialog.getByRole('button', { name: 'Not now' }).click();
+
+    // The flow carries on from where it was: the story questions, then the
+    // scene.
+    const setup = page.getByRole('dialog');
+    await expect(setup.getByRole('heading', { name: 'Your first story' })).toBeVisible();
+    await setup.getByRole('button', { name: 'Cancel' }).click();
+
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: /Chapter 1 — the scene/ })).toBeVisible();
+    await sheet.locator('textarea.scene').fill(SCENE);
+    await sheet.getByRole('button', { name: 'Open the chapter' }).click();
+
+    // With a scene written and still nowhere to send it, the composer is the
+    // one saying so — rather than a modal that cannot be dismissed.
+    await expectComposerHidden(page, /Pick a model|endpoint URL/);
   });
 });

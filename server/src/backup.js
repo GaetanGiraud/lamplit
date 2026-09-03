@@ -1,0 +1,45 @@
+import { mkdir, readdir, rm, stat } from 'node:fs/promises';
+import { join } from 'node:path';
+import { collectEntries, writeZip } from './zip.js';
+
+/** How many daily archives to keep before the oldest is dropped. */
+const KEEP = 14;
+
+/**
+ * One zip of `data/` per day, taken on startup. Cheap insurance against a
+ * mistake made inside the app: the stores overwrite documents happily, and
+ * nothing else on this machine holds a second copy.
+ *
+ * Returns the archive's path, or null when today's is already there or the
+ * data folder is still empty.
+ */
+export async function backupOnStartup(dataDir, backupsDir, today = new Date()) {
+  const stamp = today.toISOString().slice(0, 10);
+  const target = join(backupsDir, `data-${stamp}.zip`);
+  if (await exists(target)) return null;
+
+  const entries = await collectEntries(dataDir, 'data');
+  if (!entries.some((entry) => entry.data?.length)) return null;
+
+  await mkdir(backupsDir, { recursive: true });
+  await writeZip(target, entries);
+  await prune(backupsDir);
+  return target;
+}
+
+/** Keeps the newest {@link KEEP} archives; the names sort by date already. */
+async function prune(backupsDir) {
+  const files = (await readdir(backupsDir).catch(() => []))
+    .filter((name) => /^data-\d{4}-\d{2}-\d{2}\.zip$/.test(name))
+    .sort();
+  for (const name of files.slice(0, Math.max(0, files.length - KEEP))) {
+    await rm(join(backupsDir, name), { force: true });
+  }
+}
+
+async function exists(path) {
+  return stat(path).then(
+    () => true,
+    () => false,
+  );
+}

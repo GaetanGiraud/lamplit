@@ -9,8 +9,9 @@ Guiding principles
 
 - Ease of use over configurability. Few menus, each one obviously useful.
 - Visual attractiveness. Reading a story should feel like reading a book.
-- The page is never taken away. Everything else opens as a modal over it, and only the scene
-  sheet is allowed to insist on an answer before writing can start.
+- The page is never taken away. Everything else opens as a modal over it, and only two sheets are
+  allowed to insist on an answer before writing can start: the connection, once, on a fresh
+  install, and the scene of the chapter being opened.
 - Everything is auto-saved. No "save" anxiety.
 - The whole prompt is rebuilt from data on every request. No hidden state.
 
@@ -65,9 +66,10 @@ MagicStories/
         story/              story setup modal (mode, narrator, characters, persona)
         world/              world modal (facts, people, places, story so far, lore)
       shared/               top bar, modal shell, editor field with light save button, ui bits
-  server/                   Express persistence server (step 3)
+  server/                   Express persistence server (step 3); also the zip writer
+  tools/                    dev.mjs (app + server together), package.mjs (the runnable zip)
   e2e/                      Playwright specs + fake OpenAI SSE server
-  electron/                 (optional, step 3)
+  electron/                 (later)
 ```
 
 ### 1.3 Data model (TypeScript, all persisted as-is)
@@ -408,6 +410,14 @@ it on first load so it can be filled in; the existing messages are left alone.
     All three are optional and all three stay editable in Story; backing out creates nothing. A
     first run that has never been written in gets the same sheet over the story the app made for
     itself, where backing out simply keeps the defaults.
+13. **The connection comes before the story sheet** (added 2026-09-03, after the review of step
+    3). A fresh install opens on Connection and nothing else: there is no point writing a scene
+    for a model the app cannot reach, and every other question is downstream of this one. That
+    sheet insists — no Escape, no backdrop, and Done stays dark until there is an endpoint and a
+    model — but it keeps one "Not now", because a modal with no way out would be worse than the
+    block it is enforcing. The block itself is already downstream: the composer stays shut and
+    says why. The whole thing is skipped once a connection is stored, which is every run but the
+    first. Order on a fresh install: connection → story → scene.
 
 ### 3.2 E2E test (live)
 
@@ -472,13 +482,31 @@ Goal: the store is mirrored to disk, as-is, always.
   A small status dot in the top bar: saved / saving / offline (with retry).
 - `localStorage` stays as a write-through cache so the UI paints instantly on reload.
 
-### 4.3 Electron (optional)
+### 4.3 Packaging (`npm run package`)
+
+Added to step 3 on 2026-09-03, ahead of Electron and as the thing Electron will wrap.
+
+- `tools/package.mjs` builds the app, stages `server/src`, the Angular output as `public/`, and
+  the server's production dependency closure as `node_modules/`, then writes
+  `build/magicstories-<version>.zip` (~1 MB).
+- The dependency closure is resolved the way Node resolves it, from the installed tree, rather
+  than by asking npm to install again: it works offline and copies the versions that were tested.
+- Zipping is done by `server/src/zip.js`, a hundred-line deflate writer, so neither the package
+  script nor the daily backup pulls in a dependency for it.
+- Unzip anywhere, run `start.bat` (Windows) or `start.sh` (Linux, macOS): one call starts the
+  server, opens the browser, and creates `data/` next to the script. Node 20.19+ is the only
+  prerequisite; nothing is installed or built at the far end.
+- The start scripts pass `--open`; `--port`, `--data`, `MS_OPEN=0` and `MS_BACKUP=0` all work.
+
+### 4.4 Electron (later, not built)
 
 - `electron/main.ts` starts the Express server in-process on a free port and opens a
   `BrowserWindow` at it; `data/` lives in `app.getPath('userData')`.
-- electron-builder for a Windows installer / portable exe. Not on the critical path.
+- electron-builder for a Windows installer / portable exe. Not on the critical path, and
+  deliberately left out of the package above. The server already takes its data and public
+  folders as options, which is all Electron needs from it.
 
-### 4.4 Final acceptance test
+### 4.5 Final acceptance test
 
 1. `npm start` → one process, app served, `data/` created.
 2. Repeat the step 2 live scenario end to end; inspect `data/` after each action and confirm the
@@ -514,7 +542,7 @@ Goal: the store is mirrored to disk, as-is, always.
 |---|---|---|
 | 1 | Streaming chat + connection + parameters, localStorage only (the conversation becomes Chapter 1 in step 2) | **Done 2026-09-02.** 22 unit tests + 14 Playwright specs green against the fake endpoint; NanoGPT's live model list confirmed from the browser (612 models, no key, CORS fine). The live-key half of E2E 2.2 still needs Gaetan. |
 | 2 | Chapters with compulsory scenes, story / persona / world / lore, prompt builder, close chapter | **Done 2026-09-03.** 37 unit tests + 24 Playwright specs green against the fake endpoint. Live E2E 3.2 still needs Gaetan's key. |
-| 3 | Express persistence, bootstrap, status indicator, (Electron) | Final acceptance 4.4 |
+| 3 | Express persistence, bootstrap, status indicator, packaging | **Done 2026-09-03.** 53 app unit tests + 30 server unit tests + 39 Playwright specs green, five of them driving the production build served by the real server and asserting against the files on disk. `npm run package` produces a ~1 MB zip that runs from one call. Electron deliberately left for later. Live E2E still needs Gaetan's key. |
 
 Each step is a separate session. Nothing from a later step is started before the previous
 checkpoint passes.

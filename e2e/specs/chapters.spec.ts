@@ -154,13 +154,23 @@ test.describe('writing a chapter', () => {
     const box = composer(page);
     await box.click();
 
+    // The box is resized from change detection, so it grows on the frame after
+    // the keystroke. Measuring two frames on gives it that frame and no more:
+    // any later than that and the line being written is out of sight.
     const state = () =>
-      box.evaluate((el: HTMLTextAreaElement) => ({
-        height: Math.round(el.getBoundingClientRect().height),
-        // A box that scrolls is a box that grew late: the line being written
-        // is already out of sight.
-        scrolling: el.scrollHeight > el.clientHeight + 4,
-      }));
+      box.evaluate(
+        (el: HTMLTextAreaElement) =>
+          new Promise<{ height: number; scrolling: boolean }>((settled) => {
+            requestAnimationFrame(() =>
+              requestAnimationFrame(() =>
+                settled({
+                  height: Math.round(el.getBoundingClientRect().height),
+                  scrolling: el.scrollHeight > el.clientHeight + 4,
+                }),
+              ),
+            );
+          }),
+      );
 
     const resting = await state();
     expect(resting.scrolling).toBe(false);

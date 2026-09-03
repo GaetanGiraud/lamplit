@@ -19,13 +19,22 @@ export class DialogsService {
   private readonly chapters = inject(ChapterStore);
   private readonly stories = inject(StoryStore);
 
-  async openConnection(): Promise<void> {
+  /**
+   * `insisting` is the first-run form: it opens before anything else, does not
+   * take Escape or a click outside for an answer, and keeps Done dark until
+   * there is somewhere to send the story. Resolves when it closes, so the flow
+   * behind it can wait.
+   */
+  async openConnection(insisting = false): Promise<void> {
     const { ConnectionDialog } = await import('../features/connection/connection-dialog');
-    this.dialog.open(ConnectionDialog, {
+    const ref = this.dialog.open(ConnectionDialog, {
       width: '34rem',
       maxWidth: '95vw',
       autoFocus: 'dialog',
+      disableClose: insisting,
+      data: { insisting },
     });
+    await firstValueFrom(ref.afterClosed());
   }
 
   async openParameters(): Promise<void> {

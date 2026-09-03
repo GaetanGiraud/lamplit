@@ -1,0 +1,123 @@
+import { ChildProcess, spawn } from 'node:child_process';
+import { createServer } from 'node:net';
+import { existsSync } from 'node:fs';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/**
+ * The real persistence server, started per test on its own port with its own
+ * empty data folder — and serving the real production build, so these specs
+ * exercise the packaged arrangement rather than the dev server.
+ *
+ * The other specs run against `ng serve`, where nothing answers /api and the
+ * app is on `localStorage` alone. Both halves need to keep working.
+ */
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(HERE, '..', '..');
+export const ENTRY = join(ROOT, 'server', 'src', 'index.js');
+export const BUILT_APP = join(ROOT, 'app', 'dist', 'app', 'browser');
+
+/** The specs skip rather than fail when the app has not been built. */
+export const IS_BUILT = existsSync(join(BUILT_APP, 'index.html'));
+
+export class PersistenceServer {
+  readonly dataDir: string;
+  readonly port: number;
+  readonly url: string;
+  private child: ChildProcess | null = null;
+
+  private constructor(dataDir: string, port: number) {
+    this.dataDir = dataDir;
+    this.port = port;
+    this.url = `http://127.0.0.1:${port}`;
+  }
+
+  /** A fresh folder and a free port, so nothing carries over between tests. */
+  static async create(): Promise<PersistenceServer> {
+    const dataDir = await mkdtemp(join(tmpdir(), 'magicstories-e2e-'));
+    return new PersistenceServer(dataDir, await freePort());
+  }
+
+  async start(): Promise<void> {
+    if (this.child) return;
+    this.child = spawn(process.execPath, [ENTRY], {
+      env: {
+        ...process.env,
+        MS_DATA_DIR: this.dataDir,
+        MS_PUBLIC_DIR: BUILT_APP,
+        MS_PORT: String(this.port),
+        MS_BACKUP: '0',
+      },
+      stdio: 'ignore',
+    });
+    await this.waitFor(true);
+  }
+
+  async stop(): Promise<void> {
+    const child = this.child;
+    if (!child) return;
+    this.child = null;
+    const exited = new Promise<void>((fulfil) => child.once('exit', () => fulfil()));
+    child.kill();
+    await exited;
+    await this.waitFor(false);
+  }
+
+  async dispose(): Promise<void> {
+    await this.stop();
+    await rm(this.dataDir, { recursive: true, force: true });
+  }
+
+  /** What is actually on disk, which is the whole point of these specs. */
+  async document<T = Record<string, unknown>>(
+    collection: 'settings' | 'stories' | 'chapters',
+    id?: string,
+  ): Promise<T | null> {
+    const path =
+      collection === 'settings'
+        ? join(this.dataDir, 'settings.json')
+        : join(this.dataDir, collection, `${id}.json`);
+    try {
+      return JSON.parse(await readFile(path, 'utf8')) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  async ids(collection: 'stories' | 'chapters'): Promise<string[]> {
+    const files = await readdir(join(this.dataDir, collection)).catch(() => []);
+    return files
+      .filter((file) => file.endsWith('.json'))
+      .map((file) => file.slice(0, -5))
+      .sort();
+  }
+
+  private async waitFor(up: boolean, timeout = 20_000): Promise<void> {
+    const deadline = Date.now() + timeout;
+    for (;;) {
+      const alive = await fetch(`${this.url}/api/health`)
+        .then((response) => response.ok)
+        .catch(() => false);
+      if (alive === up) return;
+      if (Date.now() > deadline) {
+        throw new Error(`persistence server never came ${up ? 'up' : 'down'} on ${this.url}`);
+      }
+      await new Promise((fulfil) => setTimeout(fulfil, 100));
+    }
+  }
+}
+
+/** Ask the OS for a port, then give it straight back. */
+function freePort(): Promise<number> {
+  return new Promise((fulfil, reject) => {
+    const probe = createServer();
+    probe.on('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address() as { port: number };
+      probe.close(() => fulfil(port));
+    });
+  });
+}

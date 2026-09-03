@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -20,6 +20,11 @@ type Status = { kind: 'idle' | 'busy' | 'ok' | 'error'; message: string };
 
 const IDLE: Status = { kind: 'idle', message: '' };
 
+/** Opened from the top bar, or as the first thing a fresh install asks. */
+export interface ConnectionData {
+  insisting: boolean;
+}
+
 /**
  * Provider, URL, key, model. Every change is written to settings immediately,
  * so closing the modal — however it closes — has already saved.
@@ -35,9 +40,18 @@ const IDLE: Status = { kind: 'idle', message: '' };
     MatSelectModule,
   ],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">Connection</h2>
+    <h2 mat-dialog-title class="ms-dialog-title">
+      {{ insisting ? 'First, somewhere to send the story' : 'Connection' }}
+    </h2>
 
     <mat-dialog-content>
+      @if (insisting) {
+        <p class="lede">
+          MagicStories writes with a model of your choosing and keeps nothing of its own. Point it
+          at an endpoint and pick one; the story comes next.
+        </p>
+      }
+
       <mat-form-field appearance="outline">
         <mat-label>Provider</mat-label>
         <mat-select [value]="connection().provider" (valueChange)="setProvider($event)">
@@ -143,10 +157,23 @@ const IDLE: Status = { kind: 'idle', message: '' };
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton="filled" mat-dialog-close>Done</button>
+      @if (insisting) {
+        <!-- The app is unusable without this, and the composer says so until it
+             is answered — but a modal with no way out would be worse. -->
+        <button matButton mat-dialog-close>Not now</button>
+      }
+      <button matButton="filled" mat-dialog-close [disabled]="insisting && !settings.isConnected()">
+        Done
+      </button>
     </mat-dialog-actions>
   `,
   styles: `
+    .lede {
+      margin: 0 0 0.9rem;
+      color: var(--ms-muted);
+      line-height: 1.5;
+    }
+
     mat-dialog-content {
       display: flex;
       flex-direction: column;
@@ -204,6 +231,10 @@ const IDLE: Status = { kind: 'idle', message: '' };
 export class ConnectionDialog {
   protected readonly settings = inject(SettingsStore);
   private readonly client = inject(ModelClient);
+
+  /** Null when opened from the top bar, which is every time but the first. */
+  protected readonly insisting =
+    inject<ConnectionData | null>(MAT_DIALOG_DATA, { optional: true })?.insisting ?? false;
 
   protected readonly connection = this.settings.connection;
   protected readonly showKey = signal(false);

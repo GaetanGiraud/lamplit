@@ -5,13 +5,20 @@
   "description": "A chat-centred, text-only storytelling app talking straight to any OpenAI-compatible endpoint.",
   "workspaces": [
     "app",
+    "server",
     "e2e"
   ],
   "scripts": {
-    "start": "npm run start -w app",
+    "start": "node tools/dev.mjs",
+    "start:app": "npm run start -w app",
+    "server": "node server/src/index.js",
     "build": "npm run build -w app",
-    "test": "npm run test -w app",
-    "e2e": "npm run test -w e2e",
+    "package": "node tools/package.mjs",
+    "test": "npm run test -w app && npm run test -w server",
+    "test:app": "npm run test -w app",
+    "test:server": "npm run test -w server",
+    "e2e": "npm run build -w app && npm run test -w e2e",
+    "e2e:quick": "npm run test -w e2e",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   }

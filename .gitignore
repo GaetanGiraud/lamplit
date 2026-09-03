@@ -6,3 +6,4 @@ backups/
 *.log
 test-results/
 playwright-report/
+build/
