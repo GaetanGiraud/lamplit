@@ -19,6 +19,7 @@
     "desktop:dist": "node tools/desktop.mjs --dist",
     "screenshots": "node tools/screenshots.mjs",
     "providers": "node --experimental-strip-types tools/probe-providers.mjs",
+    "check:docs": "node tools/check-docs.mjs",
     "icons": "node tools/icons.mjs",
     "test": "npm run test -w app && npm run test -w server",
     "test:app": "npm run test -w app",

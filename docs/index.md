@@ -188,9 +188,11 @@ and what each one needs, is in [Models and parameters](models-and-parameters.md)
 
 ## Then read the guide
 
-**[The guide](README.md)** covers the whole app: [chapters, and how a long story stays
-affordable](chapters.md), [the world your story remembers](story-and-world.md), [exactly what is
-sent to the model](the-prompt.md), and [where your files are](your-data.md).
+**[The guide](README.md)** covers the whole app:
+[chapters, and how a long story stays affordable](chapters.md),
+[the world your story remembers](story-and-world.md),
+[exactly what is sent to the model](the-prompt.md), and
+[where your files are](your-data.md).
 
 ---
 

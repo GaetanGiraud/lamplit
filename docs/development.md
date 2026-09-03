@@ -51,6 +51,7 @@ usefully — why each decision went the way it did.
 | `npm run desktop` | Opens the Electron window against the repository — no packaging, so a change to the app needs `npm run build` and a reload |
 | `npm run desktop:stage` | Stages the folder the installers wrap (`build/desktop-stage`), and stops |
 | `npm run desktop:dist` | Stages, then builds installers for the OS you are on, into `build/desktop` |
+| `npm run check:docs` | Every link in `docs/` resolves, and will survive being turned into a website. Offline, and in the release workflow |
 | `npm run format` | Prettier over everything |
 
 ## Tests

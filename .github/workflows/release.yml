@@ -56,6 +56,11 @@ jobs:
       - name: Install the browser Playwright drives
         run: npx playwright install --with-deps chromium
 
+      # Cheap, offline, and catches the class of bug that only shows up when a
+      # visitor clicks: a docs link the website will serve as raw markdown.
+      - name: Check the docs links
+        run: npm run check:docs
+
       - name: Unit tests
         run: npm test
 
