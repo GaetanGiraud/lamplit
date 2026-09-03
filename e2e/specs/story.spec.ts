@@ -1,0 +1,547 @@
+import { expect, test } from '@playwright/test';
+import {
+  FAKE_API_URL,
+  assistantMessages,
+  captureRequests,
+  composer,
+  expectComposerHidden,
+  seedConnectedSettings,
+  seedStory,
+  send,
+  systemOf,
+  waitForTurn,
+} from './helpers';
+
+const NEWLINE = String.fromCharCode(10);
+
+const SCENE = 'The keeper’s cottage, late afternoon, low tide. The door is unlatched.';
+
+/** The sheet that opens a chapter, and everything that hangs off it. */
+test.describe('the scene', () => {
+  test('a chapter cannot be written into until its scene is written', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: '' });
+    await page.goto('/');
+
+    // The sheet opens by itself, and the composer waits behind it.
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: /the scene/ })).toBeVisible();
+    const confirm = sheet.getByRole('button', { name: 'Open the chapter' });
+    await expect(confirm).toBeDisabled();
+
+    // Whitespace is not a scene.
+    const field = sheet.locator('textarea.scene');
+    await field.fill('   ');
+    await expect(confirm).toBeDisabled();
+
+    // One word is.
+    await field.fill('Dusk.');
+    await expect(confirm).toBeEnabled();
+
+    await confirm.click();
+    await expect(sheet).toBeHidden();
+    await expect(composer(page)).toBeEnabled();
+    await expect(page.getByRole('button', { name: /Chapter 1 — Dusk\./ })).toBeVisible();
+  });
+
+  test('escaping the sheet keeps whatever was written', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: '' });
+    await page.goto('/');
+
+    // Escape with nothing but whitespace: the chapter is still shut, and the
+    // composer says so, with the way back to the sheet.
+    const sheet = page.getByRole('dialog');
+    await sheet.locator('textarea.scene').fill('   ');
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+    await expectComposerHidden(page, /has no scene yet/);
+
+    await page.getByRole('button', { name: /has no scene yet/ }).click();
+    const reopened = page.getByRole('dialog');
+    await reopened.locator('textarea.scene').fill('Half a thought.');
+    await page.keyboard.press('Escape');
+    await expect(reopened).toBeHidden();
+
+    // Escape saved it, and any non-empty scene opens the chapter.
+    await expect(composer(page)).toBeEnabled();
+    await page.getByRole('button', { name: 'Edit scene' }).click();
+    await expect(page.getByRole('dialog').locator('textarea.scene')).toHaveValue('Half a thought.');
+  });
+
+  test('the scene reaches the model verbatim, and the title falls back to its first line', async ({
+    page,
+  }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: `${SCENE}\n\nNobody answers.` });
+    const bodies = await captureRequests(page);
+    await page.goto('/');
+
+    await send(page, 'I walk up to the door.');
+    await waitForTurn(page);
+
+    const system = systemOf(bodies[0]);
+    expect(system).toContain('Chapter 1. The scene:');
+    expect(system).toContain(`${SCENE}\n\nNobody answers.`);
+    // Untitled chapters are known by the scene's opening line.
+    await expect(page.getByRole('button', { name: /Chapter 1 — The keeper/ })).toBeVisible();
+  });
+});
+
+test.describe('the world', () => {
+  const entries = [
+    {
+      id: 'tomas',
+      title: 'Old Tomas',
+      category: 'person' as const,
+      keys: ['tomas', 'keeper'],
+      content: 'The lighthouse keeper, missing since spring.',
+    },
+    {
+      id: 'lantern',
+      title: 'The Lantern Room',
+      category: 'place' as const,
+      keys: ['lantern', 'lamp room'],
+      content: 'Reached by a hundred and nine iron steps.',
+    },
+  ];
+
+  test('lore fires on the scene, and only on what is mentioned', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE, entries, storySoFar: 'Mara has just arrived.' });
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'What the model sees' }).click();
+    const preview = page.getByRole('dialog');
+    await expect(preview.locator('li', { hasText: 'Old Tomas' })).toContainText(
+      'fired on “keeper” in the scene',
+    );
+    await expect(preview.locator('li', { hasText: 'The Lantern Room' })).toHaveCount(0);
+    await expect(preview.getByText('Mara has just arrived.')).toBeVisible();
+    await preview.getByRole('button', { name: 'Done' }).click();
+
+    // What the preview promised is what the request carries.
+    const bodies = await captureRequests(page);
+    await send(page, 'I look around.');
+    await waitForTurn(page);
+    const system = systemOf(bodies[0]);
+    expect(system).toContain('missing since spring');
+    expect(system).not.toContain('hundred and nine iron steps');
+  });
+
+  test('what the reader types can fire an entry too', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE, entries });
+    const bodies = await captureRequests(page);
+    await page.goto('/');
+
+    await send(page, 'I climb to the lantern.');
+    await waitForTurn(page);
+    expect(systemOf(bodies[0])).toContain('hundred and nine iron steps');
+  });
+
+  test('closing the modal saves what was typed into it', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'World', exact: true }).click();
+    const world = page.getByRole('dialog');
+    await world.locator('ms-editor-field textarea').fill('Mara has just arrived on the island.');
+    // Escape closes and saves: there is no discard anywhere in the app.
+    await page.keyboard.press('Escape');
+    await expect(world).toBeHidden();
+
+    await page.getByRole('button', { name: 'What the model sees' }).click();
+    await expect(page.getByRole('dialog')).toContainText('Mara has just arrived on the island.');
+  });
+
+  test('an entry with nothing written in it says so', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'World', exact: true }).click();
+    const world = page.getByRole('dialog');
+    await world.getByRole('tab', { name: 'Lore' }).click();
+    await world.getByRole('button', { name: 'Add an entry' }).click();
+    await page.getByRole('menuitem', { name: 'Person' }).click();
+
+    const card = world.locator('.entry');
+    await expect(card).toHaveClass(/unwritten/);
+    await expect(card).toContainText('nothing to say yet');
+
+    const text = card.locator('ms-editor-field textarea');
+    await text.fill('The lighthouse keeper, missing since spring.');
+    await text.blur();
+    await expect(card).not.toHaveClass(/unwritten/);
+  });
+
+  test('entries collapse to one line, and open one at a time', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE, entries });
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'World', exact: true }).click();
+    const world = page.getByRole('dialog');
+    await world.getByRole('tab', { name: 'Lore' }).click();
+
+    // A world can hold dozens: they start closed, each one a single row.
+    const cards = world.locator('.entry');
+    await expect(cards).toHaveCount(2);
+    await expect(world.locator('ms-editor-field')).toHaveCount(0);
+    await expect(world.locator('.entry', { hasText: 'Old Tomas' })).toContainText('tomas, keeper');
+
+    await world.locator('.disclose', { hasText: 'Old Tomas' }).click();
+    await expect(world.locator('ms-editor-field')).toHaveCount(1);
+    await expect(world.locator('.entry.open')).toContainText('What is true');
+
+    await world.locator('.disclose', { hasText: 'Old Tomas' }).click();
+    await expect(world.locator('ms-editor-field')).toHaveCount(0);
+  });
+
+  test('switching to role-play changes the system prompt', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, {
+      scene: SCENE,
+      persona: { name: 'Mara', description: 'a marine biologist' },
+    });
+    const bodies = await captureRequests(page);
+    await page.goto('/');
+
+    await send(page, 'Hello?');
+    await waitForTurn(page);
+    expect(systemOf(bodies[0])).toContain('You are the narrator');
+
+    await page.getByRole('button', { name: 'Story', exact: true }).click();
+    const story = page.getByRole('dialog');
+    await story.getByRole('button', { name: /Role-play/ }).click();
+    await story.getByRole('button', { name: 'Add a character' }).click();
+    await story.getByLabel('Name').first().fill('Tomas');
+    await story.getByLabel('Name').first().blur();
+    await story.getByRole('button', { name: 'Done' }).click();
+
+    await send(page, 'Hello again?');
+    await waitForTurn(page);
+    const system = systemOf(bodies[1]);
+    expect(system).toContain('You are playing Tomas.');
+    expect(system).toContain('never write words, thoughts or actions for Mara');
+  });
+});
+
+test.describe('chapters', () => {
+  test('closing a chapter keeps it, folds its summary in, and opens the next', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE, storySoFar: 'Mara arrived on the island.' });
+    await page.goto('/');
+
+    await send(page, 'I knock.');
+    await waitForTurn(page);
+
+    await page.getByRole('button', { name: 'Close chapter' }).click();
+    const review = page.getByRole('dialog');
+    const summary = review.locator('textarea');
+    await expect(summary).not.toBeEmpty();
+    await summary.fill('Mara knocked, and nobody came.');
+    await review.getByRole('button', { name: 'Close the chapter' }).click();
+
+    // The next chapter's sheet opens, pre-filled with the scene just closed.
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: /Chapter 2/ })).toBeVisible();
+    await expect(sheet.locator('textarea.scene')).toHaveValue(SCENE);
+    await sheet.locator('textarea.scene').fill('The lantern room, an hour later.');
+    await sheet.getByRole('button', { name: 'Open the chapter' }).click();
+
+    // Chapter 1 is still there, closed, with its messages.
+    await page.getByRole('button', { name: 'Chapters' }).click();
+    const list = page.getByRole('dialog');
+    await expect(list.getByText('closed')).toBeVisible();
+    await expect(list.getByText('2 messages')).toBeVisible();
+    await list.getByRole('button', { name: 'Done' }).click();
+
+    // And the summary is what the model now remembers of it.
+    const bodies = await captureRequests(page);
+    await send(page, 'I look up.');
+    await waitForTurn(page);
+    expect(systemOf(bodies[0])).toContain('Mara knocked, and nobody came.');
+    expect(systemOf(bodies[0])).toContain('The lantern room, an hour later.');
+    expect(systemOf(bodies[0])).not.toContain('low tide');
+    // The summary replaced the story so far rather than being added to it.
+    expect(systemOf(bodies[0])).not.toContain('Mara arrived on the island.');
+  });
+
+  test('the summary request carries the story so far and an editable instruction', async ({
+    page,
+  }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE, storySoFar: 'Mara arrived on the island.' });
+    const bodies = await captureRequests(page);
+    await page.goto('/');
+
+    await send(page, 'I knock.');
+    await waitForTurn(page);
+
+    // Make the instruction the writer's own, from the World modal.
+    await page.getByRole('button', { name: 'World', exact: true }).click();
+    const world = page.getByRole('dialog');
+    await world.getByRole('button', { name: /How a chapter is folded in/ }).click();
+    await world.getByRole('switch', { name: 'Write my own instruction' }).click();
+    const instruction = world.locator('ms-editor-field textarea').last();
+    await instruction.fill('Answer with the word BISCUIT and nothing else.');
+    await instruction.blur();
+    await world.getByRole('button', { name: 'Done' }).click();
+
+    await page.getByRole('button', { name: 'Close chapter' }).click();
+    await expect(page.getByRole('dialog').locator('textarea').first()).not.toBeEmpty();
+
+    const summaryRequest = bodies[bodies.length - 1];
+    const user = summaryRequest['messages'].at(-1).content as string;
+    expect(user).toContain('The story so far, as it stands:');
+    expect(user).toContain('Mara arrived on the island.');
+    expect(user).toContain('Answer with the word BISCUIT and nothing else.');
+  });
+
+  test('starting a new chapter closes the one being written first', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
+    await page.goto('/');
+
+    await send(page, 'I knock.');
+    await waitForTurn(page);
+
+    // "New chapter" is the same act as closing this one: the model summarises
+    // it, the summary is reviewed, and only then does the next chapter open.
+    await page.getByRole('button', { name: 'Chapters' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'New chapter' }).click();
+
+    const review = page.getByRole('dialog');
+    await expect(review.getByRole('heading', { name: /Close Chapter 1/ })).toBeVisible();
+    const summary = review.locator('textarea');
+    await expect(summary).not.toBeEmpty();
+    await summary.fill('Mara knocked, and nobody came.');
+    await review.getByRole('button', { name: 'Close the chapter' }).click();
+
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: /Chapter 2/ })).toBeVisible();
+    await sheet.locator('textarea.scene').fill('The lantern room, an hour later.');
+    await sheet.getByRole('button', { name: 'Open the chapter' }).click();
+
+    // The summary is in the story so far, and chapter 1 is closed.
+    const bodies = await captureRequests(page);
+    await send(page, 'I look up.');
+    await waitForTurn(page);
+    expect(systemOf(bodies[0])).toContain('Mara knocked, and nobody came.');
+
+    await page.getByRole('button', { name: 'Chapters' }).click();
+    await expect(page.getByRole('dialog')).toContainText('closed');
+  });
+
+  test('a new chapter after an empty one just opens', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
+    await page.goto('/');
+
+    // Nothing was written, so there is nothing to summarise and nothing to ask.
+    await page.getByRole('button', { name: 'Chapters' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'New chapter' }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: /Chapter 2 — the scene/ })).toBeVisible();
+  });
+
+  test('a closed chapter opens read-only until it is continued', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
+    await page.goto('/');
+    await send(page, 'I knock.');
+    await waitForTurn(page);
+
+    await page.getByRole('button', { name: 'Close chapter' }).click();
+    const review = page.getByRole('dialog');
+    await review.locator('textarea').fill('A summary.');
+    await review.getByRole('button', { name: 'Close the chapter' }).click();
+
+    const sheet = page.getByRole('dialog');
+    await sheet.locator('textarea.scene').fill('Later.');
+    await sheet.getByRole('button', { name: 'Open the chapter' }).click();
+
+    await page.getByRole('button', { name: 'Chapters' }).click();
+    await page
+      .getByRole('dialog')
+      .locator('.title', { hasText: /The keeper/ })
+      .click();
+
+    await expectComposerHidden(page, /is closed/);
+    await page.getByRole('button', { name: /is closed/ }).click();
+    await expect(composer(page)).toBeEnabled();
+  });
+
+  test('chapter numbers are never reused', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
+    await page.goto('/');
+
+    // Two more chapters, so there is a middle one to delete.
+    for (const scene of ['The lantern room.', 'The jetty.']) {
+      await page.getByRole('button', { name: 'Chapters' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'New chapter' }).click();
+      const sheet = page.getByRole('dialog');
+      await sheet.locator('textarea.scene').fill(scene);
+      await sheet.getByRole('button', { name: 'Open the chapter' }).click();
+    }
+
+    await page.getByRole('button', { name: 'Chapters' }).click();
+    const list = page.getByRole('dialog');
+    await list
+      .locator('article', { hasText: 'The lantern room.' })
+      .getByRole('button', { name: 'Chapter actions' })
+      .click();
+    await page.getByRole('menuitem', { name: 'Delete' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+
+    // 1 and 3 remain, and 3 is still called 3.
+    await expect(list.locator('article')).toHaveCount(2);
+    await expect(list.locator('.title', { hasText: 'The jetty.' })).toBeVisible();
+    await list.getByRole('button', { name: 'Done' }).click();
+    await expect(page.getByRole('button', { name: /Chapter 3 — The jetty\./ })).toBeVisible();
+  });
+
+  test('story, chapters and scenes survive a reload', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE, storySoFar: 'Mara has just arrived.' });
+    await page.goto('/');
+
+    await send(page, 'I knock.');
+    await waitForTurn(page);
+    await page.reload();
+
+    await expect(page.getByRole('button', { name: /The Lighthouse/ })).toBeVisible();
+    await expect(assistantMessages(page)).toHaveCount(1);
+    await page.getByRole('button', { name: 'What the model sees' }).click();
+    const preview = page.getByRole('dialog');
+    await expect(preview.getByText('Mara has just arrived.')).toBeVisible();
+    await expect(preview.getByText(new RegExp(SCENE.slice(0, 24)))).toBeVisible();
+  });
+});
+
+test.describe('a new story', () => {
+  test('asks for mode and persona before the first scene', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
+    const bodies = await captureRequests(page);
+    await page.goto('/');
+
+    await page.getByRole('button', { name: /The Lighthouse/ }).click();
+    await page.getByRole('menuitem', { name: 'New story…' }).click();
+
+    const setup = page.getByRole('dialog');
+    await setup.getByLabel('Title').fill('The Jetty');
+    await setup.getByLabel('Name').fill('Ines');
+    await setup.getByRole('button', { name: 'Write the first scene' }).click();
+
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: /Chapter 1 — the scene/ })).toBeVisible();
+    // A new story starts on a blank scene: nothing is carried over from the last one.
+    await expect(sheet.locator('textarea.scene')).toHaveValue('');
+    await sheet.locator('textarea.scene').fill('The jetty, first light.');
+    await sheet.getByRole('button', { name: 'Open the chapter' }).click();
+
+    await expect(page.getByRole('button', { name: /The Jetty · Chapter 1/ })).toBeVisible();
+    await send(page, 'I wait.');
+    await waitForTurn(page);
+    expect(systemOf(bodies[0])).toContain('The user plays Ines');
+    expect(systemOf(bodies[0])).toContain('The jetty, first light.');
+  });
+
+  test('the persona box grows with what is typed, even in a short window', async ({ page }) => {
+    // A short window is what made this fail: the sheet overflowed, and a flex
+    // column shrinks its children rather than scrolling, so the box was pinned
+    // at one line however much was typed into it.
+    await page.setViewportSize({ width: 900, height: 520 });
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
+    await page.goto('/');
+
+    await page.getByRole('button', { name: /The Lighthouse/ }).click();
+    await page.getByRole('menuitem', { name: 'New story…' }).click();
+    const box = page.getByRole('dialog').locator('textarea');
+    await box.waitFor();
+    // Let the dialog finish opening: it scales up, which moves the numbers.
+    await page.waitForTimeout(400);
+
+    const state = () =>
+      box.evaluate((el: HTMLTextAreaElement) => ({
+        drawn: el.getBoundingClientRect().height,
+        // Squashed by the flex column, the box would scroll its own text.
+        scrolling: el.scrollHeight > el.clientHeight + 4,
+      }));
+    const short = await state();
+    await box.fill(Array.from({ length: 9 }, (_, i) => `line ${i + 1}`).join(NEWLINE));
+    const tall = await state();
+    expect(tall.drawn).toBeGreaterThan(short.drawn + 80);
+    expect(tall.scrolling).toBe(false);
+  });
+
+  test('backing out of the sheet creates nothing', async ({ page }) => {
+    await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
+    await page.goto('/');
+
+    await page.getByRole('button', { name: /The Lighthouse/ }).click();
+    await page.getByRole('menuitem', { name: 'New story…' }).click();
+    await page.getByRole('dialog').getByLabel('Title').fill('Never mind');
+    await page.keyboard.press('Escape');
+
+    await expect(page.getByRole('button', { name: /The Lighthouse · Chapter 1/ })).toBeVisible();
+    await page.getByRole('button', { name: /The Lighthouse/ }).click();
+    await expect(page.getByRole('menuitem', { name: 'Never mind' })).toHaveCount(0);
+  });
+});
+
+test.describe('first run', () => {
+  test('asks who tells it, then for a scene, then walks the connection', async ({ page }) => {
+    await page.goto('/');
+
+    // Nothing is stored, so the story questions come first.
+    const setup = page.getByRole('dialog');
+    await expect(setup.getByRole('heading', { name: 'Your first story' })).toBeVisible();
+    await setup.getByLabel('Title').fill('The Lighthouse');
+    await setup.getByRole('button', { name: /Role-play/ }).click();
+    await setup.getByLabel('Name').fill('Mara');
+    await setup.getByRole('button', { name: 'Write the first scene' }).click();
+
+    // Only then the scene sheet, and only then can anything be written.
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByRole('heading', { name: /Chapter 1 — the scene/ })).toBeVisible();
+    await sheet.locator('textarea.scene').fill(SCENE);
+    await sheet.getByRole('button', { name: 'Open the chapter' }).click();
+
+    await expect(page.getByRole('button', { name: /The Lighthouse/ })).toBeVisible();
+
+    await expectComposerHidden(page, /Pick a model|endpoint URL/);
+    await page.locator('ms-chapters-page').getByRole('button', { name: 'Connect a model' }).click();
+    const dialog = page.getByRole('dialog');
+
+    await dialog.getByRole('combobox', { name: 'Provider' }).click();
+    await page.getByRole('option', { name: /Custom/ }).click();
+    await dialog.getByLabel('Endpoint URL').fill(FAKE_API_URL);
+
+    await dialog.getByRole('button', { name: 'Fetch models' }).click();
+    await expect(dialog.getByText('3 models', { exact: true })).toBeVisible();
+
+    await dialog.getByRole('combobox', { name: 'Model' }).click();
+    await page.getByRole('option', { name: /Storyteller Large/ }).click();
+
+    await dialog.getByRole('button', { name: 'Test' }).click();
+    await expect(dialog.getByText(/The model answered/)).toBeVisible({ timeout: 20_000 });
+
+    await dialog.getByRole('button', { name: 'Done' }).click();
+    await expect(composer(page)).toBeEnabled();
+
+    const bodies = await captureRequests(page);
+    await send(page, 'Begin.');
+    await waitForTurn(page);
+    await expect(assistantMessages(page)).toHaveCount(1);
+    // What the first sheet asked for is in the very first request.
+    expect(systemOf(bodies[0])).toContain('never write words, thoughts or actions for Mara');
+  });
+});

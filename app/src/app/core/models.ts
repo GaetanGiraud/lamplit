@@ -73,7 +73,7 @@ export interface MessageMeta {
   error?: string;
 }
 
-export interface ChatMessage {
+export interface ChapterMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
@@ -84,15 +84,94 @@ export interface ChatMessage {
   meta?: MessageMeta;
 }
 
-export interface Chat {
+// ---------------------------------------------------------------------------
+// A story and its world
+// ---------------------------------------------------------------------------
+
+export type StoryMode = 'narrator' | 'roleplay';
+export type ReplyLength = 'short' | 'medium' | 'long';
+export type LoreCategory = 'fact' | 'person' | 'place' | 'other';
+
+export interface Character {
   id: string;
-  storyId: string | null;
+  name: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface LoreEntry {
+  id: string;
   title: string;
-  chapterNumber: number;
+  category: LoreCategory;
+  keys: string[];
+  content: string;
+  enabled: boolean;
+  /** Skips the keyword scan: this entry is in every request. */
+  alwaysOn: boolean;
+  /** Both fall back to the story's scan settings when left undefined. */
+  caseSensitive?: boolean;
+  matchWholeWords?: boolean;
+}
+
+/** Global defaults for the keyword scan, overridable per entry. */
+export interface ScanSettings {
+  /** How many of the most recent messages join the scan window. */
+  depth: number;
+  caseSensitive: boolean;
+  matchWholeWords: boolean;
+}
+
+export interface StoryWorld {
+  /**
+   * Compulsory, always injected. Closing a chapter rewrites it rather than
+   * appending to it, so it stays the same size however long the story runs.
+   */
+  storySoFar: string;
+  /** How "close chapter" is asked to rewrite it; `useDefault` keeps ours. */
+  summary: { useDefault: boolean; prompt: string };
+  entries: LoreEntry[];
+  scan: ScanSettings;
+}
+
+export interface StoryStyle {
+  /** A prompt instruction, not a rendering choice: see UiSettings for that. */
+  dialogueOnOwnLine: boolean;
+  replyLength: ReplyLength;
+}
+
+export interface Story {
+  id: string;
+  title: string;
   createdAt: string;
   updatedAt: string;
-  archived: boolean;
-  messages: ChatMessage[];
+  mode: StoryMode;
+  /** Narrator mode only; `useDefault` keeps the built-in preamble. */
+  narrator: { useDefault: boolean; prompt: string };
+  characters: Character[];
+  persona: { name: string; description: string };
+  style: StoryStyle;
+  world: StoryWorld;
+  activeChapterId: string;
+  /** Only ever increases: chapter 3 stays chapter 3 after a deletion. */
+  chapterCounter: number;
+}
+
+/**
+ * One file per chapter. There is no separate "chat" document: a chapter *is*
+ * the conversation, plus the scene it opens on and the summary it closes with.
+ */
+export interface Chapter {
+  id: string;
+  storyId: string;
+  number: number;
+  title: string;
+  /** Written before the first message, injected verbatim, never parsed. */
+  scene: string;
+  status: 'writing' | 'closed';
+  summary: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ChapterMessage[];
 }
 
 /** What actually goes over the wire to the endpoint. */

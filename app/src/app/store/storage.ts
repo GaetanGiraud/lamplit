@@ -62,9 +62,3 @@ export class LocalStorageBackend implements StorageBackend {
 }
 
 export const STORAGE_BACKEND = new InjectionToken<StorageBackend>('StorageBackend');
-
-export const STORAGE_KEYS = {
-  settings: 'settings',
-  chat: (id: string) => `chat:${id}`,
-  activeChat: 'active-chat',
-} as const;

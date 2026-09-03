@@ -1,0 +1,213 @@
+import { Component, computed, inject } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
+import { Chapter } from '../../core/models';
+import { chapterTitle, firstLine } from '../../core/prompt-builder';
+import { ChapterStore } from '../../store/chapter-store';
+import { StoryStore } from '../../store/story-store';
+import { DialogsService } from '../../shared/dialogs.service';
+import { countWords } from '../../shared/editor-field';
+
+interface Row {
+  chapter: Chapter;
+  title: string;
+  opening: string;
+  messages: number;
+  words: number;
+  active: boolean;
+}
+
+/** The table of contents. One row per chapter, in the order they were written. */
+@Component({
+  selector: 'ms-chapters-dialog',
+  imports: [MatButtonModule, MatDialogModule, MatMenuModule],
+  template: `
+    <h2 mat-dialog-title class="ms-dialog-title">{{ stories.story().title }}</h2>
+
+    <mat-dialog-content>
+      @for (row of rows(); track row.chapter.id) {
+        <article class="row" [class.active]="row.active">
+          <button class="open" type="button" (click)="open(row)">
+            <span class="line">
+              <span class="number">{{ row.chapter.number }}</span>
+              <span class="title">{{ row.title || 'Untitled chapter' }}</span>
+              <span class="state" [class.closed]="row.chapter.status === 'closed'">
+                {{ row.chapter.status }}
+              </span>
+            </span>
+            @if (row.opening !== row.title) {
+              <span class="opening">{{ row.opening || 'No scene yet' }}</span>
+            }
+            <span class="counts">
+              {{ row.messages }} {{ row.messages === 1 ? 'message' : 'messages' }} ·
+              {{ row.words }} words
+            </span>
+          </button>
+
+          <button matIconButton [matMenuTriggerFor]="menu" aria-label="Chapter actions">⋯</button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="editScene(row)">Edit scene</button>
+            <button mat-menu-item (click)="rename(row)">Rename</button>
+            @if (row.chapter.status === 'closed') {
+              <button mat-menu-item (click)="continue(row)">Continue this chapter</button>
+            }
+            <button mat-menu-item (click)="remove(row)">Delete</button>
+          </mat-menu>
+        </article>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button matButton mat-dialog-close>Done</button>
+      <button matButton="filled" (click)="newChapter()">New chapter</button>
+    </mat-dialog-actions>
+  `,
+  styles: `
+    mat-dialog-content {
+      max-height: min(70vh, 40rem) !important;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      border-bottom: 1px solid color-mix(in srgb, var(--ms-border) 60%, transparent);
+    }
+
+    .row.active {
+      background: color-mix(in srgb, var(--ms-accent) 8%, transparent);
+    }
+
+    .open {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      padding: 0.65rem 0.6rem;
+      border: 0;
+      border-radius: 8px;
+      background: none;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .open:hover {
+      background: color-mix(in srgb, var(--ms-ink) 5%, transparent);
+    }
+
+    .line {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      min-width: 0;
+    }
+
+    .number {
+      flex: none;
+      width: 1.4rem;
+      font-family: var(--ms-serif);
+      font-size: 1rem;
+      color: var(--ms-muted);
+    }
+
+    .title {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-family: var(--ms-serif);
+      font-size: 1.02rem;
+      color: var(--ms-ink);
+    }
+
+    .state {
+      flex: none;
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ms-accent);
+    }
+
+    .state.closed {
+      color: var(--ms-muted);
+    }
+
+    .opening,
+    .counts {
+      padding-left: 1.9rem;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--ms-muted);
+    }
+
+    .opening {
+      font-family: var(--ms-serif);
+      font-size: 0.85rem;
+    }
+
+    .counts {
+      font-size: 0.72rem;
+    }
+  `,
+})
+export class ChaptersDialog {
+  protected readonly chapters = inject(ChapterStore);
+  protected readonly stories = inject(StoryStore);
+  private readonly dialogs = inject(DialogsService);
+  private readonly ref = inject(MatDialogRef<ChaptersDialog>);
+
+  protected readonly rows = computed<Row[]>(() => {
+    const active = this.chapters.chapter()?.id;
+    return this.chapters.chapters().map((chapter) => ({
+      chapter,
+      title: chapterTitle(chapter),
+      opening: firstLine(chapter.scene),
+      messages: chapter.messages.length,
+      words: chapter.messages.reduce((total, m) => total + countWords(m.content), 0),
+      active: chapter.id === active,
+    }));
+  });
+
+  protected open(row: Row): void {
+    this.chapters.open(row.chapter.id);
+    this.ref.close();
+  }
+
+  protected async editScene(row: Row): Promise<void> {
+    await this.dialogs.openScene(row.chapter.id);
+  }
+
+  protected async rename(row: Row): Promise<void> {
+    const title = await this.dialogs.askText({
+      title: `Chapter ${row.chapter.number}`,
+      label: 'Chapter title',
+      value: row.chapter.title,
+    });
+    if (title !== undefined) this.chapters.update(row.chapter.id, { title });
+  }
+
+  protected continue(row: Row): void {
+    this.chapters.continueChapter(row.chapter.id);
+    this.ref.close();
+  }
+
+  protected async remove(row: Row): Promise<void> {
+    const ok = await this.dialogs.confirm({
+      title: `Delete chapter ${row.chapter.number}?`,
+      message: `“${row.title || 'Untitled chapter'}” and its ${row.messages} messages go for good. Chapter numbers are not reused, so the ones after it keep their own.`,
+      danger: true,
+    });
+    if (ok) this.chapters.deleteChapter(row.chapter.id);
+  }
+
+  protected async newChapter(): Promise<void> {
+    this.ref.close();
+    await this.dialogs.newChapter();
+  }
+}

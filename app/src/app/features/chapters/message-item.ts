@@ -10,11 +10,13 @@ import {
   viewChild,
 } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
+import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ChatMessage } from '../../core/models';
+import { ChapterMessage } from '../../core/models';
 import { renderStoryHtml } from '../../core/formatting';
 import { formatTokens } from '../../core/tokens';
+import { TextValue } from '../../shared/text-value';
 
 /**
  * One turn. The assistant's text is set as prose across the reading column;
@@ -23,7 +25,7 @@ import { formatTokens } from '../../core/tokens';
  */
 @Component({
   selector: 'ms-message-item',
-  imports: [MatButtonModule, MatTooltipModule],
+  imports: [MatButtonModule, MatTooltipModule, TextFieldModule, TextValue],
   template: `
     <article
       class="message"
@@ -35,8 +37,11 @@ import { formatTokens } from '../../core/tokens';
         <div class="editor">
           <textarea
             #editor
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="4"
+            cdkAutosizeMaxRows="24"
             class="story-prose"
-            [value]="draft()"
+            [msText]="draft()"
             (input)="draft.set(text($event))"
             (keydown)="onEditorKey($event)"
           ></textarea>
@@ -191,8 +196,7 @@ import { formatTokens } from '../../core/tokens';
       border-radius: 10px;
       background: var(--ms-surface-raised);
       color: var(--ms-ink);
-      resize: vertical;
-      field-sizing: content;
+      resize: none;
     }
 
     .editor-actions {
@@ -252,7 +256,7 @@ import { formatTokens } from '../../core/tokens';
   `,
 })
 export class MessageItem {
-  readonly message = input.required<ChatMessage>();
+  readonly message = input.required<ChapterMessage>();
   readonly streaming = input(false);
   /** True while any turn is in flight: regenerate and replay must wait. */
   readonly busy = input(false);

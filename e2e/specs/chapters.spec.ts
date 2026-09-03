@@ -1,21 +1,24 @@
 import { expect, test } from '@playwright/test';
 import {
-  FAKE_API_URL,
   FAKE_MODEL,
   act,
   assistantMessages,
   composer,
   messages,
   seedConnectedSettings,
+  seedStory,
   send,
   setBookStyle,
   userMessages,
   waitForTurn,
 } from './helpers';
 
-test.describe('chat', () => {
+const SCENE = 'The keeper’s cottage, late afternoon, low tide. The door is unlatched.';
+
+test.describe('writing a chapter', () => {
   test.beforeEach(async ({ page }) => {
     await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
     await page.goto('/');
   });
 
@@ -135,7 +138,7 @@ test.describe('chat', () => {
     );
   });
 
-  test('the chat and the connection survive a reload', async ({ page }) => {
+  test('the chapter and the connection survive a reload', async ({ page }) => {
     await send(page, 'Remember me.');
     await waitForTurn(page);
     const answer = await assistantMessages(page).first().innerText();
@@ -147,52 +150,43 @@ test.describe('chat', () => {
     await expect(page.getByRole('button', { name: /Storyteller Large/ })).toBeVisible();
   });
 
+  test('the composer grows with the text, without ever scrolling it', async ({ page }) => {
+    const box = composer(page);
+    await box.click();
+
+    const state = () =>
+      box.evaluate((el: HTMLTextAreaElement) => ({
+        height: Math.round(el.getBoundingClientRect().height),
+        // A box that scrolls is a box that grew late: the line being written
+        // is already out of sight.
+        scrolling: el.scrollHeight > el.clientHeight + 4,
+      }));
+
+    const resting = await state();
+    expect(resting.scrolling).toBe(false);
+
+    for (let i = 0; i < 60; i++) {
+      await page.keyboard.type('word ');
+      expect((await state()).scrolling).toBe(false);
+    }
+    expect((await state()).height).toBeGreaterThan(resting.height);
+  });
+
   test('the context pill reflects what will be sent', async ({ page }) => {
     const pill = page.getByRole('button', { name: /^context/ });
-    await expect(pill).toContainText('0 / 16k');
+    // The scene and the system blocks are in there before a word is typed.
+    await expect(pill).toContainText('/ 16k');
+    const before = await pill.innerText();
 
     await composer(page).fill('A sentence that costs a few tokens to send.');
-    await expect(pill).not.toContainText('0 / 16k');
-  });
-});
-
-test.describe('first run', () => {
-  test('offers to connect, then walks provider, models and test', async ({ page }) => {
-    await page.goto('/');
-
-    await expect(page.getByRole('heading', { name: 'A blank page' })).toBeVisible();
-    await expect(composer(page)).toBeDisabled();
-
-    await page.locator('ms-chat-page').getByRole('button', { name: 'Connect a model' }).click();
-    const dialog = page.getByRole('dialog');
-
-    await dialog.getByRole('combobox', { name: 'Provider' }).click();
-    await page.getByRole('option', { name: /Custom/ }).click();
-    await dialog.getByLabel('Endpoint URL').fill(FAKE_API_URL);
-
-    await dialog.getByRole('button', { name: 'Fetch models' }).click();
-    await expect(dialog.getByText('3 models', { exact: true })).toBeVisible();
-
-    await dialog.getByRole('combobox', { name: 'Model' }).click();
-    await page.getByRole('option', { name: /Storyteller Large/ }).click();
-
-    await dialog.getByRole('button', { name: 'Test' }).click();
-    await expect(dialog.getByText(/The model answered/)).toBeVisible({
-      timeout: 20_000,
-    });
-
-    await dialog.getByRole('button', { name: 'Done' }).click();
-    await expect(composer(page)).toBeEnabled();
-
-    await send(page, 'Begin.');
-    await waitForTurn(page);
-    await expect(assistantMessages(page)).toHaveCount(1);
+    await expect(pill).not.toHaveText(before);
   });
 });
 
 test.describe('parameters', () => {
   test.beforeEach(async ({ page }) => {
     await seedConnectedSettings(page);
+    await seedStory(page, { scene: SCENE });
     await page.goto('/');
   });
 

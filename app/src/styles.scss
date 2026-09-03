@@ -4,6 +4,23 @@
 // Structural styles for everything that opens over the chat.
 @include cdk.overlay();
 @include cdk.a11y-visually-hidden();
+// Autosizing textareas measure themselves through a class that lives here.
+// Without it the measurement is taken at the box's current height, so a box
+// only notices it has to grow once the text already overflows — one line late.
+@include cdk.text-field-autosize();
+
+// The measurement is taken as a content box (the measuring class forces
+// `box-sizing: content-box` and strips the padding) and then written into
+// `height`. On a border-box textarea that height *contains* the padding, so
+// every box sits one padding short of its own text and scrolls while it is
+// written into. Match the box model the measurement assumes — and drop the
+// pinned width with it, since a content box at `width: 100%` would be 100%
+// *plus* its padding; every one of these is a flex item, so it stretches.
+// Material's own fields do their own arithmetic and are left alone.
+textarea.cdk-textarea-autosize:not(.mat-mdc-input-element) {
+  box-sizing: content-box;
+  width: auto;
+}
 @include mat.elevation-classes();
 
 // One theme, driven by the `color-scheme` property on <html>, which the
@@ -274,6 +291,38 @@ app-root {
   letter-spacing: 0.02em;
   color: var(--ms-muted);
   background: var(--ms-surface);
+}
+
+// A two-way choice with room to explain itself: the Narrator / Role-play
+// toggle, shared by the story sheet and the new-story sheet.
+.ms-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.ms-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--ms-border);
+  border-radius: 12px;
+  background: var(--ms-surface-raised);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+
+  .name {
+    font-family: var(--ms-serif);
+    font-size: 1.05rem;
+    color: var(--ms-ink);
+  }
+
+  &.on {
+    border-color: color-mix(in srgb, var(--ms-accent) 70%, var(--ms-border));
+    background: color-mix(in srgb, var(--ms-accent) 10%, transparent);
+  }
 }
 
 .ms-dialog-title {

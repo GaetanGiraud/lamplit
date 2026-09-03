@@ -4,13 +4,15 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { chapterTitle } from '../core/prompt-builder';
 import { SettingsStore } from '../store/settings-store';
-import { ChatStore } from '../store/chat-store';
+import { ChapterStore } from '../store/chapter-store';
+import { StoryStore } from '../store/story-store';
 import { DialogsService } from './dialogs.service';
 
 /**
- * The one bar that is always there. Story and chapter live here from step 2;
- * for now it shows the chapter, the live model and the way into the modals.
+ * The one bar that is always there: which story and chapter are open, which
+ * model is answering, and the way into everything that opens over the page.
  */
 @Component({
   selector: 'ms-top-bar',
@@ -25,8 +27,24 @@ import { DialogsService } from './dialogs.service';
     <header class="bar">
       <div class="identity">
         <span class="wordmark">MagicStories</span>
-        <span class="sep">·</span>
-        <span class="chapter">{{ chat.chat().title }}</span>
+        <button matButton class="here" [matMenuTriggerFor]="storiesMenu">
+          <span class="label">
+            <span class="story">{{ stories.story().title }}</span
+            >&ngsp;·&ngsp;<span class="chapter">{{ chapterLabel() }}</span>
+          </span>
+        </button>
+        <mat-menu #storiesMenu="matMenu">
+          @for (story of stories.stories(); track story.id) {
+            <button mat-menu-item (click)="stories.select(story.id)">
+              {{ story.id === stories.story().id ? '• ' : '' }}{{ story.title }}
+            </button>
+          }
+          <hr />
+          <button mat-menu-item (click)="dialogs.newStory()">New story…</button>
+          <button mat-menu-item (click)="rename()">Rename…</button>
+          <button mat-menu-item (click)="stories.duplicate(stories.story().id)">Duplicate</button>
+          <button mat-menu-item (click)="remove()">Delete story…</button>
+        </mat-menu>
       </div>
 
       <div class="actions">
@@ -41,6 +59,9 @@ import { DialogsService } from './dialogs.service';
           {{ modelLabel() }}
         </button>
 
+        <button matButton (click)="dialogs.openStory()">Story</button>
+        <button matButton (click)="dialogs.openWorld()">World</button>
+        <button matButton (click)="dialogs.openChapters()">Chapters</button>
         <button matButton (click)="dialogs.openParameters()">Parameters</button>
 
         <button matButton [matMenuTriggerFor]="reading">Reading</button>
@@ -79,7 +100,11 @@ import { DialogsService } from './dialogs.service';
 
         <button matButton [matMenuTriggerFor]="more" aria-label="More actions">⋯</button>
         <mat-menu #more="matMenu">
-          <button mat-menu-item [disabled]="chat.isEmpty()" (click)="clear()">
+          <button mat-menu-item (click)="dialogs.newChapter()">New chapter…</button>
+          <button mat-menu-item (click)="dialogs.openScene(chapters.chapter().id)">
+            Edit this scene…
+          </button>
+          <button mat-menu-item [disabled]="chapters.isEmpty()" (click)="clear()">
             Clear this chapter
           </button>
         </mat-menu>
@@ -101,7 +126,7 @@ import { DialogsService } from './dialogs.service';
 
     .identity {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: 0.5rem;
       min-width: 0;
       overflow: hidden;
@@ -116,13 +141,35 @@ import { DialogsService } from './dialogs.service';
       color: var(--ms-ink);
     }
 
-    .sep,
-    .chapter {
-      color: var(--ms-muted);
-      font-size: 0.85rem;
-      white-space: nowrap;
+    /* Material centres a button's label, which would spill it over the
+       wordmark: one flex child, started at the left edge, clipped here. */
+    .here {
+      display: flex;
+      justify-content: flex-start;
       overflow: hidden;
+      min-width: 0;
+      max-width: 30rem;
+    }
+
+    /* One line that ellipsises as a whole: story first, chapter trimmed. */
+    .label {
+      display: block;
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
       text-overflow: ellipsis;
+      color: var(--ms-muted);
+    }
+
+    .story {
+      font-family: var(--ms-serif);
+      font-size: 0.95rem;
+      color: var(--ms-ink);
+    }
+
+    .chapter {
+      font-size: 0.85rem;
     }
 
     .actions {
@@ -132,10 +179,9 @@ import { DialogsService } from './dialogs.service';
       gap: 0.15rem;
     }
 
-    /* Narrow windows keep the chapter and the model; the wordmark can go. */
-    @media (max-width: 780px) {
-      .wordmark,
-      .sep {
+    /* Narrow windows keep the story and the model; the wordmark can go. */
+    @media (max-width: 980px) {
+      .wordmark {
         display: none;
       }
     }
@@ -172,6 +218,12 @@ import { DialogsService } from './dialogs.service';
       min-width: 15rem;
     }
 
+    hr {
+      border: 0;
+      border-top: 1px solid var(--ms-border);
+      margin: 0.25rem 0;
+    }
+
     .size {
       display: flex;
       flex-direction: column;
@@ -182,8 +234,16 @@ import { DialogsService } from './dialogs.service';
 })
 export class TopBar {
   protected readonly settings = inject(SettingsStore);
-  protected readonly chat = inject(ChatStore);
+  protected readonly stories = inject(StoryStore);
+  protected readonly chapters = inject(ChapterStore);
   protected readonly dialogs = inject(DialogsService);
+
+  protected readonly chapterLabel = computed(() => {
+    const chapter = this.chapters.chapter();
+    if (!chapter) return '';
+    const title = chapterTitle(chapter);
+    return `Chapter ${chapter.number}${title ? ` — ${title}` : ''}`;
+  });
 
   protected readonly modelLabel = computed(() => {
     const connection = this.settings.connection();
@@ -196,8 +256,33 @@ export class TopBar {
     () => this.settings.connectionHint() || `${this.settings.connection().baseUrl}`,
   );
 
-  protected clear(): void {
-    if (confirm('Clear every message in this chapter?')) this.chat.clear();
+  protected async rename(): Promise<void> {
+    const title = await this.dialogs.askText({
+      title: 'Rename story',
+      label: 'Title',
+      value: this.stories.story().title,
+    });
+    if (title) this.stories.patch({ title });
+  }
+
+  protected async remove(): Promise<void> {
+    const story = this.stories.story();
+    const ok = await this.dialogs.confirm({
+      title: `Delete “${story.title}”?`,
+      message: 'Every chapter of this story goes with it, and none of it can be brought back.',
+      danger: true,
+    });
+    if (ok) this.stories.delete(story.id);
+  }
+
+  protected async clear(): Promise<void> {
+    const ok = await this.dialogs.confirm({
+      title: 'Clear this chapter?',
+      message: 'Every message in it goes; the scene stays, and the chapter stays.',
+      confirm: 'Clear',
+      danger: true,
+    });
+    if (ok) this.chapters.clearMessages();
   }
 }
 

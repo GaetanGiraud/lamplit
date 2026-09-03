@@ -1,4 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
+import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -24,6 +25,7 @@ import { ParamRow } from '../../shared/param-row';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    TextFieldModule,
     ParamRow,
   ],
   template: `
@@ -94,7 +96,9 @@ import { ParamRow } from '../../shared/param-row';
         <mat-label>Stop sequences</mat-label>
         <textarea
           matInput
-          rows="2"
+          cdkTextareaAutosize
+          cdkAutosizeMinRows="2"
+          cdkAutosizeMaxRows="8"
           [value]="stopText()"
           (change)="setStop(value($event))"
           placeholder="One per line"
@@ -193,6 +197,13 @@ import { ParamRow } from '../../shared/param-row';
       gap: 0.25rem;
       /* Tall enough that Advanced is reachable without hunting for a scrollbar. */
       max-height: min(78vh, 46rem) !important;
+    }
+
+    /* A scrolling column, not a squashing one: without this the children are
+       shrunk to fit instead of the content scrolling, and an autosizing
+       textarea is drawn shorter than the height it asked for. */
+    mat-dialog-content > * {
+      flex: none;
     }
 
     /* Two columns where there is room: the whole panel then fits on screen. */

@@ -5,7 +5,7 @@ OpenAI-compatible endpoint — no backend in the way, no proxy, no SDK.
 
 `PLAN.md` is the plan of record. This README covers running what exists.
 
-## What works today (step 1)
+## What works today (steps 1 and 2)
 
 - Streaming chat against any OpenAI-compatible `/chat/completions`, parsed as SSE.
 - Connection modal: NanoGPT or a hand-typed URL, API key, model list (grouped, filterable),
@@ -18,12 +18,32 @@ OpenAI-compatible endpoint — no backend in the way, no proxy, no SDK.
   models that already break their own lines look the same either way.
 - Per-message edit, regenerate, replay-from-here, delete and copy; Stop mid-stream keeps the
   partial answer.
-- Everything auto-saves to `localStorage` (a real backend arrives in step 3).
+- **Chapters.** A story is a sequence of them, and each one opens on a scene: one plain-text
+  field, written however you like, the way a scene opens in a playscript. A chapter cannot be
+  written into until its scene is written — the one compulsory step in the app, and any non-empty
+  text passes. The scene goes to the model verbatim, and can be edited at any time.
+- **Close chapter** rewrites the story so far to include the chapter just finished — the model is
+  handed the summary as it stands and asked for the whole thing back, so it stays one readable
+  page instead of growing with every chapter. You edit what comes back before it lands, and the
+  instruction behind it is editable per story (World → How a chapter is folded in, or from the
+  review sheet). Then the next chapter's sheet opens, pre-filled with the scene just closed. **New chapter**
+  is the same act from the other end: starting the next one closes the one being written, so a
+  story always carries forward as summary rather than as transcript. A chapter with nothing in it
+  just opens. Nothing is
+  discarded: closed chapters stay in the Chapters list, readable, and can be continued.
+  Chapter numbers are permanent — chapter 3 stays chapter 3 after chapter 2 is deleted.
+- **Story modal**: Narrator or Role-play (with a cast), the persona you play, and style rules.
+- **World modal**: the story so far (always sent) and keyword-activated lore, grouped by kind,
+  with scan settings. Entries collapse to a single line — title, keys, state — so a world can hold
+  dozens and still be read; "What is true" is required, and an entry without it is flagged rather
+  than quietly skipped, since an entry is the sentence it contributes.
+- **What the model sees**: the assembled prompt block by block, with each block's token cost and
+  which lore entries fired on which key.
+- Several stories, each self-contained: new, switch, rename, duplicate, delete.
+- Everything auto-saves to `localStorage` (a real backend arrives in step 3). A step-1
+  conversation is migrated into Chapter 1 of a new story on first load.
 
-Step 2 turns this single conversation into **chapters**: a story is a sequence of them, each one
-opening on a compulsory scene — one plain-text field, written however you like — the way a scene
-opens in a playscript, and closing into a summary that carries forward. Story setup, persona and
-world/lore arrive with it. Server persistence is step 3. See `PLAN.md` §3.
+Server persistence is step 3. See `PLAN.md` §4.
 
 ## Requirements
 
@@ -36,7 +56,8 @@ npm install
 npm start
 ```
 
-`npm start` serves the app on <http://localhost:4200>. Open it, click **Connect a model**, paste
+`npm start` serves the app on <http://localhost:4200>. Open it and the scene sheet for Chapter 1
+is waiting: say where we are and what is happening, confirm, then click **Connect a model**, paste
 your key, fetch the model list, pick one, and write the first line.
 
 ## Tests
@@ -45,8 +66,9 @@ your key, fetch the model list, pick one, and write the first line.
 npm test
 ```
 
-Unit tests (vitest) cover the SSE reader, the request builder, error mapping, token estimates and
-the story formatter.
+Unit tests (vitest) cover the SSE reader, the request builder, error mapping, token estimates,
+the story formatter, and the prompt builder (block order, the scene verbatim, lore scanning,
+budget trimming, chapter titles, the summary request).
 
 ```bash
 npm run e2e
@@ -71,10 +93,11 @@ needed. The fake endpoint takes instructions from the message text: `!slow`, `!l
 
 ```
 app/      Angular 21 workspace (standalone components, signals, zoneless)
-  core/     model client, SSE reader, errors, token estimates, story formatting
+  core/     model client, SSE reader, errors, token estimates, story formatting, prompt builder
   store/    signal stores + the storage backend they write through
-  features/ chat, connection, generation
-  shared/   top bar, dialog openers, shared controls
+  features/ chapters (page, scene sheet, chapters list, close chapter, prompt preview),
+            connection, generation, story, world
+  shared/   top bar, dialog openers, editor field, shared controls
 e2e/      Playwright specs + the fake endpoint
 ```
 

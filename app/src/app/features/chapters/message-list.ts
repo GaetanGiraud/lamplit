@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   ElementRef,
   afterRenderEffect,
   computed,
@@ -8,7 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { ChatStore } from '../../store/chat-store';
+import { ChapterStore } from '../../store/chapter-store';
 import { SettingsStore } from '../../store/settings-store';
 import { MessageItem } from './message-item';
 
@@ -21,17 +22,17 @@ const PINNED_SLACK = 96;
   template: `
     <div #scroller class="scroller" (scroll)="onScroll()">
       <div class="column" [style.--ms-reading-size.px]="settings.ui().fontSize">
-        @for (message of chat.messages(); track message.id) {
+        @for (message of chapters.messages(); track message.id) {
           <ms-message-item
             [message]="message"
-            [streaming]="chat.streamingId() === message.id"
-            [busy]="chat.isStreaming()"
+            [streaming]="chapters.streamingId() === message.id"
+            [busy]="chapters.isStreaming()"
             [bookStyle]="settings.ui().bookStyleDialogue"
             [showTokens]="settings.ui().showTokenCounts"
-            (edited)="chat.editMessage(message.id, $event)"
-            (remove)="chat.deleteMessage(message.id)"
-            (regenerate)="chat.regenerate(message.id)"
-            (replay)="chat.replayFrom(message.id)"
+            (edited)="chapters.editMessage(message.id, $event)"
+            (remove)="chapters.deleteMessage(message.id)"
+            (regenerate)="chapters.regenerate(message.id)"
+            (replay)="chapters.replayFrom(message.id)"
           />
         }
         <div class="tail"></div>
@@ -77,7 +78,7 @@ const PINNED_SLACK = 96;
   `,
 })
 export class MessageList {
-  protected readonly chat = inject(ChatStore);
+  protected readonly chapters = inject(ChapterStore);
   protected readonly settings = inject(SettingsStore);
 
   private readonly scroller = viewChild.required<ElementRef<HTMLElement>>('scroller');
@@ -87,7 +88,7 @@ export class MessageList {
 
   /** Changes on a new message and on every flushed streaming delta. */
   private readonly growth = computed(() => {
-    const messages = this.chat.messages();
+    const messages = this.chapters.messages();
     const last = messages[messages.length - 1];
     return `${messages.length}:${last?.content.length ?? 0}`;
   });
@@ -97,6 +98,18 @@ export class MessageList {
       this.growth();
       if (this.pinned()) this.scrollToBottom();
     });
+
+    // The composer grows as it is written into, which shortens this column —
+    // without this the last lines of the story slide up under the dock while
+    // the reader is still looking at them.
+    const observer = new ResizeObserver(() => {
+      if (this.pinned()) this.scrollToBottom();
+    });
+    afterRenderEffect(() => {
+      const dock = document.querySelector('ms-composer');
+      if (dock) observer.observe(dock);
+    });
+    inject(DestroyRef).onDestroy(() => observer.disconnect());
   }
 
   protected onScroll(): void {

@@ -119,9 +119,16 @@ interface Story {
   narrator: { useDefault: boolean; prompt: string }; // narrator mode only
   characters: Character[]; // roleplay mode
   persona: { name: string; description: string }; // always injected
+  style: {
+    // Prompt instructions, not rendering: Settings.ui holds the reading side.
+    dialogueOnOwnLine: boolean;
+    replyLength: 'short' | 'medium' | 'long';
+  };
   world: {
-    storySoFar: string; // compulsory, always injected, fed by "close chapter"
+    storySoFar: string; // compulsory, always injected, rewritten by "close chapter"
+    summary: { useDefault: boolean; prompt: string }; // how a chapter is folded in
     entries: LoreEntry[]; // optional, keyword-activated
+    scan: { depth: number; caseSensitive: boolean; matchWholeWords: boolean }; // defaults
   };
   activeChapterId: string;
   chapterCounter: number;
@@ -349,6 +356,11 @@ it on first load so it can be filled in; the existing messages are left alone.
      chips, content, enabled, always-on. Add / duplicate / delete. Search box filters by title or
      key.
    - Scan settings in a footer: scan depth, case sensitive, whole words (global defaults).
+   - Each entry collapses to one line (title, keys, state) and opens on click; a world holds
+     dozens, and all of them open at once is unreadable. Added 2026-09-03 after review.
+   - **"What is true" is required** (2026-09-03, after review): an entry is the sentence it
+     contributes, so an empty one can never fire. The card says so and is marked unfinished
+     rather than the entry being silently dropped from the prompt.
 6. **Prompt builder** (`core/prompt-builder.ts`) implementing 1.4: a pure function of
    (settings, story, chapter, draft) → messages + token report + which lore fired and why.
    Unit-tested, and it replaces the history-only `assemble()` that step 1 left in `ChatStore`.
@@ -358,19 +370,44 @@ it on first load so it can be filled in; the existing messages are left alone.
    first line as a subtitle, message count, word count, and state (writing / closed). Actions:
    open (the closed ones open read-only with a "Continue this chapter" button that flips it back
    to `writing`), edit scene, rename, delete (confirm), and **New chapter** at the bottom.
-9. **Chapter toolbar** (inside the chat area, above the composer, small pill buttons):
-   - **Close chapter**: builds a summarisation request (existing story-so-far + this chapter's
-     scene and messages + an instruction modelled on ST's memory extension default prompt),
-     streams the result into a review modal (editable). On confirm: writes `summary`, folds it
-     into `world.storySoFar`, sets `status: 'closed'`, then opens the scene sheet for Chapter
-     N+1 pre-filled per task 2. Nothing is discarded and nothing is asked.
+9. **Chapter toolbar** (inside the chat area, above the composer, small pill buttons). Note
+   (2026-09-03, after review): **"New chapter" is the same act as "Close chapter"** — starting the
+   next chapter summarises the one being written, shows the summary for review, and folds it into
+   the story so far before the new scene is asked for. Only a chapter with nothing written in it,
+   or one already closed, goes straight to the scene sheet. And a chapter that cannot be written
+   into shows no composer at all: the dock carries the reason and the way out of it instead of a
+   box that refuses what is typed into it.
+   - **Close chapter**: builds a summarisation request (the story so far as it stands + this
+     chapter's scene and messages + an instruction modelled on ST's memory extension default
+     prompt), streams the result into a review modal (editable). On confirm: writes `summary`,
+     **replaces** `world.storySoFar` with it, sets `status: 'closed'`, then opens the scene sheet
+     for Chapter N+1 pre-filled per task 2. Nothing is discarded and nothing is asked.
+     Revised 2026-09-03 after review: the summary **replaces** the story so far rather than being
+     appended to it, which is what keeps it one readable page however long the story runs — so
+     the request hands the model the existing summary and asks for the whole thing back. The
+     instruction itself is a prompt like any other and is editable per story
+     (`world.summary: { useDefault, prompt }`), from the World modal and from the review sheet.
    - **Edit scene** (opens the sheet for the current chapter), **What the model sees**.
 10. **Save mechanics**: every editor field has a light save icon (appears when dirty, click to
     commit); the modal commits everything on close as well. Escape / backdrop close = save,
     never discard. The scene sheet is the single exception, and only for the "does this chapter
     open yet" decision — the text itself is still saved as a draft.
+    Writing surface (fixed 2026-09-03, after review): every multi-line field autosizes through
+    the CDK, which needs `cdk.text-field-autosize()` in the global styles (without it the box is
+    measured at its current height and grows a line late) and assumes a content box (a border-box
+    textarea ends up short by its own padding and scrolls the line being written). Both are set
+    globally; a spec types into the composer and fails if the box ever scrolls its own text.
+    Text is written into a box only through `[msText]`, which never rewrites a field that is
+    being typed into — a plain `[value]` binding moves the caret to the end and throws away the
+    browser's undo stack whenever the document changes underneath.
 11. **Lore scanning** runs on every send over (scene + draft + last N messages), and again on
     regenerate / replay, since the context is always rebuilt.
+12. **The story sheet comes before the first scene** (added 2026-09-03, after the first review of
+    step 2). "New story" asks title / mode / persona and only then opens the scene sheet, because
+    those three shape every request the chapter will make and are awkward to discover afterwards.
+    All three are optional and all three stay editable in Story; backing out creates nothing. A
+    first run that has never been written in gets the same sheet over the story the app made for
+    itself, where backing out simply keeps the defaults.
 
 ### 3.2 E2E test (live)
 
@@ -476,7 +513,7 @@ Goal: the store is mirrored to disk, as-is, always.
 | Step | Deliverable | Checkpoint |
 |---|---|---|
 | 1 | Streaming chat + connection + parameters, localStorage only (the conversation becomes Chapter 1 in step 2) | **Done 2026-09-02.** 22 unit tests + 14 Playwright specs green against the fake endpoint; NanoGPT's live model list confirmed from the browser (612 models, no key, CORS fine). The live-key half of E2E 2.2 still needs Gaetan. |
-| 2 | Chapters with compulsory scenes, story / persona / world / lore, prompt builder, close chapter | Live E2E 3.2, Playwright extended |
+| 2 | Chapters with compulsory scenes, story / persona / world / lore, prompt builder, close chapter | **Done 2026-09-03.** 37 unit tests + 24 Playwright specs green against the fake endpoint. Live E2E 3.2 still needs Gaetan's key. |
 | 3 | Express persistence, bootstrap, status indicator, (Electron) | Final acceptance 4.4 |
 
 Each step is a separate session. Nothing from a later step is started before the previous

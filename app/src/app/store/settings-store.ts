@@ -1,7 +1,8 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { DEFAULT_GENERATION, DEFAULT_SETTINGS } from '../core/defaults';
 import { ConnectionSettings, GenerationParams, Settings, UiSettings } from '../core/models';
-import { STORAGE_BACKEND, STORAGE_KEYS } from './storage';
+import { KEYS } from './documents';
+import { STORAGE_BACKEND } from './storage';
 
 /**
  * The global `settings.json` slice. Everything is auto-saved: mutate through
@@ -31,7 +32,7 @@ export class SettingsStore {
   });
 
   constructor() {
-    effect(() => this.storage.write(STORAGE_KEYS.settings, this.state()));
+    effect(() => this.storage.write(KEYS.settings, this.state()));
   }
 
   patchConnection(patch: Partial<ConnectionSettings>): void {
@@ -46,13 +47,17 @@ export class SettingsStore {
     this.state.update((s) => ({ ...s, ui: { ...s.ui, ...patch } }));
   }
 
+  setActiveStory(id: string | null): void {
+    this.state.update((s) => ({ ...s, activeStoryId: id }));
+  }
+
   resetGeneration(): void {
     this.state.update((s) => ({ ...s, generation: { ...DEFAULT_GENERATION } }));
   }
 
   /** Merged field by field so a document from an older version still loads. */
   private load(): Settings {
-    const stored = this.storage.read<Partial<Settings>>(STORAGE_KEYS.settings);
+    const stored = this.storage.read<Partial<Settings>>(KEYS.settings);
     if (!stored) return structuredClone(DEFAULT_SETTINGS);
     return {
       connection: { ...DEFAULT_SETTINGS.connection, ...stored.connection },
