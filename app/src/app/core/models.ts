@@ -3,11 +3,16 @@
  * so treat these as a file format: add fields, never repurpose them.
  */
 
-export type Provider = 'nanogpt' | 'custom';
+/**
+ * The id of a row in `providers.ts`, or `custom` for a hand-typed URL. A plain
+ * string on purpose: a settings file may name a provider a later version added
+ * or an earlier one has dropped, and neither should stop it loading.
+ */
+export type Provider = string;
 
 export interface ModelInfo {
   id: string;
-  /** Friendly name when the endpoint offers one (NanoGPT `?detailed=true`). */
+  /** Friendly name when the endpoint offers one (NanoGPT's `?detailed=true`). */
   name?: string;
   ownedBy?: string;
   created?: number;

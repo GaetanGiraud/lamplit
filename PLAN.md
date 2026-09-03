@@ -3,7 +3,7 @@
 A single-page, text-only storytelling app (Narrator / Role-play) written in chapters, talking
 directly from the browser to any OpenAI-compatible endpoint. SillyTavern is the functional
 reference (`../SillyTavern`), consulted only for targeted checks. Written 2026-09-02, step 2
-reworked around chapters and scenes 2026-09-02.
+reworked around chapters and scenes 2026-09-02, step 4 (desktop and outreach) added 2026-09-03.
 
 Guiding principles
 
@@ -44,7 +44,7 @@ Guiding principles
 | Rendering | `marked` (markdown) + `DOMPurify` (sanitising) + `highlight.js` (code blocks, `lib/core` with eight languages registered rather than `lib/common`) + a custom dialogue-formatting pass. | Standard, small, well-maintained. A story is not a codebase, so the full language set is not worth 350 kB. |
 | Token estimate | Heuristic (chars / 3.6) with a pluggable interface; `gpt-tokenizer` can be dropped in later. | Good enough for budgeting; exact counts are provider-specific anyway. |
 | Backend (step 3) | Node 22 + Express 5, ES modules, JSON files on disk, serves the Angular build. | Simplest thing that works; single process to launch. |
-| Desktop (optional) | Electron 44 + electron-builder, wrapping the same Express server. | Same code, easier launch. |
+| Desktop (step 4) | Electron 44 + electron-builder (44.1.1 and 26.15.3 on npm, 2026-09-03), wrapping the same Express server. | Same code, easier launch, and Node travels inside the installer — the one prerequisite the zip still has. See §5. |
 | Automated E2E | Playwright against a local fake OpenAI-compatible SSE server. | Deterministic regression tests, no tokens burned. |
 
 ### 1.2 Repository layout
@@ -68,8 +68,11 @@ MagicStories/
       shared/               top bar, modal shell, editor field with light save button, ui bits
   server/                   Express persistence server (step 3); also the zip writer
   tools/                    dev.mjs (app + server together), package.mjs (the runnable zip)
-  e2e/                      Playwright specs + fake OpenAI SSE server
-  electron/                 (later)
+  e2e/                      Playwright specs + fake OpenAI SSE server, and LIVE-TEST.md, the
+                            script a person follows with a real model
+  electron/                 (step 4) main process, preload, electron-builder config
+  docs/                     the guide; also the website, served as-is by GitHub Pages (step 4)
+  .github/workflows/        (step 4) release.yml — builds installers on a tag and publishes them
 ```
 
 ### 1.3 Data model (TypeScript, all persisted as-is)
@@ -499,13 +502,14 @@ Added to step 3 on 2026-09-03, ahead of Electron and as the thing Electron will 
   prerequisite; nothing is installed or built at the far end.
 - The start scripts pass `--open`; `--port`, `--data`, `MS_OPEN=0` and `MS_BACKUP=0` all work.
 
-### 4.4 Electron (later, not built)
+### 4.4 Electron (not built here — became step 4, §5)
 
 - `electron/main.ts` starts the Express server in-process on a free port and opens a
   `BrowserWindow` at it; `data/` lives in `app.getPath('userData')`.
 - electron-builder for a Windows installer / portable exe. Not on the critical path, and
   deliberately left out of the package above. The server already takes its data and public
-  folders as options, which is all Electron needs from it.
+  folders as options, which is all Electron needs from it. Promoted on 2026-09-03 from "optional"
+  to a step of its own, with the website and the release process it needs to be worth anything.
 
 ### 4.6 One source of truth (revision, 2026-09-03)
 
@@ -568,6 +572,12 @@ are remembered in `build/.smoke-ports.json`; delete that file and you are back t
 First thing to check, because nothing automated can: the story behind the connection sheet should
 be **Untitled story**. Anything else means the browser brought one with it.
 
+**The script itself is `e2e/LIVE-TEST.md`** (2026-09-03). The ten points below are its outline;
+the file has every prompt written out, a table per stage with the expected result and a column
+for the outcome, the paths of the JSON files to open at each step, two rubrics for judging the
+prose and the summary, and a worksheet that turns the token footers into a verdict on point 10.
+Follow the file, not this list.
+
 Narrator mode, a real key, a real model.
 
 1. **It runs at all.** One call, browser opens, no console errors, `data/` appears beside the
@@ -597,7 +607,273 @@ Narrator mode, a real key, a real model.
 
 ---
 
-## 5. Cross-cutting decisions and assumptions
+## 5. Step 4 — A desktop app, and a way for people to find it
+
+Added 2026-09-03, once step 3 was done and the live test was written up. Steps 1–3 made an app
+worth using; nobody who is not comfortable with a terminal can reach it. That is the whole of what
+this step is for.
+
+Goal: **someone with no Node, no git and no command line downloads one file from a web page,
+installs it, and is writing within five minutes.** Nothing built in steps 1–3 changes. This step
+wraps it (Electron), puts it somewhere (a website with downloads), keeps it there (a release
+process), and widens the front door (more providers) — all of it on GitHub's free tier, with a
+named fallback wherever that tier might not stretch.
+
+Guiding principles, in addition to the ones at the top:
+
+- The zip stays. Electron is a second way to run the same folder, not a replacement for the first.
+- Nothing in the desktop build knows it is in Electron except the twenty lines that start it.
+- Everything a non-technical user reads — the page, the download buttons, the first-run
+  instructions — is written for them, not for us. The docs already are; the landing page must be.
+
+### 5.1 What Electron adds, and what it must not touch
+
+| | The zip (step 3) | The desktop app (step 4) |
+|---|---|---|
+| Prerequisite | Node 20.19+ on the machine | none — Node ships inside |
+| Starts | `start.bat` / `start.sh`, then a browser tab | one icon, one window |
+| Documents | `data/` beside the script | `data/` in the user's profile (`app.getPath('userData')`), same layout, same files |
+| Server | the same `server/src/app.js`, listening on `127.0.0.1` | the same, started in-process on a free port |
+| Model calls | browser → provider, directly | the same — the window is Chromium, CORS rules and all |
+| Updates | download a new zip | in-app, from GitHub Releases (see 5.4) |
+| Size | ~1 MB | ~90–110 MB per platform, most of it Chromium |
+
+The thing to protect: **the server and the app are unchanged**. `createApp({ dataDir, publicDir })`
+already takes everything Electron needs to hand it. If a change to `server/` or `app/` turns out
+to be needed "for Electron", that is a sign the shell is doing too much.
+
+### 5.2 Tasks — the shell (`electron/`)
+
+1. A fourth workspace, `electron/`, with its own `package.json` (electron, electron-builder,
+   electron-updater as devDependencies; `express` is reached through the root workspace).
+2. `electron/main.mjs`:
+   - `app.requestSingleInstanceLock()` — a second launch focuses the window rather than starting
+     a second server over the same files.
+   - `createApp({ dataDir: join(app.getPath('userData'), 'data'), publicDir: <bundled public/> })`,
+     `listen(0)` on `127.0.0.1` for a free port. The backup-on-startup runs too, into
+     `userData/backups`.
+   - One `BrowserWindow` at that URL; size and position remembered in `userData/window.json`.
+   - Links to other origins open in the system browser (`setWindowOpenHandler`), so "get a key"
+     links in the connection modal leave the app rather than navigating it away.
+   - Minimal menu: File (Open data folder, Quit), Edit (the standard six, or copy/paste do not
+     work on macOS), View (zoom, reload, dev tools), Help (the website, the version).
+   - Quit closes the server cleanly so the last debounced write lands — the app already flushes on
+     `beforeunload`, and the window's `close` event fires it.
+3. `electron/preload.mjs`: nothing, or as near as possible. Context isolation on, node integration
+   off; the app is a web page and stays one. The one thing worth exposing is `openDataFolder()`,
+   so **Your data** in the docs can say "Help → Open data folder" and mean it.
+4. Where the data lives is the only user-visible difference, so it is documented in a new
+   `docs/desktop.md`: the path per OS, that it is the same layout as the zip's `data/`, that
+   copying that folder is a backup, that uninstalling leaves it alone (installers do; say so).
+5. `npm run desktop` at the root starts it against the dev build for working on it;
+   `npm run dist -w electron` builds installers for the current OS into `build/desktop/`.
+6. One Playwright spec through `_electron.launch()`: the app starts, `/api/health` answers on the
+   port it chose, the window shows the connection sheet, `userData/data/settings.json` exists. It
+   is the smoke test in code and it runs in the release workflow before anything is published.
+
+### 5.3 Tasks — the builds
+
+| Platform | Artifacts | Notes |
+|---|---|---|
+| Windows | NSIS installer (`MagicStories-Setup-<v>.exe`), portable (`MagicStories-<v>.exe`) | x64. The portable keeps `data/` beside itself like the zip does, which is what a USB-stick user wants; the installer uses `userData`. |
+| macOS | **none — not built.** Decided 2026-09-03; see 5.5. | The `.dmg` target stays in `electron-builder.yml`, commented out, so a contributor with an Apple Developer licence can produce it without redesigning anything. |
+| Linux | `.AppImage`, `.deb` | x64. AppImage needs no install at all. |
+
+electron-builder does both from one `electron-builder.yml`. The `files` list is the packaged
+folder from step 3 (`server/`, `public/`, the server's `node_modules/`) plus `electron/`, which is
+why `tools/package.mjs` stays the single place that decides what ships: the desktop build stages
+through it and adds a shell on top.
+
+### 5.4 Tasks — releasing (`.github/workflows/release.yml`)
+
+Free for a public repo: GitHub Actions minutes are unlimited on public repositories, GitHub
+Releases take assets up to 2 GB each with no stated cap on downloads, and a release's assets are
+served from a URL that never changes shape.
+
+1. `npm version <patch|minor>` bumps the root `package.json`, commits and tags `v<x.y.z>`.
+   Pushing the tag is the release. Nothing else has to be remembered.
+2. The workflow runs on `push: tags: v*`, a two-OS matrix (`windows-latest`, `ubuntu-latest`):
+   `npm ci`, `npm test`, `npm run build`, the Electron spec from 5.2.6, then
+   `electron-builder --publish always`, which uploads to a **draft** release for that tag.
+   `GITHUB_TOKEN` is enough; no secrets to keep. No `macos-latest` runner: there is nothing it
+   could produce that we would publish (5.5).
+3. The release notes are `CHANGELOG.md`'s top section, and the draft is published by hand after a
+   look at the uploads. One click, deliberate, after the machines have done the boring part.
+4. `electron-updater` in the app points at the same releases. It works out of the box for Windows
+   (NSIS) and Linux (AppImage), the two we ship. (On macOS it would require a signed and notarised
+   app, which is one more reason 5.5 went the way it did.)
+5. The lockfile keeps `registry.npmjs.org` URLs (§0), which is what lets `npm ci` run on a GitHub
+   runner at all.
+
+Fallbacks, if a limit turns up: Cloudflare R2 (10 GB free, no egress fees) or SourceForge (free
+mirrors for open-source projects, an old but reliable arrangement) for the installers themselves,
+with the workflow uploading there instead of to the release. Neither is expected to be needed.
+
+### 5.5 Signing — the honest part
+
+Unsigned desktop apps are treated as suspicious by every OS, and a non-technical user is exactly
+the person who will believe the warning.
+
+| OS | Unsigned experience | Free path | Paid path |
+|---|---|---|---|
+| Windows | SmartScreen: "Windows protected your PC" → *More info* → *Run anyway*. Reputation accrues per signed certificate, so an unsigned build never gets past it. | **SignPath Foundation** signs open-source projects free of charge, on application, via their GitHub Action. The project qualifies (MIT, public, real releases). Apply once 5.4 has produced a first release. | Azure Trusted Signing (~$10/month, needs a verified identity) or an OV/EV certificate (hundreds a year). |
+| macOS | Gatekeeper refuses to open the app at all; the user must right-click → Open, or run `xattr -dr com.apple.quarantine`. Recent versions bury this further. | **None.** Notarisation requires the Apple Developer Program. | $99 a year. The only thing in this whole step that costs money, and the only way to a clean macOS install. |
+| Linux | none; AppImage just runs | — | — |
+
+Decision: ship Windows and Linux unsigned in the first release, with the SmartScreen steps shown
+on the download page in three sentences and one picture, and apply to SignPath in the same week.
+
+**macOS is not shipped** (decided 2026-09-03). An unsigned macOS app is the worst of both worlds
+for the person this step is for: Gatekeeper refuses to open it, and the way round is exactly the
+kind of instruction the download page is supposed to spare them. Without the Apple Developer
+licence there is no honest macOS build, and the licence is the one thing in this plan that costs
+money. So, on the download page:
+
+- The macOS slot is there, **greyed out**, next to the two live buttons — a visible gap rather
+  than a silent one, so nobody wonders whether they missed it.
+- Its text says, in this order: macOS is not supported because a clean build needs Apple's
+  developer licence, which this project does not hold; **if you have that licence and would like
+  to contribute the builds, open an issue** — the link goes to the repository's GitHub issues,
+  and that is the only contact the page offers (decided 2026-09-03: no email address anywhere on
+  the site; contact stays public and on GitHub); otherwise, **macOS users can run it from the
+  source**, with a link to the repository and its Quick start, which is `git clone`, `npm install`,
+  `npm start` and needs Node.
+- The zip from step 3 also runs on a Mac with Node, and `running-anywhere.md` already says so; the
+  slot links there as the second fallback.
+
+Should a contributor with the licence turn up, the `.dmg` target and a `macos-latest` job are a
+few lines each and are left commented in `electron-builder.yml` and `release.yml` for exactly
+that. Signing secrets would then live in the repo's Actions secrets, provided by the contributor,
+never in the tree.
+
+### 5.6 Tasks — the website (`docs/` on GitHub Pages)
+
+Decision: **serve `docs/` as-is with GitHub Pages' built-in Jekyll**, no build step, no second
+copy of the documentation.
+
+- GitHub Pages is free for public repositories, builds Jekyll on push with no workflow of our own,
+  and the `jekyll-relative-links` plugin it enables by default turns the `[Chapters](chapters.md)`
+  links these pages already use into working `.html` links. The docs become the website by being
+  told to.
+- The site is `https://gaetangiraud.github.io/magic-stories/`. Repo setting: Pages → Source →
+  `main`, folder `/docs`. (`has_pages` is `false` today; the URL answers a 301 to nowhere.)
+- `docs/_config.yml`: a clean theme (`minima`, or `just-the-docs` via `remote_theme` for a
+  sidebar), `relative_links` on, `title`, `description`, and `exclude: [development.md]` is *not*
+  set — the development page belongs on the site too, at the end where it already is.
+- **`docs/index.md` is the landing page and the one page written for someone who has never heard
+  of a language model endpoint.** It is not the README. It has: one sentence saying what this is
+  and one saying what it is not; the reading screenshot; three download slots — **Windows** and
+  **Linux** as live buttons pointing at
+  `https://github.com/GaetanGiraud/magic-stories/releases/latest/download/<asset>`, the *latest*
+  URL being stable so the page is never edited for a release, and **macOS greyed out** with the
+  three-part text from 5.5 (not supported for want of the licence; contributors with one are
+  welcome; run from source or the zip meanwhile, with the repository linked); under each live
+  button, the two lines that OS will make the user read (5.5); then the three first-run questions from
+  `getting-started.md`, with pictures; then "Where do I get a key?" with the providers from 5.7
+  and a link to each one's key page; then a link into the guide. The npm way in stays, one line at
+  the bottom, pointing at `development.md`.
+- `docs/README.md` is the guide's index for people reading it on GitHub, and Jekyll renders it at
+  `README.html`, which is where the pages' "← Documentation" links already point. It stays.
+- `getting-started.md` is rewritten to lead with the download and treat `npm install` as the
+  developer's route. `running-anywhere.md` keeps the zip and gains a sentence on when to prefer it
+  (a machine that already has Node, a USB stick).
+- The pictures are already real (`npm run screenshots`); the landing page uses the same ones.
+
+Fallbacks: Cloudflare Pages or Netlify's free tier serve a folder from the repo with the same
+zero-configuration; both are a matter of pointing them at `docs/`. The GitHub wiki is the last
+resort for the guide alone, and only because it cannot hold the landing page.
+
+### 5.7 Tasks — more providers, riding on SillyTavern
+
+Today `Provider` is `'nanogpt' | 'custom'`, in four places. SillyTavern's
+`src/endpoints/backends/chat-completions.js` keeps a base URL for twenty-odd chat-completion
+sources, and its client `public/scripts/openai.js` knows each one's quirks. The plan is to lift
+the URLs and the quirks, not the code: every one of these speaks OpenAI's chat-completions shape,
+which is the only shape MagicStories sends.
+
+**The question that decides the design is CORS**, because the browser calls the provider directly
+(§1.4, and *docs/models-and-parameters.md*). Probed on 2026-09-03 with a preflight from
+`http://localhost:4177` asking for `POST` with `authorization, content-type`:
+
+| Provider | Base URL | Preflight | Quirks |
+|---|---|---|---|
+| NanoGPT | `https://nano-gpt.com/api/v1` | `*` | `?detailed=true` on `/models` (already done) |
+| OpenRouter | `https://openrouter.ai/api/v1` | `*` | optional `HTTP-Referer` / `X-Title` headers for attribution — send the site URL and "MagicStories" |
+| OpenAI | `https://api.openai.com/v1` | `*` | `/models` lists everything incl. non-chat; filter on the client is enough |
+| Anthropic | `https://api.anthropic.com/v1` | `*` **only if** the request also carries `anthropic-dangerous-direct-browser-access: true` and `anthropic-version` | OpenAI-compatible `/chat/completions` is a documented compatibility layer; `/models` answers with the native shape (`data[].id` is there, `owned_by` is not) |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | echoes the origin | model ids come back as `models/gemini-…`; verify whether the prefix must be stripped for `/chat/completions` |
+| Mistral | `https://api.mistral.ai/v1` | `*` | — |
+| DeepSeek | `https://api.deepseek.com/v1` | echoes the origin | — |
+| xAI | `https://api.x.ai/v1` | `*` | — |
+| Groq | `https://api.groq.com/openai/v1` | `*` | — |
+| Together | `https://api.together.xyz/v1` | `*` | not in ST's chat list (it is a text-completion source there); trivially OpenAI-compatible |
+| Fireworks | `https://api.fireworks.ai/inference/v1` | `*` | — |
+| Cohere | `https://api.cohere.ai/compatibility/v1` | `*` | the compatibility path, not ST's native `/v1` |
+| Moonshot | `https://api.moonshot.ai/v1` | echoes the origin | — |
+| Z.ai | `https://api.z.ai/api/paas/v4` | echoes the origin | — |
+| SiliconFlow | `https://api.siliconflow.com/v1` | `*` | `.cn` variant exists |
+| MiniMax | `https://api.minimax.io/v1` | `*` | `.minimaxi.com` for China |
+| Chutes | `https://llm.chutes.ai/v1` | `*` | — |
+| ElectronHub | `https://api.electronhub.ai/v1` | `*` | — |
+| AIMLAPI | `https://api.aimlapi.com/v1` | `*` | attribution headers like OpenRouter |
+| CometAPI | `https://api.cometapi.com/v1` | `*` | — |
+| Pollinations | `https://gen.pollinations.ai/v1` | `*` | free tier without a key |
+| Perplexity | `https://api.perplexity.ai` | `*` | **no `/models`** — the preset carries a typed list; the modal must accept a hand-typed model id when the list is empty |
+| Cloudflare Workers AI | `https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1` | not probed | needs an account id in the URL — a preset with a placeholder, second release |
+| Azure OpenAI | per-deployment URL, `api-key` header, `api-version` query | not probed | a different shape in three ways; deferred |
+| Vertex AI, AI21 | native protocols only | — | out of scope, as ST's own code confirms |
+
+**Every provider on the list answers a browser preflight.** No proxy is needed, Electron changes
+nothing here, and the key still goes from the user's machine to the provider and nowhere else.
+That is worth knowing before writing a line: the whole task is data plus two small quirk hooks.
+
+1. `core/providers.ts`: one record per row — `id`, `name`, `baseUrl`, `keyUrl` (where to get a
+   key), `headers` (extra, fixed), `modelsQuery` (NanoGPT's `?detailed=true`), `modelsFixed`
+   (Perplexity), `modelIdTransform` (Gemini, if needed), and a `group`: *Hosted*, *Aggregators*
+   (OpenRouter, NanoGPT, AIMLAPI, CometAPI, ElectronHub, Chutes), *Local* (Ollama, LM Studio,
+   llama.cpp, vLLM, KoboldCpp, TabbyAPI, text-generation-webui, all at their default ports, all
+   already in the docs' known-good table).
+2. `Provider` becomes `string`, keyed into that table, with `custom` still meaning "the URL is
+   whatever was typed". The four places that check `'nanogpt'` read the record instead.
+3. The connection modal's **Provider** select is grouped by `group`, and shows the **Get a key**
+   link for the chosen one. The model list is fetched the way it is now; when a preset has
+   `modelsFixed`, that list is used and **Fetch models** is hidden.
+4. The model client takes `headers` from the record and merges them into every request. Nothing
+   else in it changes; `stream_options` already has its retry for servers that reject it.
+5. `tools/probe-providers.mjs` re-runs the preflight table above and prints it, so the table in
+   `docs/models-and-parameters.md` can be regenerated with a date rather than trusted. Not in CI:
+   it talks to twenty third parties and would fail for reasons that are not ours.
+6. Unit tests: every preset's URL parses, has no trailing slash, and its `/models` request is
+   built as the record says. One Playwright spec: switching provider swaps the URL and the key link.
+7. Parameters stay global (§2.1.6) and only the OpenAI set is sent unless an advanced one is
+   switched on, so no per-provider allow-list is needed — the thing ST's `OPENROUTER_KEYS` and
+   friends exist for is a problem this app does not have.
+
+### 5.8 Order of work
+
+Providers first: it is small, it is pure data, and it improves the browser build the same day.
+Then the shell, then the release workflow (a first unsigned release, as a draft, to prove the
+pipeline), then the website — which cannot have download buttons until there is something to
+download — then the SignPath application. Each is a separate session, as before.
+
+### 5.9 Acceptance
+
+A second person, on a machine that has never had Node on it, given only the website's URL:
+
+1. Downloads the installer for their OS, gets through the warning using nothing but what the page
+   told them, and installs.
+2. Follows `e2e/LIVE-TEST.md` sections 1–4 and 9–10, with **On disk** meaning the `userData`
+   folder `docs/desktop.md` names for their OS, and **Help → Open data folder** getting them there.
+3. Never opens a terminal.
+
+Plus: the Electron spec (5.2.6) green in the workflow on both runners, the Windows and Linux
+installers on the release page, the landing page's two live buttons resolving to them and its
+macOS slot greyed out with the source-install link working, and the provider spec green. Then
+§7's checkpoint for step 4.
+
+---
+
+## 6. Cross-cutting decisions and assumptions
 
 - Single user, local machine. The API key is stored in `settings.json` in plain text. Acceptable
   for a local tool; noted in the README.
@@ -614,13 +890,14 @@ Narrator mode, a real key, a real model.
 - Keyboard: Enter send, Shift+Enter newline, Esc closes modals (and saves), Ctrl+Enter
   regenerate last, Ctrl+K opens the model picker.
 
-## 6. Order of work and checkpoints
+## 7. Order of work and checkpoints
 
 | Step | Deliverable | Checkpoint |
 |---|---|---|
 | 1 | Streaming chat + connection + parameters, localStorage only (the conversation becomes Chapter 1 in step 2) | **Done 2026-09-02.** 22 unit tests + 14 Playwright specs green against the fake endpoint; NanoGPT's live model list confirmed from the browser (612 models, no key, CORS fine). The live-key half of E2E 2.2 still needs Gaetan. |
 | 2 | Chapters with compulsory scenes, story / persona / world / lore, prompt builder, close chapter | **Done 2026-09-03.** 37 unit tests + 24 Playwright specs green against the fake endpoint. Live E2E 3.2 still needs Gaetan's key. |
-| 3 | Express persistence, bootstrap, status indicator, packaging | **Done 2026-09-03.** 53 app unit tests + 30 server unit tests + 39 Playwright specs green, five of them driving the production build served by the real server and asserting against the files on disk. `npm run package` produces a ~1 MB zip that runs from one call. Electron deliberately left for later. Live E2E still needs Gaetan's key. |
+| 3 | Express persistence, bootstrap, status indicator, packaging | **Done 2026-09-03.** 53 app unit tests + 30 server unit tests + 39 Playwright specs green, five of them driving the production build served by the real server and asserting against the files on disk. `npm run package` produces a ~1 MB zip that runs from one call. Electron deliberately left for later. **Live test still open:** `e2e/LIVE-TEST.md` with Gaetan's key — the prose verdict and, above all, the cost verdict in its section 11, which decides whether the premise holds before step 4 makes the app easier to reach. |
+| 4 | Electron shell and installers for Windows and Linux (macOS deliberately not shipped — greyed out on the page, open to a contributor with the licence, source install as the fallback), a tagged-release workflow publishing to GitHub Releases, `docs/` served as the website with a landing page and download buttons, a provider table lifted from SillyTavern (§5) | Not started. Done when a person with no Node on their machine installs from the website and writes a chapter without opening a terminal (§5.9), and the Electron and provider specs are green in the release workflow. |
 
 Each step is a separate session. Nothing from a later step is started before the previous
-checkpoint passes.
+checkpoint passes — for step 4, that means the live test's verdict comes first.

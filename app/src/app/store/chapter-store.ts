@@ -227,6 +227,7 @@ export class ChapterStore {
     try {
       const result = await this.client.streamChat(
         {
+          provider: connection.provider,
           baseUrl: connection.baseUrl,
           apiKey: connection.apiKey,
           model: connection.model,
@@ -274,6 +275,7 @@ export class ChapterStore {
     try {
       const result = await this.client.streamChat(
         {
+          provider: connection.provider,
           baseUrl: connection.baseUrl,
           apiKey: connection.apiKey,
           model: connection.model,

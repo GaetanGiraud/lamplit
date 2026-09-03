@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
  *   --port N     listen somewhere other than 4177
  *
  * The automated half of the same walk is e2e/specs/journey.spec.ts; the script
- * to follow here is PLAN.md §4.5.
+ * to follow here is e2e/LIVE-TEST.md.
  */
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -90,7 +90,7 @@ async function main() {
 
   console.log(`\n   ${url}`);
   console.log('   an empty data folder and no key: it opens on the connection sheet.');
-  console.log('   the script to follow is PLAN.md §4.5. Ctrl+C stops it.\n');
+  console.log('   the script to follow is e2e/LIVE-TEST.md. Ctrl+C stops it.\n');
 }
 
 // -- the pieces --------------------------------------------------------------

@@ -1,6 +1,5 @@
 import { GenerationParams, ReplyLength, ScanSettings, Settings, StoryStyle } from './models';
-
-export const NANOGPT_BASE_URL = 'https://nano-gpt.com/api/v1';
+import { DEFAULT_PROVIDER_ID, providerPreset } from './providers';
 
 export const DEFAULT_GENERATION: GenerationParams = {
   maxContextTokens: 16384,
@@ -14,8 +13,8 @@ export const DEFAULT_GENERATION: GenerationParams = {
 
 export const DEFAULT_SETTINGS: Settings = {
   connection: {
-    provider: 'nanogpt',
-    baseUrl: NANOGPT_BASE_URL,
+    provider: DEFAULT_PROVIDER_ID,
+    baseUrl: providerPreset(DEFAULT_PROVIDER_ID).baseUrl,
     apiKey: '',
     model: '',
     modelsCache: [],

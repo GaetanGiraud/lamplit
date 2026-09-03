@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
 import { GenerationParams, ModelInfo, OutboundMessage, TokenUsage } from './models';
-import { NANOGPT_BASE_URL } from './defaults';
+import { ProviderPreset, providerPreset } from './providers';
 import { readSseData } from './sse';
 import { ModelError, errorFromResponse, errorFromThrown } from './model-errors';
 
 export interface ChatStreamRequest {
+  /** A row in `providers.ts`; decides the extra headers, nothing else. */
+  provider?: string;
   baseUrl: string;
   apiKey: string;
   model: string;
@@ -25,16 +27,19 @@ export type DeltaHandler = (delta: { content?: string; reasoning?: string }) => 
 @Injectable({ providedIn: 'root' })
 export class ModelClient {
   /**
-   * `GET {baseUrl}/models`. NanoGPT's `?detailed=true` adds display names and
-   * context lengths; hand-typed URLs get the plain call.
+   * `GET {baseUrl}/models`, with whatever the provider's row asks for: NanoGPT's
+   * `?detailed=true` for display names and context lengths, Anthropic's two
+   * headers, Gemini's `models/` prefix off the ids. A provider with no list of
+   * its own (Perplexity) carries one in the table and is never called.
    */
-  async listModels(baseUrl: string, apiKey: string): Promise<ModelInfo[]> {
-    const base = normaliseBaseUrl(baseUrl);
-    const detailed = base === NANOGPT_BASE_URL;
+  async listModels(baseUrl: string, apiKey: string, provider?: string): Promise<ModelInfo[]> {
+    const preset = providerPreset(provider);
+    if (preset.modelsFixed?.length) return preset.modelsFixed.map((m) => ({ ...m }));
+
     let response: Response;
     try {
-      response = await fetch(`${base}/models${detailed ? '?detailed=true' : ''}`, {
-        headers: authHeaders(apiKey),
+      response = await fetch(modelsUrl(baseUrl, preset), {
+        headers: { ...authHeaders(apiKey), ...(preset.headers ?? {}) },
       });
     } catch (e) {
       throw errorFromThrown(e);
@@ -42,7 +47,7 @@ export class ModelClient {
     if (!response.ok) throw errorFromResponse(response.status, await safeText(response));
 
     const payload: unknown = await response.json().catch(() => null);
-    const models = toModelList(payload);
+    const models = toModelList(payload, preset.stripModelPrefix);
     if (!models.length) {
       throw new ModelError('bad-request', 'The endpoint returned no models.');
     }
@@ -50,9 +55,15 @@ export class ModelClient {
   }
 
   /** One short round trip, used by the Connection modal's Test button. */
-  async testConnection(baseUrl: string, apiKey: string, model: string): Promise<string> {
+  async testConnection(
+    baseUrl: string,
+    apiKey: string,
+    model: string,
+    provider?: string,
+  ): Promise<string> {
     const result = await this.streamChat(
       {
+        provider,
         baseUrl,
         apiKey,
         model,
@@ -127,7 +138,11 @@ export class ModelClient {
     try {
       return await fetch(url, {
         method: 'POST',
-        headers: { ...authHeaders(request.apiKey), 'Content-Type': 'application/json' },
+        headers: {
+          ...authHeaders(request.apiKey),
+          ...(providerPreset(request.provider).headers ?? {}),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(buildBody(request, withStreamOptions)),
         signal,
       });
@@ -212,6 +227,12 @@ export function parseChunk(payload: string): ParsedChunk | null {
   return chunk;
 }
 
+/** The `/models` call a provider's row asks for, query string and all. */
+export function modelsUrl(baseUrl: string, preset: ProviderPreset): string {
+  const base = normaliseBaseUrl(baseUrl);
+  return `${base}/models${preset.modelsQuery ? `?${preset.modelsQuery}` : ''}`;
+}
+
 /** Trims trailing slashes and a trailing `/chat/completions` a user may paste. */
 export function normaliseBaseUrl(baseUrl: string): string {
   return baseUrl
@@ -225,14 +246,15 @@ function authHeaders(apiKey: string): Record<string, string> {
   return key ? { Authorization: `Bearer ${key}` } : {};
 }
 
-function toModelList(payload: unknown): ModelInfo[] {
+function toModelList(payload: unknown, stripPrefix?: string): ModelInfo[] {
   const root = payload as Record<string, any> | null;
   const raw = Array.isArray(root) ? root : Array.isArray(root?.['data']) ? root['data'] : [];
   const models: ModelInfo[] = [];
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object') continue;
-    const id = typeof entry.id === 'string' ? entry.id : undefined;
+    let id = typeof entry.id === 'string' ? entry.id : undefined;
     if (!id) continue;
+    if (stripPrefix && id.startsWith(stripPrefix)) id = id.slice(stripPrefix.length);
     models.push({
       id,
       name: typeof entry.name === 'string' && entry.name !== id ? entry.name : undefined,

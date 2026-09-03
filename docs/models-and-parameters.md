@@ -12,10 +12,11 @@
 
 | | |
 |---|---|
-| **Provider** | **NanoGPT** fills the URL in for you. **Custom** lets you type any URL that answers `GET /models` and `POST /chat/completions` in OpenAI's shape. |
+| **Provider** | Pick one and the URL fills itself in, with a link to the page where that provider hands out keys. **Custom** lets you type any URL that answers `GET /models` and `POST /chat/completions` in OpenAI's shape. The full list is [below](#the-providers-in-the-list). |
 | **Endpoint URL** | Ends at `/v1` (or wherever your server puts those two paths). |
 | **API key** | Sent as `Authorization: Bearer …`. Leave it empty for a local server that does not want one. |
 | **Fetch models** | Reads the endpoint's own list. Filter it, then pick one. |
+| **Model** | Prefer one that does not think before it writes. Reasoning models pause and then answer, and you pay for the pause as output tokens; for prose the wait buys little. Your provider's list says which models reason and which of theirs write best — ask them, not the app. MagicStories never asks a model to reason on its own; whether a model reasons when not asked is the model's default, and **Reasoning effort** under [Advanced](#advanced) is the only thing that changes it. |
 | **Test** | One real round trip. Worth doing once — it tells you whether the URL, the key and the model all work together, rather than making you find out mid-sentence. |
 
 Every change is saved the moment you make it, so however you close this modal, it has already
@@ -27,21 +28,71 @@ There is no proxy and no SDK. Your key goes from your browser to your provider a
 in particular, not through the persistence server, which never sees it and has no idea a model
 exists.
 
-The one consequence is **CORS**: your endpoint has to allow browser requests. NanoGPT does.
-Most local servers do, or have a flag for it. If a request fails with a network error but the URL
-is right, that is almost always what happened.
+The one consequence is **CORS**: your endpoint has to allow browser requests. Every provider in
+the list does — that is why they are in it. Most local servers do too, or have a flag for it. If a
+request fails with a network error but the URL is right, that is almost always what happened.
 
-### Known-good endpoints
+### The providers in the list
+
+Every one of these was checked from a browser on **2026-09-03** and allows the call: that is the
+only thing that decides whether a provider can be in the list at all. `npm run providers` re-runs
+the check and prints this table, so it can be brought up to date rather than trusted.
+
+**Aggregators** — one key, many makers.
+
+| | URL | Where the key comes from |
+|---|---|---|
+| OpenRouter | `https://openrouter.ai/api/v1` | openrouter.ai/keys |
+| NanoGPT | `https://nano-gpt.com/api/v1` | nano-gpt.com/api |
+| AIMLAPI | `https://api.aimlapi.com/v1` | aimlapi.com/app/keys |
+| CometAPI | `https://api.cometapi.com/v1` | api.cometapi.com/console/token |
+| ElectronHub | `https://api.electronhub.ai/v1` | playground.electronhub.ai |
+| Chutes | `https://llm.chutes.ai/v1` | chutes.ai/app/api |
+| Pollinations | `https://gen.pollinations.ai/v1` | free tier: no key needed |
+
+**Hosted** — the model's own maker.
+
+| | URL | Where the key comes from |
+|---|---|---|
+| OpenAI | `https://api.openai.com/v1` | platform.openai.com/api-keys |
+| Anthropic | `https://api.anthropic.com/v1` | console.anthropic.com |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | aistudio.google.com/apikey |
+| Mistral | `https://api.mistral.ai/v1` | console.mistral.ai/api-keys |
+| DeepSeek | `https://api.deepseek.com/v1` | platform.deepseek.com |
+| xAI (Grok) | `https://api.x.ai/v1` | console.x.ai |
+| Groq | `https://api.groq.com/openai/v1` | console.groq.com/keys |
+| Together | `https://api.together.xyz/v1` | api.together.xyz/settings/api-keys |
+| Fireworks | `https://api.fireworks.ai/inference/v1` | fireworks.ai/account/api-keys |
+| Cohere | `https://api.cohere.ai/compatibility/v1` | dashboard.cohere.com/api-keys |
+| Moonshot (Kimi) | `https://api.moonshot.ai/v1` | platform.moonshot.ai |
+| Z.ai (GLM) | `https://api.z.ai/api/paas/v4` | z.ai/manage-apikey/apikey-list |
+| SiliconFlow | `https://api.siliconflow.com/v1` | cloud.siliconflow.com/account/ak |
+| MiniMax | `https://api.minimax.io/v1` | platform.minimax.io |
+| Perplexity | `https://api.perplexity.ai` | perplexity.ai/settings/api |
+
+**Run locally** — a model on this machine, no key and no bill.
 
 | | URL |
 |---|---|
-| NanoGPT | `https://nano-gpt.com/api/v1` |
 | Ollama | `http://localhost:11434/v1` |
 | LM Studio | `http://localhost:1234/v1` |
 | llama.cpp server | `http://localhost:8080/v1` |
 | vLLM | `http://localhost:8000/v1` |
+| KoboldCpp | `http://localhost:5001/v1` |
+| TabbyAPI | `http://localhost:5000/v1` |
+| text-generation-webui | `http://localhost:5000/v1` |
 
-Anything else OpenAI-compatible should work; only streaming chat completions are used.
+Anything else OpenAI-compatible works too, under **Custom**; only streaming chat completions are
+used.
+
+Three of these need one thing said about them:
+
+- **Anthropic** only answers a browser when the request says the key is meant to be in one. It
+  does, always — this app has no server to hide a key on. Nothing to switch on.
+- **Perplexity** publishes no model list, so MagicStories carries its five, and there is no
+  **Fetch models** button to press.
+- **SiliconFlow** and **MiniMax** run separate hosts for mainland China (`api.siliconflow.cn`,
+  `api.minimaxi.com`). Use **Custom** with that URL.
 
 ## Parameters
 

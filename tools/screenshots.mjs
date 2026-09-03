@@ -2,7 +2,7 @@ import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createServer as createSocket } from 'node:net';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -140,7 +140,7 @@ try {
   // the second walk finds waiting for it.
   await freshServer();
   await firstRun();
-  await freshServer();
+  await freshServer({ withStory: true });
   await theApp();
 } finally {
   await browser.close();
@@ -154,7 +154,7 @@ for (const name of shots) console.log(`  ${name}`);
 
 /** A browser that has never seen the app: what a fresh install opens on. */
 async function firstRun() {
-  const { page, close } = await session({ seed: false });
+  const { page, close } = await session();
   await shot(page, 'first-run-connection', 'the connection sheet a fresh install opens on');
 
   await page.getByRole('combobox', { name: 'Provider' }).click();
@@ -165,7 +165,14 @@ async function firstRun() {
   await page.getByRole('option', { name: /Lamplighter Large/ }).click();
   await page.getByRole('button', { name: 'Test' }).click();
   await page.getByText(/The model answered/).waitFor();
+  // The sheet is taller than the window and testing scrolls it to the answer.
+  // A taller window for this one picture shows the whole thing rather than a
+  // slice of it; every other shot keeps the standard viewport.
+  await page.setViewportSize({ ...VIEWPORT, height: 1000 });
+  await page.locator('mat-dialog-content').evaluate((el) => (el.scrollTop = 0));
+  await page.waitForTimeout(300);
   await shot(page, 'connection', 'the connection modal, models fetched and tested');
+  await page.setViewportSize(VIEWPORT);
 
   await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('heading', { name: 'Your first story' }).waitFor();
@@ -187,7 +194,7 @@ async function firstRun() {
 
 /** Everything else, over a story that has already been written in. */
 async function theApp() {
-  const { page, context, close } = await session({ seed: true });
+  const { page, context, close } = await session();
   const chapter = page.locator('article[data-role]');
   await chapter.first().waitFor();
 
@@ -281,14 +288,13 @@ async function theApp() {
 
 // -- plumbing -----------------------------------------------------------------
 
-async function session({ seed }) {
+async function session() {
   const context = await browser.newContext({
     viewport: VIEWPORT,
     deviceScaleFactor: 1.5,
     colorScheme: 'dark',
     reducedMotion: 'reduce',
   });
-  if (seed) await context.addInitScript(seedScript(), documents());
   const page = await context.newPage();
   await page.goto(`http://127.0.0.1:${appPort}/`);
   await page.waitForTimeout(1200);
@@ -307,12 +313,27 @@ async function escape(page) {
   await page.waitForTimeout(250);
 }
 
-function seedScript() {
-  return (documents) => {
-    for (const [key, value] of Object.entries(documents)) {
-      window.localStorage.setItem(`magicstories:${key}`, JSON.stringify(value));
-    }
-  };
+/**
+ * The demo story, written into the server's data folder before it is started.
+ * The browser keeps nothing of its own, so this is the only place a document
+ * can come from — and it is what a person does when they copy a story onto a
+ * new machine.
+ */
+async function seed(dataDir) {
+  for (const [key, document] of Object.entries(documents())) {
+    const path = key.startsWith('story:')
+      ? join(dataDir, 'stories', `${key.slice('story:'.length)}.json`)
+      : key.startsWith('chapter:')
+        ? join(dataDir, 'chapters', `${key.slice('chapter:'.length)}.json`)
+        : join(dataDir, 'settings.json');
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(
+      path,
+      `${JSON.stringify(document, null, 2)}
+`,
+      'utf8',
+    );
+  }
 }
 
 function documents() {
@@ -466,8 +487,12 @@ function startModel(port) {
   return server;
 }
 
-/** Stops the running server, if any, and starts one on an empty data folder. */
-async function freshServer() {
+/**
+ * Stops the running server, if any, and starts one on a fresh data folder —
+ * empty, or holding the demo story. Seeding happens before the server starts,
+ * because the server is the truth and it reads the folder once.
+ */
+async function freshServer({ withStory = false } = {}) {
   if (persistence) {
     const stopped = new Promise((fulfil) => persistence.once('exit', fulfil));
     persistence.kill();
@@ -476,6 +501,7 @@ async function freshServer() {
   }
   const data = await mkdtemp(join(tmpdir(), 'magicstories-shots-'));
   dataDirs.push(data);
+  if (withStory) await seed(data);
   persistence = spawn(process.execPath, [join(ROOT, 'server', 'src', 'index.js')], {
     env: {
       ...process.env,

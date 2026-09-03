@@ -42,6 +42,7 @@ usefully — why each decision went the way it did.
 | `npm run smoke` | Packages, unzips the archive into an empty folder, and starts it — a genuinely fresh install to walk by hand |
 | `npm run screenshots` | Regenerates every picture in `docs/images` |
 | `npm run icons` | Regenerates favicon.ico and apple-touch-icon.png from `app/public/favicon.svg` |
+| `npm run providers` | Asks every provider in the list whether it still lets a browser call it, and prints the table for [Models and parameters](models-and-parameters.md). Not in CI: it talks to twenty companies |
 | `npm run format` | Prettier over everything |
 
 ## Tests
@@ -78,8 +79,9 @@ skips everything if there is nothing built.
   chapter, chapter 2 carrying the summary and not the transcript, and an empty browser reading the
   lot back. It is the regression net for the shape of the app rather than for any one feature.
 
-The human half of the same walk is `npm run smoke` plus the script in `PLAN.md` §4.5 — the part a
-fake model cannot check is whether a real one tells a decent story.
+The human half of the same walk is `npm run smoke` plus the script in `e2e/LIVE-TEST.md` — every
+prompt written out, a table per stage with the expected result beside it, and a worksheet for the
+one thing a fake model cannot check: whether a real one tells a decent story, and what it costs.
 
 ## How the screenshots are made
 
