@@ -83,6 +83,12 @@ export interface UiSettings {
   /** Per theme, so the dark palette and the light one are edited separately. */
   colours: { [T in ThemeName]?: ThemeColours };
   font: ReadingFont;
+  /**
+   * Shows what the app is doing rather than what the story says: the context
+   * pill and the prompt behind it, and the folder the documents are in. It
+   * changes nothing about the request — see the preferences dialog.
+   */
+  developerMode: boolean;
 }
 
 export interface Settings {

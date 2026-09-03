@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { BuildInfoStore } from '../store/build-info';
+import { SettingsStore } from '../store/settings-store';
 
 /** Where the release notes and the issues are. Also in the desktop Help menu. */
 const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
@@ -20,6 +21,14 @@ const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
     <mat-dialog-content>
       <p class="version">{{ version() }}</p>
       <p class="build">{{ build() }}</p>
+      <!-- Where the stories are is a question about the machine rather than
+           about the story, so it keeps developer mode's company. -->
+      @if (dataDir()) {
+        <p class="data">
+          Documents
+          <span class="path">{{ dataDir() }}</span>
+        </p>
+      }
       <p class="blurb">
         A writing app for stories told a chapter at a time, with a language model of your choosing.
         It runs on this machine; your stories are files you can read, copy and back up.
@@ -57,6 +66,27 @@ const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
       font-variant-numeric: tabular-nums;
     }
 
+    .data {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      margin-top: 0.85rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--ms-muted);
+    }
+
+    .path {
+      font-family: var(--ms-mono);
+      font-size: 0.78rem;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--ms-ink-soft);
+      /* A Windows profile path is long and has nowhere natural to break. */
+      overflow-wrap: anywhere;
+    }
+
     .blurb {
       margin-top: 1.1rem;
       font-size: 0.9rem;
@@ -78,8 +108,13 @@ const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
 })
 export class AboutDialog {
   private readonly builds = inject(BuildInfoStore);
+  private readonly settings = inject(SettingsStore);
 
   protected readonly issues = `${REPOSITORY}/issues`;
+
+  protected readonly dataDir = computed(() =>
+    this.settings.ui().developerMode ? (this.builds.info()?.dataDir ?? '') : '',
+  );
 
   protected readonly version = computed(() => {
     const info = this.builds.info();

@@ -130,12 +130,24 @@ import { DialogsService } from '../../shared/dialogs.service';
         <mat-expansion-panel>
           <mat-expansion-panel-header>
             <mat-panel-title>Advanced</mat-panel-title>
-            <mat-panel-description>nothing here yet</mat-panel-description>
+            <mat-panel-description>{{ advancedSummary() }}</mat-panel-description>
           </mat-expansion-panel-header>
 
-          <p class="ms-hint">
-            Options for people who want to look under the hood. Nothing lives here yet.
-          </p>
+          <p class="ms-hint under-the-hood">Options for people who want to look under the hood.</p>
+
+          <div class="stack">
+            <mat-slide-toggle
+              [checked]="ui().developerMode"
+              (change)="settings.patchUi({ developerMode: $event.checked })"
+            >
+              Developer mode — show how the prompt is built and what the app is doing
+            </mat-slide-toggle>
+            <p class="ms-hint">
+              Puts the context pill back under the composer, which is the way into what the model
+              actually sees, and adds the folder your documents are in to the About sheet. It
+              changes nothing about the request itself.
+            </p>
+          </div>
         </mat-expansion-panel>
       </mat-accordion>
     </mat-dialog-content>
@@ -166,6 +178,16 @@ import { DialogsService } from '../../shared/dialogs.service';
       flex-direction: column;
       gap: 0.7rem;
       padding-bottom: 0.35rem;
+    }
+
+    .under-the-hood {
+      margin: 0 0 1rem;
+    }
+
+    /* A switch with a sentence for a label wraps, and its own text should not
+       run back under the switch when it does. */
+    mat-slide-toggle {
+      align-items: flex-start;
     }
 
     .size {
@@ -305,6 +327,10 @@ export class PreferencesDialog {
   });
 
   protected readonly customised = computed(() => this.swatches().some((s) => s.custom));
+
+  protected readonly advancedSummary = computed(() =>
+    this.ui().developerMode ? 'developer mode on' : 'nothing switched on',
+  );
 
   protected readonly readingSummary = computed(() => {
     const ui = this.ui();

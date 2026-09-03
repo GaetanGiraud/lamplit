@@ -6,6 +6,7 @@ import {
   composer,
   messages,
   seedConnectedSettings,
+  seedDeveloperMode,
   seedStory,
   send,
   setBookStyle,
@@ -188,6 +189,10 @@ test.describe('writing a chapter', () => {
   });
 
   test('the context pill reflects what will be sent', async ({ page, server }) => {
+    // The pill is developer mode's; the beforeEach opened the app without it.
+    await seedDeveloperMode(server);
+    await page.reload();
+
     const pill = page.getByRole('button', { name: /^context/ });
     // The scene and the system blocks are in there before a word is typed.
     await expect(pill).toContainText('/ 16k');

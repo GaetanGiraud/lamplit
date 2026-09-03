@@ -134,6 +134,6 @@ story pointed at something stricter later.
 Under each answer (when **Show token counts** is on in **Preferences → Reading**) is the model
 that wrote it and the turn's real cost as the provider reported it: `612 in · 148 out`.
 
-The pill under the composer is the *estimate* for what you are about to send. Comparing the two
-over a few turns tells you how far off the estimate is for your model, and whether your budget is
-where you want it.
+With **Developer mode** on in **Preferences → Advanced**, the context pill under the composer is
+the *estimate* for what you are about to send. Comparing the two over a few turns tells you how far
+off the estimate is for your model, and whether your budget is where you want it.

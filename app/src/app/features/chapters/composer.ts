@@ -49,22 +49,29 @@ import { TextValue } from '../../shared/text-value';
               }
             </div>
 
-            <div class="strip">
-              <button
-                class="ms-pill"
-                type="button"
-                (click)="dialogs.openPromptPreview(draft())"
-                [matTooltip]="contextTooltip"
-              >
-                context {{ contextLabel() }}
-              </button>
-              @if (prompt().dropped > 0) {
-                <span class="ms-hint">
-                  {{ prompt().dropped }} older
-                  {{ prompt().dropped === 1 ? 'message' : 'messages' }} left out
-                </span>
-              }
-            </div>
+            <!-- The pill is developer mode's; the trimming note is everyone's,
+                 because a chapter quietly dropping its own beginning is
+                 something the writer has to be told about either way. -->
+            @if (settings.ui().developerMode || prompt().dropped > 0) {
+              <div class="strip">
+                @if (settings.ui().developerMode) {
+                  <button
+                    class="ms-pill"
+                    type="button"
+                    (click)="dialogs.openPromptPreview(draft())"
+                    [matTooltip]="contextTooltip"
+                  >
+                    context {{ contextLabel() }}
+                  </button>
+                }
+                @if (prompt().dropped > 0) {
+                  <span class="ms-hint">
+                    {{ prompt().dropped }} older
+                    {{ prompt().dropped === 1 ? 'message' : 'messages' }} left out
+                  </span>
+                }
+              </div>
+            }
           }
         }
       </div>

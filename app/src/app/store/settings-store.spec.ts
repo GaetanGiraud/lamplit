@@ -55,9 +55,22 @@ describe('SettingsStore', () => {
     expect(ui.theme).toBe('light');
     expect(ui.fontSize).toBe(22);
     expect(ui.showTokenCounts).toBe(false);
-    // What it did not say is the theme exactly as it shipped.
+    // What it did not say is the theme exactly as it shipped, and an app that
+    // shows the writer's half of itself and nothing else.
     expect(ui.colours).toEqual({});
     expect(ui.font).toBe(DEFAULT_SETTINGS.ui.font);
+    expect(ui.developerMode).toBe(false);
+  });
+
+  it('keeps developer mode once it is switched on', () => {
+    const settings = store();
+    expect(settings.ui().developerMode).toBe(false);
+
+    settings.patchUi({ developerMode: true });
+    expect(settings.ui().developerMode).toBe(true);
+    // It is a setting, not a mode: nothing else moved with it.
+    expect(settings.ui().colours).toEqual({});
+    expect(settings.ui().showTokenCounts).toBe(DEFAULT_SETTINGS.ui.showTokenCounts);
   });
 
   it('keeps a colour per theme, and reset takes only the one theme back', () => {

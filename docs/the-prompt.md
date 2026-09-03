@@ -46,8 +46,8 @@ If it does not fit, the **oldest messages are dropped first** until it does. The
 never trimmed — the scene, the persona and the world are what keep the story coherent, so they
 stay and the transcript gives way.
 
-This is never silent. The composer says *3 older messages left out* beside the context pill when
-it happens, and it is the signal that the chapter has run long enough to close.
+This is never silent. The composer says *3 older messages left out* when it happens, whether or
+not developer mode is on, and it is the signal that the chapter has run long enough to close.
 
 > Token counts before sending are an **estimate** (characters ÷ 3.6). Exact counting is
 > provider-specific and not worth a 400 kB dependency to be approximately as wrong. After each
@@ -56,7 +56,9 @@ it happens, and it is the signal that the chapter has run long enough to close.
 
 ## Looking at it
 
-Click the **context** pill under the composer, or **What the model sees** in the chapter toolbar.
+The preview is behind **Developer mode**: open **Preferences → Advanced** and switch it on. A
+**context** pill appears under the composer — `context 805 / 16k`, what the next request will
+carry against your budget — and clicking it opens the prompt.
 
 ![The assembled prompt, block by block](images/prompt-preview.png)
 

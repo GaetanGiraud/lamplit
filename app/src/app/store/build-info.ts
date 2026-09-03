@@ -24,6 +24,8 @@ export interface BuildInfo {
   channel: 'desktop' | 'zip' | 'dev' | (string & {});
   /** The version whose data folder this is, when it is not this one. */
   previousVersion: string | null;
+  /** Where the documents are, as the server sees it. Empty if unknown. */
+  dataDir: string;
 }
 
 const REQUEST_TIMEOUT = 5000;
@@ -74,6 +76,7 @@ export class BuildInfoStore {
         build: body.build ?? 'local',
         channel: body.channel ?? 'dev',
         previousVersion: body.previousVersion ?? null,
+        dataDir: body.dataDir ?? '',
       });
     } catch {
       /* The About sheet says "unknown"; nothing else depends on this. */

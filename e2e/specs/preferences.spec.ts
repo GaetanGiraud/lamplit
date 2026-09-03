@@ -1,5 +1,15 @@
 import type { Page } from '@playwright/test';
-import { openPreferences, seedConnectedSettings, seedStory, send, waitForTurn } from './helpers';
+import {
+  captureRequests,
+  composer,
+  openPreferences,
+  seedConnectedSettings,
+  seedDeveloperMode,
+  seedStory,
+  send,
+  systemOf,
+  waitForTurn,
+} from './helpers';
 import { expect, test } from './fixtures';
 
 const SCENE = 'The lantern room at dusk. The lamp is cold and the stairs are wet.';
@@ -144,5 +154,89 @@ test.describe('preferences', () => {
     await expect.poll(() => faceOf('.story-prose')).toMatch(/Cascadia|Consolas|monospace/i);
     // The wordmark is app furniture and stays in the serif it always was.
     await expect.poll(() => faceOf('ms-top-bar .wordmark')).toMatch(/Iowan|Palatino|serif/i);
+  });
+});
+/**
+ * Developer mode is the line between what the story needs and what a person
+ * debugging it needs. The one thing it must never do is change the request, so
+ * that is checked here rather than left to reasoning about the template.
+ */
+test.describe('developer mode', () => {
+  test.beforeEach(async ({ server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
+  });
+
+  const pill = (page: Page) =>
+    page.locator('ms-composer').getByRole('button', { name: /^context/ });
+
+  test('is off on a fresh install, and switching it on is the way to the prompt', async ({
+    page,
+    server,
+  }) => {
+    await page.goto(server.url);
+
+    // Neither door: the pill is gone and the toolbar button it replaced is too.
+    await expect(pill(page)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'What the model sees' })).toHaveCount(0);
+
+    await openPreferences(page);
+    const preferences = page.getByRole('dialog');
+    await preferences.getByRole('button', { name: 'Advanced' }).click();
+    await preferences.getByRole('switch', { name: /^Developer mode/ }).click();
+    await preferences.getByRole('button', { name: 'Done' }).click();
+    await expect(preferences).toBeHidden();
+
+    await expect(pill(page)).toBeVisible();
+    await pill(page).click();
+    await expect(page.getByRole('heading', { name: 'What the model sees' })).toBeVisible();
+
+    // And it is a setting, not a session: the file says so, and a reload agrees.
+    await expect
+      .poll(async () => {
+        const settings = await server.document('settings');
+        return (settings?.['ui'] as Record<string, unknown>)?.['developerMode'];
+      })
+      .toBe(true);
+    await page.reload();
+    await expect(pill(page)).toBeVisible();
+  });
+
+  test('changes nothing about what the model is sent', async ({ page, server }) => {
+    await page.goto(server.url);
+    const off = await captureRequests(page);
+    await send(page, 'I knock twice and wait.');
+    await waitForTurn(page);
+
+    await seedDeveloperMode(server);
+    await page.reload();
+    await expect(pill(page)).toBeVisible();
+    const on = await captureRequests(page);
+    await composer(page).fill('I knock twice and wait.');
+    await pill(page).click();
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await waitForTurn(page);
+
+    // The same system prompt, and the same user line under it. Looking at the
+    // request is not the same as being in it.
+    expect(systemOf(on[on.length - 1])).toBe(systemOf(off[off.length - 1]));
+  });
+
+  test('adds the folder the documents are in to About', async ({ page, server }) => {
+    await page.goto(server.url);
+    await page.getByRole('button', { name: 'More actions' }).click();
+    await page.getByRole('menuitem', { name: /^About Lamplit/ }).click();
+    const about = page.getByRole('dialog');
+    // The build line is a bug report's, not a developer's, and stays either way.
+    await expect(about.locator('.build')).not.toBeEmpty();
+    await expect(about.locator('.path')).toHaveCount(0);
+    await about.getByRole('button', { name: 'Close' }).click();
+
+    await seedDeveloperMode(server);
+    await page.reload();
+    await page.getByRole('button', { name: 'More actions' }).click();
+    await page.getByRole('menuitem', { name: /^About Lamplit/ }).click();
+    await expect(page.getByRole('dialog').locator('.path')).toContainText(server.dataDir);
   });
 });

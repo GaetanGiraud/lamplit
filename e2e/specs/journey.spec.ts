@@ -72,6 +72,9 @@ test.describe('a story from nothing, told by a narrator', () => {
     await expect(dialog).toBeHidden();
   };
 
+  /** Developer mode's one door into the assembled prompt. Absent until then. */
+  const contextPill = () => page.locator('ms-composer').getByRole('button', { name: /^context/ });
+
   test('1 · opens on the connection, and will not be waved away', async () => {
     const sheet = page.getByRole('dialog');
     await expect(sheet.getByRole('heading', { name: /somewhere to send the story/ })).toBeVisible();
@@ -208,20 +211,26 @@ test.describe('a story from nothing, told by a narrator', () => {
       .poll(async () => (await server.document<any>('stories', storyId))?.['world'].entries.length)
       .toBe(1);
 
-    // Nothing in the story has mentioned him yet.
-    await page.getByRole('button', { name: 'What the model sees' }).click();
+    // The way in is developer mode's context pill, and this is the first stage
+    // that has wanted it — so it is switched on here, through the interface,
+    // the way anyone else would.
+    await expect(contextPill()).toHaveCount(0);
+    await page.getByRole('button', { name: 'Preferences' }).click();
+    const preferences = page.getByRole('dialog');
+    await preferences.getByRole('button', { name: 'Advanced' }).click();
+    await preferences.getByRole('switch', { name: /^Developer mode/ }).click();
+    await close(preferences);
+
+    // Nothing in the story has mentioned him yet, and the composer is empty,
+    // so the pill shows the chapter exactly as it stands.
+    await contextPill().click();
     const preview = page.getByRole('dialog');
     await expect(preview.getByText(LORE_FACT)).toHaveCount(0);
     await close(preview);
 
-    // Typing his name is enough. The pill under the composer is the preview of
-    // what is about to be sent, draft included — the toolbar's button shows the
-    // chapter as it stands, which is why the check above used that one.
+    // Typing his name is enough: the pill counts the draft in too.
     await composer(page).fill(`"Did you know ${LORE_KEY}?" I ask.`);
-    await page
-      .locator('ms-composer')
-      .getByRole('button', { name: /^context/ })
-      .click();
+    await contextPill().click();
     const armed = page.getByRole('dialog');
     await expect(armed.locator('li', { hasText: 'Old Tomas' })).toContainText(
       `fired on “${LORE_KEY}”`,

@@ -31,9 +31,6 @@ import { chapterTitle } from '../../core/prompt-builder';
       <button class="ms-pill" type="button" (click)="dialogs.openScene(chapters.chapter().id)">
         Edit scene
       </button>
-      <button class="ms-pill" type="button" (click)="dialogs.openPromptPreview()">
-        What the model sees
-      </button>
     </div>
   `,
   styles: `

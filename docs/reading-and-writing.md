@@ -42,14 +42,12 @@ it — a half-written passage is still a passage, and you can edit it or carry o
 
 ![An answer arriving, with Stop up](images/streaming.png)
 
-### The context pill
+### When a chapter outgrows the budget
 
-`context 805 / 16k` under the composer is a live count of what the next request will carry,
-against your budget. It updates as you type. Click it to open
-[What the model sees](the-prompt.md).
-
-If the chapter has grown past the budget, a note appears beside it — *3 older messages left out* —
-so the trimming is never silent.
+If the chapter has grown past what fits in one request, a note appears under the composer — *3
+older messages left out* — so the trimming is never silent. What was dropped, and everything else
+the request carries, is [What the model sees](the-prompt.md), which lives behind **Developer
+mode** — see below.
 
 ## What each message can do
 
@@ -119,7 +117,20 @@ reaches you unless you had overridden that exact one.
 
 ### Advanced
 
-Options for people who want to look under the hood. Nothing lives here yet.
+![Developer mode, and what it puts back](images/preferences-advanced.png)
+
+Options for people who want to look under the hood. There is one so far.
+
+**Developer mode** puts back the parts of the app that are about the app rather than about the
+story, and it is off on a fresh install:
+
+- The **context pill** under the composer — `context 805 / 16k`, a live count of what the next
+  request will carry against your budget, updating as you type. Clicking it is the way into
+  [What the model sees](the-prompt.md).
+- The folder your documents are in, under the version in **⋯ → About Lamplit**.
+
+It changes nothing about the request. A story written with it on and a story written with it off
+send exactly the same thing; the difference is only whether you can watch.
 
 ## Getting around
 

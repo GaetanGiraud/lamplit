@@ -7,6 +7,22 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**Developer mode, for the half of the app that is about the app.** The context
+pill under the composer and **What the model sees** behind it are now off
+unless you ask for them: **Preferences → Advanced → Developer mode**. A fresh
+install is the writing app and nothing else.
+
+- **One door instead of two.** The **What the model sees** button in the chapter
+  toolbar is gone; the pill was always the better way in, because it says what
+  the room is about and counts your draft as you type.
+- **About** gains the folder your documents are in, under the version, while
+  developer mode is on. The build line stays where it was for everyone — it is
+  what makes a bug report answerable.
+- It changes nothing about the request. A story written with it on and one
+  written with it off send exactly the same thing.
+- **Show token counts** is unaffected: the line under each answer is about
+  reading, and stays in **Preferences → Reading**.
+
 **Preferences, and the colours the story is read in.** The **Reading** menu in
 the top bar is now **Preferences**, a sheet with room in it. **Reading** is the
 same four settings it always was — theme, dialogue on its own line, token

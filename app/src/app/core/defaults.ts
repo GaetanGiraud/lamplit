@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
     showTokenCounts: true,
     colours: {},
     font: 'serif',
+    developerMode: false,
   },
   activeStoryId: null,
   acknowledgedVersion: null,

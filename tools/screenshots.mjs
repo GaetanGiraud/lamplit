@@ -217,11 +217,19 @@ async function theApp() {
   await page.waitForTimeout(200);
   await shot(page, 'message-actions', 'edit, regenerate, replay, copy, delete');
 
-  await page.getByRole('button', { name: 'What the model sees' }).click();
+  // The prompt preview is behind developer mode, so it is switched on for this
+  // one picture and off again: every other shot is the app a writer sees, and
+  // the context pill is not part of that.
+  await setDeveloperMode(page, true);
+  await page
+    .locator('ms-composer')
+    .getByRole('button', { name: /^context/ })
+    .click();
   await page.getByRole('heading', { name: /model sees/ }).waitFor();
   await page.waitForTimeout(400);
   await shot(page, 'prompt-preview', 'the assembled prompt, block by block');
   await escape(page);
+  await setDeveloperMode(page, false);
 
   await page.getByRole('button', { name: 'World', exact: true }).click();
   await page.waitForTimeout(500);
@@ -267,6 +275,10 @@ async function theApp() {
     'every colour the theme is built from, and the reading font',
   );
   await page.getByRole('button', { name: 'Colours' }).first().click();
+  await page.getByRole('button', { name: 'Advanced' }).first().click();
+  await page.waitForTimeout(500);
+  await shot(page, 'preferences-advanced', 'developer mode, and what it puts back');
+  await page.getByRole('button', { name: 'Advanced' }).first().click();
   await page.getByRole('button', { name: 'Reading' }).first().click();
   await page.waitForTimeout(400);
   await page.getByRole('switch', { name: 'Dark theme' }).click();
@@ -317,6 +329,17 @@ async function session() {
 async function shot(page, name, caption, options = {}) {
   await page.screenshot({ path: join(OUT, `${name}.png`), animations: 'disabled', ...options });
   shots.push(`${name}.png — ${caption}`);
+}
+
+/** Developer mode, through the interface, because that is where it lives. */
+async function setDeveloperMode(page, on) {
+  await page.getByRole('button', { name: 'Preferences' }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('button', { name: 'Advanced' }).click();
+  const toggle = sheet.getByRole('switch', { name: /^Developer mode/ });
+  if ((await toggle.getAttribute('aria-checked')) !== String(on)) await toggle.click();
+  await sheet.getByRole('button', { name: 'Advanced' }).click();
+  await escape(page);
 }
 
 /** Escape closes a modal, and everything in it has already been saved. */

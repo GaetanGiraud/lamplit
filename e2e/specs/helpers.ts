@@ -49,6 +49,25 @@ export async function seedConnectedSettings(
   await server.seed({ settings });
 }
 
+/**
+ * Turns developer mode on before the app starts.
+ *
+ * The context pill and the prompt preview behind it are only there when it is,
+ * so any spec that reads the assembled prompt has to say so — and a spec that
+ * does not is checking the app a writer actually sees.
+ */
+export async function seedDeveloperMode(server: PersistenceServer): Promise<void> {
+  const settings = (await server.document('settings')) ?? {};
+  const ui = (settings['ui'] as Record<string, unknown>) ?? {};
+  await server.seed({ settings: { ...settings, ui: { ...ui, developerMode: true } } });
+}
+
+/** Opens What the model sees, which developer mode's pill is the only way into. */
+export async function openPromptPreview(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /^context/ }).click();
+  await expect(page.getByRole('heading', { name: 'What the model sees' })).toBeVisible();
+}
+
 export interface SeedStory {
   title?: string;
   mode?: 'narrator' | 'roleplay';

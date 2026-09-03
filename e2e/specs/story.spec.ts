@@ -5,7 +5,9 @@ import {
   captureRequests,
   composer,
   expectComposerHidden,
+  openPromptPreview,
   seedConnectedSettings,
+  seedDeveloperMode,
   seedStory,
   send,
   systemOf,
@@ -110,10 +112,11 @@ test.describe('the world', () => {
 
   test('lore fires on the scene, and only on what is mentioned', async ({ page, server }) => {
     await seedConnectedSettings(server);
+    await seedDeveloperMode(server);
     await seedStory(server, { scene: SCENE, entries, storySoFar: 'Mara has just arrived.' });
     await page.goto(server.url);
 
-    await page.getByRole('button', { name: 'What the model sees' }).click();
+    await openPromptPreview(page);
     const preview = page.getByRole('dialog');
     await expect(preview.locator('li', { hasText: 'Old Tomas' })).toContainText(
       'fired on “keeper” in the scene',
@@ -144,6 +147,7 @@ test.describe('the world', () => {
 
   test('closing the modal saves what was typed into it', async ({ page, server }) => {
     await seedConnectedSettings(server);
+    await seedDeveloperMode(server);
     await seedStory(server, { scene: SCENE });
     await page.goto(server.url);
 
@@ -154,7 +158,7 @@ test.describe('the world', () => {
     await page.keyboard.press('Escape');
     await expect(world).toBeHidden();
 
-    await page.getByRole('button', { name: 'What the model sees' }).click();
+    await openPromptPreview(page);
     await expect(page.getByRole('dialog')).toContainText('Mara has just arrived on the island.');
   });
 
@@ -418,6 +422,7 @@ test.describe('chapters', () => {
 
   test('story, chapters and scenes survive a reload', async ({ page, server }) => {
     await seedConnectedSettings(server);
+    await seedDeveloperMode(server);
     await seedStory(server, { scene: SCENE, storySoFar: 'Mara has just arrived.' });
     await page.goto(server.url);
 
@@ -428,7 +433,7 @@ test.describe('chapters', () => {
 
     await expect(page.getByRole('button', { name: /The Lighthouse/ })).toBeVisible();
     await expect(assistantMessages(page)).toHaveCount(1);
-    await page.getByRole('button', { name: 'What the model sees' }).click();
+    await openPromptPreview(page);
     const preview = page.getByRole('dialog');
     await expect(preview.getByText('Mara has just arrived.')).toBeVisible();
     await expect(preview.getByText(new RegExp(SCENE.slice(0, 24)))).toBeVisible();
