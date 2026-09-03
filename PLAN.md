@@ -3,7 +3,8 @@
 A single-page, text-only storytelling app (Narrator / Role-play) written in chapters, talking
 directly from the browser to any OpenAI-compatible endpoint. SillyTavern is the functional
 reference (`../SillyTavern`), consulted only for targeted checks. Written 2026-09-02, step 2
-reworked around chapters and scenes 2026-09-02, step 4 (desktop and outreach) added 2026-09-03.
+reworked around chapters and scenes 2026-09-02, step 4 (desktop and outreach) added and
+completed 2026-09-03. **All four steps are done; v0.1.0 is published.**
 
 Guiding principles
 
@@ -901,22 +902,30 @@ installers on the release page, the landing page's two live buttons resolving to
 macOS slot greyed out with the source-install link working, and the provider spec green. Then
 §7's checkpoint for step 4.
 
-**Where it stands, 2026-09-03.** Everything that can be proved on this machine is proved: 67 app
-unit tests, 30 server, 59 Playwright specs — three of them driving the Electron shell — and the
-Windows installer and portable build made, run, written to and quit by hand. Four things are true
-only once a person does them, and none can be faked here:
+**Done, 2026-09-03.** v0.1.0 is published. The site is live at
+<https://gaetangiraud.github.io/lamplit/>, its four download buttons resolve to real assets, and
+Gaetan installed the Windows build from that page and ran it.
 
-1. **Pages has to be switched on** — repo settings → Pages → Source `main`, folder `/docs`. The
-   site does not exist until someone clicks it.
-2. **The first tag has to be pushed.** `workflow_dispatch` is in the workflow precisely so the
-   build can be proved before a tag is trusted with it; the Linux half has never run at all.
-3. **The download buttons 404 until that release is published.** They point at
-   `/releases/latest/download/…`, which is right and stable and empty.
-4. **SmartScreen's picture cannot be taken here.** The warning is triggered by the mark of the web
-   on a *downloaded* file, so a locally built .exe never shows it. The three sentences are on the
-   page; the picture waits for the first real download.
+It took three tagged runs to get there, and each failure was one only a real runner could find:
 
-Then the SignPath application (§5.5), which needs a published release to point at.
+1. **Electron 44 publishes no `scripts` at all.** No postinstall, so `npm ci` gave the runners the
+   JavaScript and no binary, silently. Invisible on this machine because electron-builder
+   downloads its own copy through @electron/get — only Playwright's `_electron.launch()` uses the
+   one in `node_modules`. Fixed by `tools/fetch-electron.mjs` on `postinstall`; recorded in §0.
+2. **The desktop spec raced its own write.** It waited for `settings.json` to exist and then read
+   it, but the app writes that file when it creates the first story, before the typed key lands.
+   This machine won the race every time; a colder runner did not. It polls for the key now.
+3. **The actions were on Node 20**, deprecated by GitHub. checkout, setup-node and upload-artifact
+   are on v7, proved by a `workflow_dispatch` run after the release rather than during it.
+
+The thing that made all three findable was the commit before the first tag, which turned CI's
+`test.skip` into a thrown error: a green workflow that had quietly skipped the desktop spec would
+have published installers nothing had ever opened.
+
+Still open, and neither is code: the **SignPath application** (§5.5), which needed a published
+release to point at and now has one; and the **SmartScreen picture** for the download page, which
+can only be taken from a file carrying the mark of the web — so from the published release, not
+from a local build.
 
 ---
 
@@ -944,7 +953,7 @@ Then the SignPath application (§5.5), which needs a published release to point 
 | 1 | Streaming chat + connection + parameters, localStorage only (the conversation becomes Chapter 1 in step 2) | **Done 2026-09-02.** 22 unit tests + 14 Playwright specs green against the fake endpoint; NanoGPT's live model list confirmed from the browser (612 models, no key, CORS fine). The live-key half of E2E 2.2 still needs Gaetan. |
 | 2 | Chapters with compulsory scenes, story / persona / world / lore, prompt builder, close chapter | **Done 2026-09-03.** 37 unit tests + 24 Playwright specs green against the fake endpoint. Live E2E 3.2 still needs Gaetan's key. |
 | 3 | Express persistence, bootstrap, status indicator, packaging | **Done 2026-09-03.** 53 app unit tests + 30 server unit tests + 39 Playwright specs green, five of them driving the production build served by the real server and asserting against the files on disk. `npm run package` produces a ~1 MB zip that runs from one call. Electron deliberately left for later. **Live test still open:** `e2e/LIVE-TEST.md` with Gaetan's key — the prose verdict and, above all, the cost verdict in its section 11, which decides whether the premise holds before step 4 makes the app easier to reach. |
-| 4 | Electron shell and installers for Windows and Linux (macOS deliberately not shipped — greyed out on the page, open to a contributor with the licence, source install as the fallback), a tagged-release workflow publishing to GitHub Releases, `docs/` served as the website with a landing page and download buttons, a provider table lifted from SillyTavern (§5) | **Written 2026-09-03.** 67 app unit tests + 30 server + 59 Playwright specs green, three of the last driving the Electron shell for real. `npm run desktop:dist` produces the Windows installer and portable build; both were run, written to and quit by hand, and the portable one keeps `data/` beside itself. Twenty-two providers, every one confirmed from a browser the same day. **Not yet true, and not provable here (§5.9):** GitHub Pages is not switched on, no tag has been pushed, the Linux half of the workflow has never run, and the download buttons therefore point at a release that does not exist. Done when a person with no Node on their machine installs from the website and writes a chapter without opening a terminal. |
+| 4 | Electron shell and installers for Windows and Linux (macOS deliberately not shipped — greyed out on the page, open to a contributor with the licence, source install as the fallback), a tagged-release workflow publishing to GitHub Releases, `docs/` served as the website with a landing page and download buttons, a provider table lifted from SillyTavern (§5) | **Done 2026-09-03.** 67 app unit tests + 30 server + 59 Playwright specs green, three of the last driving the Electron shell for real. `npm run desktop:dist` produces the Windows installer and portable build; both were run, written to and quit by hand, and the portable one keeps `data/` beside itself. Twenty-two providers, every one confirmed from a browser the same day. v0.1.0 published from the third tagged run, both runners green at 59 specs each. The site is live, its four buttons resolve, and the Windows installer was downloaded from it and run. §5.9 has the three CI-only faults the runs found. |
 
 Each step is a separate session. Nothing from a later step is started before the previous
 checkpoint passes — for step 4, that means the live test's verdict comes first.
