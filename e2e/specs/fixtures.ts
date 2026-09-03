@@ -20,6 +20,12 @@ export const test = base.extend<{ server: PersistenceServer }>({
   },
 });
 
+// A skip is a kindness on a developer's machine and a lie in CI. A release
+// must never go out green because the suite quietly found nothing to run.
+if (process.env['CI'] && !IS_BUILT) {
+  throw new Error('the app has not been built — the workflow builds it before this step');
+}
+
 test.skip(!IS_BUILT, 'the app has not been built — run `npm run e2e`, which builds it first');
 
 export { expect } from '@playwright/test';

@@ -53,8 +53,15 @@ jobs:
       - name: Install
         run: npm ci
 
+      # --with-deps installs system libraries and is Ubuntu-only; asking for it
+      # on Windows is a way to fail before anything has been built.
+      - name: Install the browser Playwright drives
+        run: npx playwright install chromium
+        if: runner.os == 'Windows'
+
       - name: Install the browser Playwright drives
         run: npx playwright install --with-deps chromium
+        if: runner.os == 'Linux'
 
       # Cheap, offline, and catches the class of bug that only shows up when a
       # visitor clicks: a docs link the website will serve as raw markdown.

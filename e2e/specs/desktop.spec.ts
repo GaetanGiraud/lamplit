@@ -21,11 +21,19 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..', '..');
 const ELECTRON_DIR = join(ROOT, 'electron');
 
+const ELECTRON_INSTALLED = existsSync(join(ROOT, 'node_modules', 'electron', 'path.txt'));
+
+// The whole point of this spec is that it runs before a release. Skipping it
+// because Electron's binary never downloaded would publish installers nothing
+// had opened, so in CI a missing prerequisite is a failure, not a skip.
+if (process.env['CI'] && !(IS_BUILT && ELECTRON_INSTALLED)) {
+  throw new Error(
+    `cannot check the desktop shell: built=${IS_BUILT}, electron=${ELECTRON_INSTALLED}`,
+  );
+}
+
 test.skip(!IS_BUILT, 'the app has not been built — run `npm run e2e`, which builds it first');
-test.skip(
-  !existsSync(join(ROOT, 'node_modules', 'electron', 'path.txt')),
-  'Electron is not installed — run `npm install`',
-);
+test.skip(!ELECTRON_INSTALLED, 'Electron is not installed — run `npm install`');
 
 test.describe.configure({ mode: 'serial' });
 
