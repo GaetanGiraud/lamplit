@@ -1,0 +1,32 @@
+# The website is this folder, served as it is.
+#
+# GitHub Pages → Source → main, folder /docs. There is no build step and no
+# second copy of the documentation: the guide's markdown files are the site's
+# pages, and the plugins GitHub enables by default do the rest —
+# jekyll-optional-front-matter (so nothing here needs a YAML header, which
+# would show up as a table when the same file is read on GitHub),
+# jekyll-relative-links (so [Chapters](chapters.md) becomes a working link),
+# and jekyll-titles-from-headings (so each page is titled by its own H1).
+#
+# index.md is the landing page. README.md stays the guide's index, at
+# README.html, which is where every page's "← Documentation" link already goes.
+
+title: MagicStories
+description: >-
+  Write a story with a language model, in chapters, on your own machine.
+  Your stories are files. Your key goes to your provider and nowhere else.
+
+theme: minima
+lang: en_GB
+
+# Minima puts every titled page in the header nav, which for a ten-page guide
+# is a wall. These two are the ways in; the rest are reached from them.
+header_pages:
+  - getting-started.md
+  - README.md
+
+# `url` and `baseurl` are deliberately not set. jekyll-github-metadata — also on
+# by default — fills them in from the repository itself, which is what makes the
+# theme's stylesheet resolve under /magic-stories/ rather than at the domain
+# root. Setting them here would be one more thing to remember to change if the
+# repository is ever renamed.

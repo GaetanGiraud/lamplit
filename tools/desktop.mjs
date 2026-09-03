@@ -10,6 +10,10 @@ import { fileURLToPath } from 'node:url';
  *   npm run desktop:stage      stage the folder the installers wrap, and stop
  *   npm run desktop:dist       stage, then build installers for this OS
  *
+ * `--publish` on the last of those uploads them to the draft release for the
+ * tag being built, which is the only thing the release workflow does that a
+ * person running it here would not.
+ *
  * Staging goes through `tools/package.mjs`, which is the one place that decides
  * what ships. The Electron shell is put around the result rather than beside
  * it: `electron/electron-builder.yml` copies that folder in whole, so the
@@ -26,9 +30,9 @@ const ELECTRON_DIR = join(ROOT, 'electron');
 const STAGE_DIR = join(ROOT, 'build', 'desktop-stage');
 const BUILT_APP = join(ROOT, 'app', 'dist', 'app', 'browser');
 
-const mode = parseMode(process.argv.slice(2));
+const options = parseArguments(process.argv.slice(2));
 
-if (mode === 'run') {
+if (options.mode === 'run') {
   if (!existsSync(join(BUILT_APP, 'index.html'))) {
     step('the app has not been built yet');
     run('npm', ['run', 'build', '-w', 'app'], ROOT);
@@ -39,9 +43,11 @@ if (mode === 'run') {
   step(`staging into ${STAGE_DIR}`);
   run('node', [join(ROOT, 'tools', 'package.mjs'), '--stage', STAGE_DIR, '--no-zip'], ROOT);
 
-  if (mode === 'dist') {
-    step('building installers');
-    run('npx', ['electron-builder', '--config', 'electron-builder.yml'], ELECTRON_DIR);
+  if (options.mode === 'dist') {
+    step(options.publish ? 'building installers and publishing them' : 'building installers');
+    const args = ['electron-builder', '--config', 'electron-builder.yml'];
+    if (options.publish) args.push('--publish', 'always');
+    run('npx', args, ELECTRON_DIR);
     step('done');
     console.log(`   installers  ${join(ROOT, 'build', 'desktop')}`);
   } else {
@@ -50,11 +56,16 @@ if (mode === 'run') {
   }
 }
 
-function parseMode(argv) {
-  if (!argv.length) return 'run';
-  if (argv.length === 1 && argv[0] === '--dist') return 'dist';
-  if (argv.length === 1 && argv[0] === '--stage-only') return 'stage';
-  fail(`unknown option ${argv.join(' ')} — expected --dist or --stage-only`);
+function parseArguments(argv) {
+  const parsed = { mode: 'run', publish: false };
+  for (const argument of argv) {
+    if (argument === '--dist') parsed.mode = 'dist';
+    else if (argument === '--stage-only') parsed.mode = 'stage';
+    else if (argument === '--publish') parsed.publish = true;
+    else fail(`unknown option ${argument} — expected --dist, --stage-only or --publish`);
+  }
+  if (parsed.publish && parsed.mode !== 'dist') fail('--publish only means something with --dist');
+  return parsed;
 }
 
 /** `shell` on Windows: npm and npx are .cmd there, which Node will not spawn. */

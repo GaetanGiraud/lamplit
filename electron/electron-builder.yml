@@ -35,14 +35,20 @@ publish:
   provider: github
   owner: GaetanGiraud
   repo: magic-stories
+  # A draft, always: nothing here is signed, so a person looks at what arrived
+  # before anyone can download it.
+  releaseType: draft
 
+# The download page's buttons point at
+# .../releases/latest/download/<name>, which only stays a link if <name> never
+# changes — so no version in any artifact name. What version someone has is on
+# the release, in the installer, and under Help in the app itself.
 win:
   target:
     - target: nsis
       arch: [x64]
     - target: portable
       arch: [x64]
-  artifactName: MagicStories-${version}-${arch}-${os}.${ext}
 
 nsis:
   oneClick: false
@@ -53,12 +59,12 @@ nsis:
   # Stories live in the profile, not in the install folder. Uninstalling must
   # not take them, and the docs say so — this is the line that makes it true.
   deleteAppDataOnUninstall: false
-  artifactName: MagicStories-Setup-${version}.${ext}
+  artifactName: MagicStories-Setup.${ext}
 
 portable:
   # A USB-stick copy keeps its data beside itself, the way the zip does.
   unpackDirName: MagicStories
-  artifactName: MagicStories-${version}-portable.${ext}
+  artifactName: MagicStories-portable.${ext}
 
 linux:
   target:
@@ -68,7 +74,11 @@ linux:
       arch: [x64]
   category: Office
   synopsis: Write a story with a language model, in chapters.
-  artifactName: MagicStories-${version}-${arch}.${ext}
+  # A .deb has to name a maintainer, and this project's only contact is its
+  # issues. GitHub's noreply address is the nearest thing to saying so in a
+  # field that will not take "open an issue" for an answer.
+  maintainer: MagicStories <GaetanGiraud@users.noreply.github.com>
+  artifactName: MagicStories.${ext}
 # macOS is deliberately not built: an unsigned build is refused by Gatekeeper,
 # and notarising it needs an Apple Developer licence this project does not hold.
 # See PLAN.md §5.5. A contributor who has one needs this block and a
@@ -79,4 +89,4 @@ linux:
 #     - target: dmg
 #       arch: [x64, arm64]
 #   category: public.app-category.productivity
-#   artifactName: MagicStories-${version}-${arch}.${ext}
+#   artifactName: MagicStories-${arch}.${ext}

@@ -4,18 +4,31 @@
 
 ---
 
-## What you need
+## Getting it
 
-- **Node.js** 20.19+, 22.12+ or 24+.
-- **An OpenAI-compatible endpoint.** [NanoGPT](https://nano-gpt.com) is offered out of the box —
-  it answers browser requests directly, so there is nothing to proxy. Anything else that answers
-  `GET /models` and `POST /chat/completions` works too, including a local Ollama, LM Studio,
-  llama.cpp or vLLM server.
-- **A browser.** Any current one.
+**[Download it from the front page.](index.md)** Windows and Linux; one file, one icon, and
+nothing to install first. macOS is not built, and that page says what to do instead.
 
-You do not need an account with anyone, and you do not need to build anything to try it.
+That is the whole of it. [The desktop app](desktop.md) covers where it keeps your stories and how
+the window works.
 
-## Running it
+## What you need besides
+
+- **Somewhere to send the story** — a key from a provider, or a model running on your own machine.
+  The app has twenty-two providers built in, each one filling in its own URL and linking to the
+  page where it hands out keys; [Models and parameters](models-and-parameters.md) lists them all.
+  You do not need an account with anyone in particular, and nothing is sold here.
+- **Nothing else.**
+
+## The other ways to run it
+
+Neither is necessary; both exist because some people prefer them.
+
+**The zip** — a megabyte, runs from one call, keeps your stories in a folder you chose. It needs
+Node.js 20.19+, 22.12+ or 24+ already on the machine. See
+[Running it anywhere](running-anywhere.md).
+
+**From the source** — the way in for anyone who wants to change it:
 
 ```bash
 npm install
@@ -24,12 +37,8 @@ npm start
 
 `npm start` runs both halves of the app: the persistence server on
 <http://localhost:4177>, and the dev server on <http://localhost:4200> which proxies `/api` to it.
-Open **4200**.
-
-> Everything comes from the public npm registry, and there is no postinstall step.
-
-If you would rather have a copy that runs on its own — no repo, no `npm install`, one
-double-click — build the zip instead. See [Running it anywhere](running-anywhere.md).
+Open **4200**. Everything comes from the public npm registry, and there is no postinstall step.
+[Development](development.md) has the rest.
 
 ## The first run, in three questions
 
@@ -45,9 +54,11 @@ to send the story. It will not take Escape for an answer, and **Done** stays dar
 an endpoint and a model. (There is a **Not now** if you want to look around first; the composer
 will simply stay shut and tell you why.)
 
-Pick **NanoGPT** and paste your key, or pick **Custom** and type any URL. Then **Fetch models**,
-choose one, and — worth doing once — press **Test**, which makes one real round trip and tells you
-whether the whole path works.
+Pick your provider from the list — the URL fills itself in, and the key hint underneath links
+straight to the page where that provider hands out keys. (Or pick **Custom** and type any URL,
+which is how you reach a model running on your own machine.) Paste the key, press **Fetch
+models**, choose one, and — worth doing once — press **Test**, which makes one real round trip and
+tells you whether the whole path works.
 
 ![The connection modal with models fetched and tested](images/connection.png)
 

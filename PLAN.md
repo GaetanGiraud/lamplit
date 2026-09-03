@@ -52,7 +52,7 @@ Guiding principles
 ```
 MagicStories/
   PLAN.md
-  package.json              npm workspaces: app, server, e2e (electron later)
+  package.json              npm workspaces: app, server, e2e, electron
   app/                      Angular 21 workspace
     src/app/
       core/                 model client, SSE parser, prompt builder, tokens, formatting
@@ -70,9 +70,9 @@ MagicStories/
   tools/                    dev.mjs (app + server together), package.mjs (the runnable zip)
   e2e/                      Playwright specs + fake OpenAI SSE server, and LIVE-TEST.md, the
                             script a person follows with a real model
-  electron/                 (step 4) main process, preload, electron-builder config
+  electron/                 main process, preload, electron-builder config (step 4)
   docs/                     the guide; also the website, served as-is by GitHub Pages (step 4)
-  .github/workflows/        (step 4) release.yml — builds installers on a tag and publishes them
+  .github/workflows/        release.yml — builds installers on a tag and publishes them (step 4)
 ```
 
 ### 1.3 Data model (TypeScript, all persisted as-is)
@@ -81,7 +81,7 @@ MagicStories/
 // settings.json  — one file, global
 interface Settings {
   connection: {
-    provider: 'nanogpt' | 'custom';
+    provider: string; // a row in core/providers.ts, or 'custom' (§5.7)
     baseUrl: string; // e.g. https://nano-gpt.com/api/v1
     apiKey: string; // stored locally in plain JSON (single-user, local machine)
     model: string; // selected model id
@@ -856,6 +856,35 @@ Then the shell, then the release workflow (a first unsigned release, as a draft,
 pipeline), then the website — which cannot have download buttons until there is something to
 download — then the SignPath application. Each is a separate session, as before.
 
+**Built in that order on 2026-09-03**, in one session rather than five. What the writing above
+did not know, and the doing found out:
+
+- **Every one of the twenty-two providers answers a browser**, confirmed rather than assumed:
+  `npm run providers` drives a real Chromium page on `localhost:4177` and prints the table.
+- **Electron ignores `--user-data-dir`**, so a spec cannot get a first run that way. `MS_USER_DATA`
+  does, and it pays for itself twice: `PORTABLE_EXECUTABLE_DIR` beside it is what gives §5.3's
+  portable build its `data/` next to the .exe.
+- **`extraResources` will not copy `node_modules`** however the filter is written, so each staged
+  piece is named on its own line in `electron-builder.yml`.
+- **A prevented `will-quit` cannot be un-prevented.** Electron ignores the `app.quit()` that
+  follows one, and the app hung on exit forever. It closes the server, gives the last beacon
+  1.5 seconds, and then `app.exit(0)`.
+- **§5.3's versioned artifact names cannot coexist with §5.6's stable download URLs.**
+  `/releases/latest/download/<name>` is only a link if `<name>` never changes, so the artifacts
+  are `MagicStories-Setup.exe`, `MagicStories-portable.exe`, `MagicStories.AppImage`,
+  `MagicStories.deb`. The version is on the release, in the installer, and under **Help**.
+- **The website needs no front matter and no `baseurl`.** GitHub Pages enables
+  `jekyll-optional-front-matter`, `jekyll-relative-links`, `jekyll-titles-from-headings` and
+  `jekyll-github-metadata` by default and cannot be told not to, which between them render the
+  guide's plain markdown, rewrite its `.md` links, title each page from its own `# `, and fill in
+  the project-site base path. The one thing they do **not** do is rewrite `href` attributes in raw
+  HTML — so the landing page's HTML blocks link to `.html` directly, and every other page keeps
+  the `.md` links that also work when it is read on GitHub.
+- **Two things were fixed on the way that belong to earlier steps**, because the website is built
+  out of them: `tools/screenshots.mjs` still seeded the demo story into localStorage, which §4.6
+  removed, and the model field showed the id beside the name when shut, because a `::ng-deep` rule
+  was written against markup `mat-select` does not produce.
+
 ### 5.9 Acceptance
 
 A second person, on a machine that has never had Node on it, given only the website's URL:
@@ -870,6 +899,23 @@ Plus: the Electron spec (5.2.6) green in the workflow on both runners, the Windo
 installers on the release page, the landing page's two live buttons resolving to them and its
 macOS slot greyed out with the source-install link working, and the provider spec green. Then
 §7's checkpoint for step 4.
+
+**Where it stands, 2026-09-03.** Everything that can be proved on this machine is proved: 67 app
+unit tests, 30 server, 59 Playwright specs — three of them driving the Electron shell — and the
+Windows installer and portable build made, run, written to and quit by hand. Four things are true
+only once a person does them, and none can be faked here:
+
+1. **Pages has to be switched on** — repo settings → Pages → Source `main`, folder `/docs`. The
+   site does not exist until someone clicks it.
+2. **The first tag has to be pushed.** `workflow_dispatch` is in the workflow precisely so the
+   build can be proved before a tag is trusted with it; the Linux half has never run at all.
+3. **The download buttons 404 until that release is published.** They point at
+   `/releases/latest/download/…`, which is right and stable and empty.
+4. **SmartScreen's picture cannot be taken here.** The warning is triggered by the mark of the web
+   on a *downloaded* file, so a locally built .exe never shows it. The three sentences are on the
+   page; the picture waits for the first real download.
+
+Then the SignPath application (§5.5), which needs a published release to point at.
 
 ---
 
@@ -897,7 +943,7 @@ macOS slot greyed out with the source-install link working, and the provider spe
 | 1 | Streaming chat + connection + parameters, localStorage only (the conversation becomes Chapter 1 in step 2) | **Done 2026-09-02.** 22 unit tests + 14 Playwright specs green against the fake endpoint; NanoGPT's live model list confirmed from the browser (612 models, no key, CORS fine). The live-key half of E2E 2.2 still needs Gaetan. |
 | 2 | Chapters with compulsory scenes, story / persona / world / lore, prompt builder, close chapter | **Done 2026-09-03.** 37 unit tests + 24 Playwright specs green against the fake endpoint. Live E2E 3.2 still needs Gaetan's key. |
 | 3 | Express persistence, bootstrap, status indicator, packaging | **Done 2026-09-03.** 53 app unit tests + 30 server unit tests + 39 Playwright specs green, five of them driving the production build served by the real server and asserting against the files on disk. `npm run package` produces a ~1 MB zip that runs from one call. Electron deliberately left for later. **Live test still open:** `e2e/LIVE-TEST.md` with Gaetan's key — the prose verdict and, above all, the cost verdict in its section 11, which decides whether the premise holds before step 4 makes the app easier to reach. |
-| 4 | Electron shell and installers for Windows and Linux (macOS deliberately not shipped — greyed out on the page, open to a contributor with the licence, source install as the fallback), a tagged-release workflow publishing to GitHub Releases, `docs/` served as the website with a landing page and download buttons, a provider table lifted from SillyTavern (§5) | Not started. Done when a person with no Node on their machine installs from the website and writes a chapter without opening a terminal (§5.9), and the Electron and provider specs are green in the release workflow. |
+| 4 | Electron shell and installers for Windows and Linux (macOS deliberately not shipped — greyed out on the page, open to a contributor with the licence, source install as the fallback), a tagged-release workflow publishing to GitHub Releases, `docs/` served as the website with a landing page and download buttons, a provider table lifted from SillyTavern (§5) | **Written 2026-09-03.** 67 app unit tests + 30 server + 59 Playwright specs green, three of the last driving the Electron shell for real. `npm run desktop:dist` produces the Windows installer and portable build; both were run, written to and quit by hand, and the portable one keeps `data/` beside itself. Twenty-two providers, every one confirmed from a browser the same day. **Not yet true, and not provable here (§5.9):** GitHub Pages is not switched on, no tag has been pushed, the Linux half of the workflow has never run, and the download buttons therefore point at a release that does not exist. Done when a person with no Node on their machine installs from the website and writes a chapter without opening a terminal. |
 
 Each step is a separate session. Nothing from a later step is started before the previous
 checkpoint passes — for step 4, that means the live test's verdict comes first.
