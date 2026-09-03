@@ -1,6 +1,6 @@
 # Running it anywhere
 
-[← Documentation](README.md) · Previous: [Your data](your-data.md) · Next: [Development](development.md)
+[← Documentation](README.md) · Previous: [The desktop app](desktop.md) · Next: [Development](development.md)
 
 ---
 
@@ -88,9 +88,12 @@ npm run package -- --no-build     # reuse the last Angular build
 npm run package -- --out dist     # write somewhere other than build/
 ```
 
-## What about Electron?
+## The zip, or the desktop app?
 
-It is next, and this package is the shape it will wrap: the same server, the same folders, a
-window instead of a browser tab. The server already takes its data and public folders as options,
-which is all Electron needs from it. It is deliberately not in this build yet — a zip that runs
-from one call covers most of what a desktop app would, at a fraction of the size.
+[The desktop app](desktop.md) wraps exactly this folder — the same server, the same built app, the
+same dependencies — and adds Node.js and a window. Take it if you want one file and one icon.
+
+Take the zip when the machine already has Node and you would rather have a megabyte than a hundred
+of them, when you want the stories in a folder you chose rather than in a profile, or when you are
+putting it somewhere that has no desktop to speak of. Both read and write the same files, so
+nothing stops you from using each where it suits.

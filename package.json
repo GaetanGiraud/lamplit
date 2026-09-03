@@ -6,13 +6,17 @@
   "workspaces": [
     "app",
     "server",
-    "e2e"
+    "e2e",
+    "electron"
   ],
   "scripts": {
     "start": "node tools/dev.mjs",
     "server": "node server/src/index.js",
     "build": "npm run build -w app",
     "package": "node tools/package.mjs",
+    "desktop": "node tools/desktop.mjs",
+    "desktop:stage": "node tools/desktop.mjs --stage-only",
+    "desktop:dist": "node tools/desktop.mjs --dist",
     "screenshots": "node tools/screenshots.mjs",
     "providers": "node --experimental-strip-types tools/probe-providers.mjs",
     "icons": "node tools/icons.mjs",

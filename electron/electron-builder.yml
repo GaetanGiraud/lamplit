@@ -1,0 +1,82 @@
+appId: com.magicstories.app
+productName: MagicStories
+copyright: MIT — https://github.com/GaetanGiraud/magic-stories
+
+directories:
+  output: ../build/desktop
+  buildResources: icons
+
+# The shell only. It is a few kilobytes, so it goes in the asar; everything
+# that has to be read by Node at runtime stays outside one, below.
+files:
+  - main.mjs
+  - preload.cjs
+  - package.json
+
+# The staged folder from tools/package.mjs, copied in whole: the same server,
+# the same built app and the same dependencies the zip ships. Unpacked rather
+# than inside the asar, because the server is ES modules importing CommonJS and
+# an archive is one more thing that could be the reason it did not.
+extraResources:
+  - from: ../build/desktop-stage/server
+    to: app/server
+  - from: ../build/desktop-stage/public
+    to: app/public
+  - from: ../build/desktop-stage/node_modules
+    to: app/node_modules
+  # Nothing above it declares `type: module`, so without this the server's
+  # own ES modules are read as CommonJS and none of them parse.
+  - from: ../build/desktop-stage/package.json
+    to: app/package.json
+
+# Where the installers look for a new version. Nothing else is configured for
+# it: the release workflow uploads to this same repository's releases.
+publish:
+  provider: github
+  owner: GaetanGiraud
+  repo: magic-stories
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  artifactName: MagicStories-${version}-${arch}-${os}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  # Stories live in the profile, not in the install folder. Uninstalling must
+  # not take them, and the docs say so — this is the line that makes it true.
+  deleteAppDataOnUninstall: false
+  artifactName: MagicStories-Setup-${version}.${ext}
+
+portable:
+  # A USB-stick copy keeps its data beside itself, the way the zip does.
+  unpackDirName: MagicStories
+  artifactName: MagicStories-${version}-portable.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  category: Office
+  synopsis: Write a story with a language model, in chapters.
+  artifactName: MagicStories-${version}-${arch}.${ext}
+# macOS is deliberately not built: an unsigned build is refused by Gatekeeper,
+# and notarising it needs an Apple Developer licence this project does not hold.
+# See PLAN.md §5.5. A contributor who has one needs this block and a
+# macos-latest job in .github/workflows/release.yml, and nothing else.
+#
+# mac:
+#   target:
+#     - target: dmg
+#       arch: [x64, arm64]
+#   category: public.app-category.productivity
+#   artifactName: MagicStories-${version}-${arch}.${ext}

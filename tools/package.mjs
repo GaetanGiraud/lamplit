@@ -20,8 +20,9 @@ import { collectEntries, writeZip } from '../server/src/zip.js';
  *     package.json  README.txt
  *     data/                 created on first run, next to the script
  *
- * Electron comes later and wraps exactly this; nothing here is shaped for it
- * yet beyond the fact that the server already takes its folders as options.
+ * The desktop build (tools/desktop.mjs) stages through this same file with
+ * `--stage <dir> --no-zip` and puts an Electron shell around the result, so
+ * this stays the single place that decides what ships.
  */
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -32,10 +33,10 @@ const options = parseArguments(process.argv.slice(2));
 const version = readJson(join(ROOT, 'package.json')).version;
 const name = `magicstories-${version}`;
 const outDir = resolve(options.out ?? join(ROOT, 'build'));
-const stageDir = join(outDir, name);
+const stageDir = options.stage ? resolve(options.stage) : join(outDir, name);
 const zipPath = join(outDir, `${name}.zip`);
 
-step(`MagicStories ${version} → ${zipPath}`);
+step(`MagicStories ${version} → ${options.zip === false ? stageDir : zipPath}`);
 
 if (options.build === false) {
   step('skipping the Angular build (--no-build)');
@@ -64,16 +65,21 @@ for (const [dependency, from] of dependencies) {
 }
 console.log(`   ${dependencies.size} packages`);
 
-step('zipping');
-const entries = await collectEntries(stageDir, name, {
-  mode: (entry) => (entry.endsWith('start.sh') ? 0o755 : 0o644),
-});
-const size = await writeZip(zipPath, entries);
+if (options.zip === false) {
+  step('done');
+  console.log(`   folder  ${stageDir}`);
+} else {
+  step('zipping');
+  const entries = await collectEntries(stageDir, name, {
+    mode: (entry) => (entry.endsWith('start.sh') ? 0o755 : 0o644),
+  });
+  const size = await writeZip(zipPath, entries);
 
-step('done');
-console.log(`   folder  ${stageDir}`);
-console.log(`   zip     ${zipPath}  (${megabytes(size)}, ${entries.length} entries)`);
-console.log(`   unzip it, then run start.bat (Windows) or ./start.sh (Linux, macOS).`);
+  step('done');
+  console.log(`   folder  ${stageDir}`);
+  console.log(`   zip     ${zipPath}  (${megabytes(size)}, ${entries.length} entries)`);
+  console.log(`   unzip it, then run start.bat (Windows) or ./start.sh (Linux, macOS).`);
+}
 
 // -- the pieces --------------------------------------------------------------
 
@@ -228,7 +234,9 @@ function parseArguments(argv) {
   const parsed = {};
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--no-build') parsed.build = false;
+    else if (argv[i] === '--no-zip') parsed.zip = false;
     else if (argv[i] === '--out') parsed.out = argv[++i];
+    else if (argv[i] === '--stage') parsed.stage = argv[++i];
     else fail(`unknown option ${argv[i]}`);
   }
   return parsed;

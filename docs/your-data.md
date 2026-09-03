@@ -1,6 +1,6 @@
 # Your data
 
-[← Documentation](README.md) · Previous: [Models and parameters](models-and-parameters.md) · Next: [Running it anywhere](running-anywhere.md)
+[← Documentation](README.md) · Previous: [Models and parameters](models-and-parameters.md) · Next: [The desktop app](desktop.md)
 
 ---
 
@@ -24,7 +24,9 @@ backups/
 ```
 
 Running from the repo, that is the repo root. Running an unzipped build, it is beside `start.bat`.
-Either way, `--data D:\somewhere` or `MS_DATA_DIR` moves it.
+Either way, `--data D:\somewhere` or `MS_DATA_DIR` moves it. The
+[desktop app](desktop.md) is the one exception: it keeps the same folder in your profile instead,
+and **File → Open data folder** takes you to it.
 
 Every document is pretty-printed JSON with a trailing newline, so `git init` in your `data` folder
 is a perfectly reasonable way to get version history for a novel.

@@ -18,14 +18,19 @@ app/        Angular 21 workspace — standalone components, signals, zoneless
   shared/     top bar, save indicator, dialog openers, editor field, controls
 server/     Express 5 — JSON documents on disk, the built app in front of them,
             a dependency-free zip writer
+electron/   the desktop shell: main process, preload, electron-builder config.
+            It starts the same server in-process and opens one window at it,
+            and knows nothing else about the app
 tools/      dev.mjs (both halves at once), package.mjs (the runnable zip),
-            smoke.mjs (a fresh install to walk by hand), screenshots.mjs
-            (every picture in docs/), icons.mjs (the raster favicons)
+            desktop.mjs (the window, and the installers), smoke.mjs (a fresh
+            install to walk by hand), screenshots.mjs (every picture in docs/),
+            icons.mjs (the raster icons), probe-providers.mjs (the CORS table)
 e2e/        Playwright specs + a fake OpenAI endpoint
-docs/       these pages
+docs/       these pages, and — served by GitHub Pages — the website
+.github/    release.yml: builds installers on a tag and publishes them
 ```
 
-`PLAN.md` at the root is the plan of record: three steps, what each one had to do, and — more
+`PLAN.md` at the root is the plan of record: four steps, what each one had to do, and — more
 usefully — why each decision went the way it did.
 
 ## Scripts
@@ -43,6 +48,9 @@ usefully — why each decision went the way it did.
 | `npm run screenshots` | Regenerates every picture in `docs/images` |
 | `npm run icons` | Regenerates favicon.ico and apple-touch-icon.png from `app/public/favicon.svg` |
 | `npm run providers` | Asks every provider in the list whether it still lets a browser call it, and prints the table for [Models and parameters](models-and-parameters.md). Not in CI: it talks to twenty companies |
+| `npm run desktop` | Opens the Electron window against the repository — no packaging, so a change to the app needs `npm run build` and a reload |
+| `npm run desktop:stage` | Stages the folder the installers wrap (`build/desktop-stage`), and stops |
+| `npm run desktop:dist` | Stages, then builds installers for the OS you are on, into `build/desktop` |
 | `npm run format` | Prettier over everything |
 
 ## Tests

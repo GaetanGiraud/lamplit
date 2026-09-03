@@ -1,0 +1,26 @@
+{
+  "name": "magicstories-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The desktop shell: the same server and the same app, in a window, with Node inside.",
+  "main": "main.mjs",
+  "scripts": {
+    "start": "node ../tools/desktop.mjs",
+    "stage": "node ../tools/desktop.mjs --stage-only",
+    "dist": "node ../tools/desktop.mjs --dist"
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "electron": "44.1.1",
+    "electron-builder": "^26.15.3"
+  },
+  "author": {
+    "name": "Gaetan Giraud",
+    "url": "https://github.com/GaetanGiraud/magic-stories"
+  },
+  "homepage": "https://gaetangiraud.github.io/magic-stories/",
+  "license": "MIT"
+}
