@@ -528,7 +528,16 @@ takes its files with it), and the rest of the suite for everything else. All of 
 #### The live half — `npm run smoke`, then this script
 
 `npm run smoke` builds the package, unzips the **archive** into an empty folder, and starts it
-through `start.bat` / `start.sh`. That is a genuinely fresh install: no data, no settings, no key.
+through `start.bat` / `start.sh` — on a port this machine has never served the app from, which is
+the part that makes it genuinely fresh. An empty `data/` folder is not enough on its own: browser
+storage is keyed by origin, and a browser holding documents that meets a server holding none
+uploads them, which is the deliberate "first run after this app grew a backend" path. Reuse the
+URL and the second smoke run silently restores the first one's story and calls it new. Used ports
+are remembered in `build/.smoke-ports.json`; delete that file and you are back to guessing.
+
+First thing to check, because nothing automated can: the story behind the connection sheet should
+be **Untitled story**. Anything else means the browser brought one with it.
+
 Narrator mode, a real key, a real model.
 
 1. **It runs at all.** One call, browser opens, no console errors, `data/` appears beside the

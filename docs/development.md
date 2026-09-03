@@ -40,7 +40,7 @@ usefully — why each decision went the way it did.
 | `npm test` | Unit tests, both workspaces |
 | `npm run e2e` | Builds the app, then the full Playwright suite |
 | `npm run e2e:quick` | Playwright without the build (skips the specs that need it) |
-| `npm run smoke` | Packages, unzips the archive into an empty folder, and starts it — a genuinely fresh install to walk by hand |
+| `npm run smoke` | Packages, unzips the archive into an empty folder, and starts it on an origin this machine has not used before — a genuinely fresh install to walk by hand |
 | `npm run screenshots` | Regenerates every picture in `docs/images` |
 | `npm run icons` | Regenerates favicon.ico and apple-touch-icon.png from `app/public/favicon.svg` |
 | `npm run format` | Prettier over everything |
@@ -75,6 +75,14 @@ folder, asserting against the files on disk. That is why `npm run e2e` builds fi
 
 The human half of the same walk is `npm run smoke` plus the script in `PLAN.md` §4.5 — the part a
 fake model cannot check is whether a real one tells a decent story.
+
+> `smoke` serves each run on a **port this machine has not used for one before**, and that is not
+> fussiness. An empty `data/` folder is only half of a fresh install: the browser keeps its own
+> copy of every document, and a browser holding documents that meets a server holding none uploads
+> them — the deliberate "first run after this app grew a backend" path, asserted in
+> `persistence.spec.ts`. Reuse the URL and the second run restores the first one's story into the
+> "empty" install. Storage is keyed by origin, so a new port has nothing behind it; used ones are
+> remembered in `build/.smoke-ports.json`.
 
 ## How the screenshots are made
 
