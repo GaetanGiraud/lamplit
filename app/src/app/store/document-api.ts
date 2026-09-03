@@ -14,8 +14,6 @@ export interface DocRef {
   id: string;
 }
 
-/** How long the app waits to find out whether a server is there at all. */
-const HEALTH_TIMEOUT = 1500;
 const REQUEST_TIMEOUT = 10_000;
 
 /** The header the server compares against the last write it applied. */
@@ -50,24 +48,6 @@ export interface Snapshot {
 export class DocumentApi {
   /** Same origin: the packaged server serves the app, and `ng serve` proxies. */
   readonly base = '/api';
-
-  /**
-   * Is there a server behind `/api`? A static host answers every path with
-   * `index.html`, so a 200 is not enough — the body has to be ours.
-   */
-  async health(): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.base}/health`, {
-        signal: AbortSignal.timeout(HEALTH_TIMEOUT),
-        headers: { accept: 'application/json' },
-      });
-      if (!response.ok) return false;
-      if (!response.headers.get('content-type')?.includes('application/json')) return false;
-      return (await response.json())?.name === 'magicstories';
-    } catch {
-      return false;
-    }
-  }
 
   /** Every document the server holds, keyed the way the client files them. */
   async snapshot(): Promise<Snapshot> {

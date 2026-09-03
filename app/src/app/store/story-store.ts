@@ -5,7 +5,6 @@ import { SettingsStore } from './settings-store';
 import { STORAGE_BACKEND } from './storage';
 import {
   KEYS,
-  migrateLegacyChat,
   newChapter,
   newId,
   newStory,
@@ -215,12 +214,10 @@ export class StoryStore {
     return next;
   }
 
+  /** An install with nothing in it gets one story, so there is always one open. */
   private load(): Story[] {
     const stored = readStories(this.storage);
     if (stored.length) return stored;
-
-    const migrated = migrateLegacyChat(this.storage);
-    if (migrated) return [migrated];
 
     const story = newStory();
     const chapter = newChapter(story.id, 1);

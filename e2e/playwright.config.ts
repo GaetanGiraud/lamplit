@@ -1,8 +1,16 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const APP_PORT = Number(process.env.APP_PORT ?? 4210);
 const API_PORT = Number(process.env.FAKE_API_PORT ?? 4310);
 
+/**
+ * Only one server is started for the suite: the fake model endpoint. The app's
+ * own server is started per test by the `server` fixture, on its own port with
+ * its own empty data folder, serving the production build — because that is the
+ * only arrangement the app has. It reads its documents from the server when it
+ * starts, so there is no dev-server-and-browser-storage mode left to test.
+ *
+ * The build is therefore a prerequisite: `npm run e2e` does it first.
+ */
 export default defineConfig({
   testDir: './specs',
   timeout: 45_000,
@@ -10,10 +18,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: process.env.CI ? 'github' : [['list']],
-  use: {
-    baseURL: `http://localhost:${APP_PORT}`,
-    trace: 'retain-on-failure',
-  },
+  use: { trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
@@ -22,13 +27,6 @@ export default defineConfig({
       env: { FAKE_API_PORT: String(API_PORT) },
       reuseExistingServer: !process.env.CI,
       stdout: 'pipe',
-    },
-    {
-      command: `npm run start -w app -- --port ${APP_PORT}`,
-      url: `http://localhost:${APP_PORT}`,
-      cwd: '..',
-      reuseExistingServer: !process.env.CI,
-      timeout: 180_000,
     },
   ],
 });

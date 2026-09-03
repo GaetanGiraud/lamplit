@@ -190,9 +190,9 @@ interface ChapterMessage {
 }
 ```
 
-Every store exposes `signal`s and mutation methods. A `PersistenceService` (step 3) watches each
-store with `effect()`, serialises the slice to JSON and ships it to the backend. Until step 3,
-the same layer writes to `localStorage` so nothing is lost on reload.
+Every store exposes `signal`s and mutation methods, and writes each changed slice out as JSON.
+Step 1 and 2 wrote to `localStorage`; from step 3 they write to the server, and from the revision
+below they write *only* there.
 
 ### 1.4 Prompt assembly (rebuilt from scratch on every request)
 
@@ -481,6 +481,7 @@ Goal: the store is mirrored to disk, as-is, always.
 - Bootstrap: `GET settings`, `GET stories`, `GET chapters` for the active story, then render.
   A small status dot in the top bar: saved / saving / offline (with retry).
 - `localStorage` stays as a write-through cache so the UI paints instantly on reload.
+  **Reversed 2026-09-03 — see 4.6.**
 
 ### 4.3 Packaging (`npm run package`)
 
@@ -505,6 +506,35 @@ Added to step 3 on 2026-09-03, ahead of Electron and as the thing Electron will 
 - electron-builder for a Windows installer / portable exe. Not on the critical path, and
   deliberately left out of the package above. The server already takes its data and public
   folders as options, which is all Electron needs from it.
+
+### 4.6 One source of truth (revision, 2026-09-03)
+
+`localStorage` is gone. The server holds the documents; the app reads them once at startup into a
+map that lasts the session, writes go to that map and to the server, and a reload starts again
+from disk.
+
+**Why the cache was wrong.** It was there because step 1 had no backend, and it stayed on when
+step 3 gave it one — with too little argument. Two copies of the same document is two sources of
+truth, and the price showed up as a merge on every startup, a persisted write queue, a rule for
+which side wins, and a class of bug where a browser holding an old story met an empty server and
+helpfully uploaded it. All of that bought one thing: a reload that painted before the first
+network round trip — on a local app whose database is a handful of JSON files on the same machine,
+read in a few milliseconds.
+
+**What follows from it.**
+
+- No server, no app. The startup read retries a few times and then shows a screen saying so, with
+  a Try again. An app that opened anyway would be an empty one, indistinguishable from a fresh
+  install, and the next keystroke would be written over a story that was fine. `App` renders
+  either that screen or the workspace, and the stores are only constructed for the second, because
+  they read at construction.
+- Offline is now a session-only state: writes queue in memory and retry, the app keeps working,
+  but a reload while offline loses what has not been sent. The indicator says so, and closing the
+  tab with a failing queue prompts.
+- The step-1 `chat:` migration is gone with the storage it read from.
+- Every Playwright spec now runs against a real server with its own data folder, seeded by writing
+  JSON into it, because there is nowhere else for a document to be. The dev server left the suite.
+- `npm run smoke` lost the port-rotation trick it had grown to dodge exactly this problem.
 
 ### 4.5 Final acceptance test
 

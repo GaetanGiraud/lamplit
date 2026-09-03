@@ -10,8 +10,8 @@
 app/        Angular 21 workspace — standalone components, signals, zoneless
   core/       model client, SSE reader, error mapping, token estimates,
               story formatting, the prompt builder
-  store/      signal stores (one per document type), the storage backend they
-              write through, and the sync layer behind it
+  store/      signal stores (one per document type), and the persistence layer
+              they write through: the session's documents, and the server
   features/   chapters (page, message list, composer, scene sheet, chapters
               list, close chapter, prompt preview), connection, generation,
               story, world
@@ -33,14 +33,13 @@ usefully — why each decision went the way it did.
 | | |
 |---|---|
 | `npm start` | Both halves: persistence server on 4177, dev server on 4200 proxying `/api` to it |
-| `npm run start:app` | Just the front end, no backend, on browser storage alone |
-| `npm run server` | Just the server (and the built app, if there is one) |
+| `npm run server` | Just the server (and the built app, if there is one). The front end has no standalone mode: it reads its documents from the server or does not start |
 | `npm run build` | Angular production build into `app/dist` |
 | `npm run package` | The runnable zip — see [Running it anywhere](running-anywhere.md) |
 | `npm test` | Unit tests, both workspaces |
 | `npm run e2e` | Builds the app, then the full Playwright suite |
 | `npm run e2e:quick` | Playwright without the build (skips the specs that need it) |
-| `npm run smoke` | Packages, unzips the archive into an empty folder, and starts it on an origin this machine has not used before — a genuinely fresh install to walk by hand |
+| `npm run smoke` | Packages, unzips the archive into an empty folder, and starts it — a genuinely fresh install to walk by hand |
 | `npm run screenshots` | Regenerates every picture in `docs/images` |
 | `npm run icons` | Regenerates favicon.ico and apple-touch-icon.png from `app/public/favicon.svg` |
 | `npm run format` | Prettier over everything |
@@ -49,23 +48,29 @@ usefully — why each decision went the way it did.
 
 **Unit — `npm test`.** Vitest for the app: the SSE reader, the request builder, error mapping,
 token estimates, the story formatter, the prompt builder (block order, the scene verbatim, lore
-scanning, budget trimming, chapter titles, the summary request), and the sync layer (coalescing,
-sequence numbers, offline queueing, which side wins at startup). `node --test` for the server: the
-document store's write ordering and atomic writes, the API, the zip writer, the daily backup.
+scanning, budget trimming, chapter titles, the summary request), and the persistence layer (the
+startup load, coalescing, sequence numbers, offline queueing, and refusing to start without a
+server). `node --test` for the server: the document store's write ordering and atomic writes, the
+API, the zip writer, the daily backup.
 
 **End to end — `npm run e2e`.** Playwright drives the real app against
 `e2e/fake-openai-server.mjs`, a deterministic stand-in for an OpenAI-compatible endpoint. Both
 servers start automatically; no tokens are spent and no key is needed. The fake endpoint takes
 instructions from the message text: `!slow`, `!long`, `!error`, `!401`, `!prose`.
 
-Most specs run against the dev server with no backend. Two are different, and both run against the
-**real server serving the real production build**, on their own port with their own empty data
-folder, asserting against the files on disk. That is why `npm run e2e` builds first —
-`npm run e2e:quick` skips the build and skips those specs.
+**Every** spec runs against the real server serving the real production build, on its own port
+with its own empty data folder — the `server` fixture in `specs/fixtures.ts`. There is no dev
+server in the suite and no browser-storage mode to fall back on, so a spec seeds by writing JSON
+into that folder, which is exactly what a person does when they copy a story onto a new machine.
+Each test is isolated by construction: nothing carries over, because there is nowhere for it to
+carry over in. That is why `npm run e2e` builds first; `npm run e2e:quick` skips the build, and
+skips everything if there is nothing built.
 
-- **`persistence.spec.ts`** — the backend's own behaviour: documents written as the UI changes
-  them, a fresh browser reading a story off disk, the server going away mid-chat and catching up,
-  two tabs, deleting a story taking its files with it.
+- **`persistence.spec.ts`** — the disk as the story: documents written as the UI changes them, a
+  reload coming back to what is on disk rather than to what was there before, a second browser
+  seeing the same story, the server going away mid-chat and catching up, two tabs, deleting a
+  story taking its files with it, and the app refusing to start when the documents cannot be
+  read.
 - **`journey.spec.ts`** — the whole app, once, in narrator mode, from nothing. Eleven stages in
   order, sharing one page, walked through the interface the way a person would: the connection
   sheet insisting, the story questions, the scene refusing whitespace, the first turn's prompt in
@@ -75,14 +80,6 @@ folder, asserting against the files on disk. That is why `npm run e2e` builds fi
 
 The human half of the same walk is `npm run smoke` plus the script in `PLAN.md` §4.5 — the part a
 fake model cannot check is whether a real one tells a decent story.
-
-> `smoke` serves each run on a **port this machine has not used for one before**, and that is not
-> fussiness. An empty `data/` folder is only half of a fresh install: the browser keeps its own
-> copy of every document, and a browser holding documents that meets a server holding none uploads
-> them — the deliberate "first run after this app grew a backend" path, asserted in
-> `persistence.spec.ts`. Reuse the URL and the second run restores the first one's story into the
-> "empty" install. Storage is keyed by origin, so a new port has nothing behind it; used ones are
-> remembered in `build/.smoke-ports.json`.
 
 ## How the screenshots are made
 
@@ -106,9 +103,11 @@ A few things are worth knowing before reading it:
 - **One store slice = one JSON file.** The stores are plain Angular services holding
   `signal()`/`computed()` state, one per document type. No NgRx: the persistence model maps onto a
   hand-rolled signal store 1:1 with no ceremony.
-- **The stores stay synchronous.** They write through a `StorageBackend`; the localStorage
-  implementation is the cache that makes a reload paint instantly, and the sync layer rides along
-  behind it. Nothing above that line knows the server exists.
+- **One place a document lives.** The server. The app reads every document once at startup into a
+  map that lasts the session; writes go to that map and to the server. The stores stay synchronous
+  and know about neither. It used to keep a `localStorage` copy as well, which bought a merge on
+  every startup, a persisted write queue and a rule for which side wins — all of it gone, and
+  `Persistence` says why in its header.
 - **No SDK, no HTTP client, no state library.** `fetch`, a hand-written SSE parser, and
   `AbortController` for Stop.
 - **Angular 21, zoneless.** Signals throughout, the new control flow, `inject()`, standalone

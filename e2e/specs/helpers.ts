@@ -1,4 +1,5 @@
 import { Locator, Page, expect } from '@playwright/test';
+import type { PersistenceServer } from './persistence-server';
 
 export const FAKE_API_URL = `http://localhost:${process.env.FAKE_API_PORT ?? 4310}/v1`;
 export const FAKE_MODEL = 'fake/storyteller-large';
@@ -7,11 +8,18 @@ export const STORY_ID = 'story-under-test';
 export const CHAPTER_ID = 'chapter-under-test';
 
 /**
- * Seeds `settings.json` the way the app itself stores it, so specs start from a
+ * Writes `settings.json` into the server's data folder, so specs start from a
  * connected app without walking the Connection modal every time. One spec does
  * walk it, which is what keeps this shape honest.
+ *
+ * On disk rather than in the browser, because the browser keeps nothing: the
+ * app reads every document from the server when it starts.
  */
-export async function seedConnectedSettings(page: Page, apiKey = 'test-key'): Promise<void> {
+export async function seedConnectedSettings(
+  server: PersistenceServer,
+  apiKey = 'test-key',
+  generation: Record<string, unknown> = {},
+): Promise<void> {
   const settings = {
     connection: {
       provider: 'custom',
@@ -28,6 +36,7 @@ export async function seedConnectedSettings(page: Page, apiKey = 'test-key'): Pr
       frequencyPenalty: 0,
       presencePenalty: 0,
       stop: [],
+      ...generation,
     },
     ui: {
       theme: 'dark',
@@ -37,14 +46,7 @@ export async function seedConnectedSettings(page: Page, apiKey = 'test-key'): Pr
     },
     activeStoryId: STORY_ID,
   };
-  await page.addInitScript(
-    ([value]) => {
-      if (window.localStorage.getItem('magicstories:settings') === null) {
-        window.localStorage.setItem('magicstories:settings', value);
-      }
-    },
-    [JSON.stringify(settings)],
-  );
+  await server.seed({ settings });
 }
 
 export interface SeedStory {
@@ -68,7 +70,7 @@ export interface SeedStory {
 }
 
 /** Seeds one story with one chapter, the state most specs want to start from. */
-export async function seedStory(page: Page, options: SeedStory = {}): Promise<void> {
+export async function seedStory(server: PersistenceServer, options: SeedStory = {}): Promise<void> {
   const story = {
     id: STORY_ID,
     title: options.title ?? 'The Lighthouse',
@@ -104,18 +106,26 @@ export async function seedStory(page: Page, options: SeedStory = {}): Promise<vo
     updatedAt: '2026-01-01T00:00:00.000Z',
     messages: [],
   };
-  // Init scripts run on every navigation, so seed only what is not there yet:
-  // a reload has to show what the app stored, not what the spec started from.
-  await page.addInitScript(
-    ([storyId, chapterId, storyJson, chapterJson]) => {
-      const seed = (key: string, value: string) => {
-        if (window.localStorage.getItem(key) === null) window.localStorage.setItem(key, value);
-      };
-      seed(`magicstories:story:${storyId}`, storyJson);
-      seed(`magicstories:chapter:${chapterId}`, chapterJson);
-    },
-    [STORY_ID, CHAPTER_ID, JSON.stringify(story), JSON.stringify(chapter)],
-  );
+  await server.seed({
+    [`story:${STORY_ID}`]: story,
+    [`chapter:${CHAPTER_ID}`]: chapter,
+  });
+}
+
+/**
+ * Waits for the chapter under test to reach disk.
+ *
+ * A reload now starts again from the server, so a spec that reloads has to let
+ * the write land first. The app says the same thing with the "Saving…" pill in
+ * the top bar; this is the version that cannot race it.
+ */
+export async function waitForSaved(server: PersistenceServer, messageCount: number): Promise<void> {
+  await expect
+    .poll(async () => {
+      const chapter = await server.document('chapters', CHAPTER_ID);
+      return (chapter?.['messages'] as unknown[] | undefined)?.length ?? 0;
+    })
+    .toBe(messageCount);
 }
 
 export function messages(page: Page): Locator {

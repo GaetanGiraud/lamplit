@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { SyncService } from '../store/sync';
+import { Persistence } from '../store/persistence';
 
 /**
  * One dot in the top bar. It is the only place the backend is visible, and it
@@ -8,7 +8,7 @@ import { SyncService } from '../store/sync';
  * When the server goes away it becomes the button that tries again.
  */
 @Component({
-  selector: 'ms-sync-status',
+  selector: 'ms-save-status',
   imports: [MatTooltipModule],
   template: `
     @if (visible()) {
@@ -19,7 +19,7 @@ import { SyncService } from '../store/sync';
         [matTooltip]="tooltip()"
         [attr.aria-label]="label()"
         [disabled]="state() !== 'offline'"
-        (click)="sync.retryNow()"
+        (click)="persistence.retryNow()"
       >
         <span class="dot"></span>
         <span class="label">{{ label() }}</span>
@@ -78,11 +78,11 @@ import { SyncService } from '../store/sync';
     }
   `,
 })
-export class SyncStatus {
-  protected readonly sync = inject(SyncService);
-  protected readonly state = this.sync.status;
+export class SaveStatusIndicator {
+  protected readonly persistence = inject(Persistence);
+  protected readonly state = this.persistence.status;
 
-  /** Nothing to report while it is simply working, or when there is no server. */
+  /** Nothing to report while it is simply working, which is nearly always. */
   protected readonly visible = computed(() => {
     const state = this.state();
     return state === 'saving' || state === 'offline';
@@ -92,7 +92,7 @@ export class SyncStatus {
 
   protected readonly tooltip = computed(() =>
     this.state() === 'offline'
-      ? `${this.sync.error() || 'The server is not answering'} — your work is kept here and will be sent. Click to try now.`
+      ? `${this.persistence.error() || 'The server is not answering'} — this tab still has everything and keeps retrying, but do not reload until it is back. Click to try now.`
       : 'Saving to disk',
   );
 }

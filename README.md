@@ -22,7 +22,8 @@ chapter starts from there. Only the current chapter is ever sent to the model, s
 runs for months still costs the same per reply as one that started this morning.
 
 There is no account, no cloud, and no server between you and the model. The browser talks to your
-endpoint directly. A small local server sits behind the app only to write your stories to disk.
+endpoint directly. A small local server sits behind the app to hold your stories — plain JSON
+files, and the only copy there is.
 
 **It is deliberately not a configuration tool.** No character cards, no extensions, no prompt
 manager, no images. One bar across the top, and everything in it is something you will actually
@@ -51,7 +52,7 @@ who want to *read what comes out*. Two things follow from that:
 | **Book-style reading** | Markdown, quoted speech set apart, `*actions*` in italics, adjustable text size, light and dark. |
 | **Per-message control** | Edit, regenerate, replay from here, copy, delete. Stop mid-stream keeps the partial answer. |
 | **Any OpenAI-compatible model** | NanoGPT out of the box, or paste any URL that answers `/models` and `/chat/completions`. Streaming, with the provider's real token usage shown after each reply. |
-| **Plain files on disk** | `settings.json`, `stories/<id>.json`, `chapters/<id>.json`. Copy the folder and you have copied everything. Zipped to `backups/` once a day. |
+| **Plain files on disk** | `settings.json`, `stories/<id>.json`, `chapters/<id>.json` — read once when the app starts and written straight back, with no second copy in the browser to fall out of step with them. Copy the folder and you have copied everything. Zipped to `backups/` once a day. |
 
 ## A look around
 

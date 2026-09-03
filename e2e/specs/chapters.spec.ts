@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import {
   FAKE_MODEL,
   act,
@@ -10,19 +10,20 @@ import {
   send,
   setBookStyle,
   userMessages,
+  waitForSaved,
   waitForTurn,
 } from './helpers';
 
 const SCENE = 'The keeper’s cottage, late afternoon, low tide. The door is unlatched.';
 
 test.describe('writing a chapter', () => {
-  test.beforeEach(async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
-    await page.goto('/');
+  test.beforeEach(async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
+    await page.goto(server.url);
   });
 
-  test('streams an answer, styles speech and reports tokens', async ({ page }) => {
+  test('streams an answer, styles speech and reports tokens', async ({ page, server }) => {
     await send(page, 'Two lines between a knight and a dragon.');
 
     const answer = assistantMessages(page).first();
@@ -36,7 +37,7 @@ test.describe('writing a chapter', () => {
     await expect(answer.locator('footer')).toContainText('out');
   });
 
-  test('book style gives each spoken line its own paragraph', async ({ page }) => {
+  test('book style gives each spoken line its own paragraph', async ({ page, server }) => {
     await send(page, 'A scene, please.');
     await waitForTurn(page);
 
@@ -49,7 +50,10 @@ test.describe('writing a chapter', () => {
     }
   });
 
-  test('the book style switch splits and rejoins a single-paragraph answer', async ({ page }) => {
+  test('the book style switch splits and rejoins a single-paragraph answer', async ({
+    page,
+    server,
+  }) => {
     // `!prose` answers in one paragraph, the only shape the switch can change.
     await send(page, '!prose all in one paragraph');
     await waitForTurn(page);
@@ -65,7 +69,7 @@ test.describe('writing a chapter', () => {
     await expect(paragraphs).toHaveCount(3);
   });
 
-  test('stop keeps the partial answer and marks it', async ({ page }) => {
+  test('stop keeps the partial answer and marks it', async ({ page, server }) => {
     await send(page, '!slow tell me slowly');
 
     const answer = assistantMessages(page).first();
@@ -77,7 +81,7 @@ test.describe('writing a chapter', () => {
     await expect(answer.locator('footer')).toContainText('stopped');
   });
 
-  test('editing a user message and replaying re-asks from there', async ({ page }) => {
+  test('editing a user message and replaying re-asks from there', async ({ page, server }) => {
     await send(page, 'First attempt.');
     await waitForTurn(page);
     const firstAnswer = await assistantMessages(page).first().innerText();
@@ -96,7 +100,7 @@ test.describe('writing a chapter', () => {
     expect(await assistantMessages(page).first().innerText()).not.toBe(firstAnswer);
   });
 
-  test('regenerate replaces the answer in place', async ({ page }) => {
+  test('regenerate replaces the answer in place', async ({ page, server }) => {
     await send(page, 'Once more.');
     await waitForTurn(page);
     const first = await assistantMessages(page).first().innerText();
@@ -108,7 +112,7 @@ test.describe('writing a chapter', () => {
     expect(await assistantMessages(page).first().innerText()).not.toBe(first);
   });
 
-  test('deleting a message removes just that message', async ({ page }) => {
+  test('deleting a message removes just that message', async ({ page, server }) => {
     await send(page, 'A line to delete.');
     await waitForTurn(page);
     await expect(messages(page)).toHaveCount(2);
@@ -118,7 +122,7 @@ test.describe('writing a chapter', () => {
     await expect(userMessages(page)).toHaveCount(1);
   });
 
-  test('a rejected key reads as a rejected key, and nothing crashes', async ({ page }) => {
+  test('a rejected key reads as a rejected key, and nothing crashes', async ({ page, server }) => {
     await send(page, '!401 this should fail');
     await waitForTurn(page);
 
@@ -129,7 +133,7 @@ test.describe('writing a chapter', () => {
     await expect(composer(page)).toBeEnabled();
   });
 
-  test('a provider error is reported with the provider’s own words', async ({ page }) => {
+  test('a provider error is reported with the provider’s own words', async ({ page, server }) => {
     await send(page, '!error break it');
     await waitForTurn(page);
 
@@ -138,10 +142,11 @@ test.describe('writing a chapter', () => {
     );
   });
 
-  test('the chapter and the connection survive a reload', async ({ page }) => {
+  test('the chapter and the connection survive a reload', async ({ page, server }) => {
     await send(page, 'Remember me.');
     await waitForTurn(page);
     const answer = await assistantMessages(page).first().innerText();
+    await waitForSaved(server, 2);
 
     await page.reload();
 
@@ -150,7 +155,7 @@ test.describe('writing a chapter', () => {
     await expect(page.getByRole('button', { name: /Storyteller Large/ })).toBeVisible();
   });
 
-  test('the composer grows with the text, without ever scrolling it', async ({ page }) => {
+  test('the composer grows with the text, without ever scrolling it', async ({ page, server }) => {
     const box = composer(page);
     await box.click();
 
@@ -182,7 +187,7 @@ test.describe('writing a chapter', () => {
     expect((await state()).height).toBeGreaterThan(resting.height);
   });
 
-  test('the context pill reflects what will be sent', async ({ page }) => {
+  test('the context pill reflects what will be sent', async ({ page, server }) => {
     const pill = page.getByRole('button', { name: /^context/ });
     // The scene and the system blocks are in there before a word is typed.
     await expect(pill).toContainText('/ 16k');
@@ -194,13 +199,15 @@ test.describe('writing a chapter', () => {
 });
 
 test.describe('parameters', () => {
-  test.beforeEach(async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
-    await page.goto('/');
+  // Seeded but not opened: one of these needs different settings on disk
+  // before the app reads them, which is now the only moment it reads them.
+  test.beforeEach(async ({ server }) => {
+    await seedStory(server, { scene: SCENE });
   });
 
-  test('advanced parameters are only sent once switched on', async ({ page }) => {
+  test('advanced parameters are only sent once switched on', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await page.goto(server.url);
     const bodies: Record<string, unknown>[] = [];
     await page.route('**/chat/completions', async (route) => {
       bodies.push(route.request().postDataJSON());
@@ -229,17 +236,14 @@ test.describe('parameters', () => {
     expect(bodies[1]).toHaveProperty('top_k');
   });
 
-  test('a tight context budget drops the oldest messages', async ({ page }) => {
-    await page.addInitScript(() => {
-      const key = 'magicstories:settings';
-      const raw = window.localStorage.getItem(key);
-      if (!raw) return;
-      const settings = JSON.parse(raw);
-      settings.generation.maxContextTokens = 1152;
-      settings.generation.maxResponseTokens = 1024;
-      window.localStorage.setItem(key, JSON.stringify(settings));
+  test('a tight context budget drops the oldest messages', async ({ page, server }) => {
+    // The budget is on disk before the app opens, because that is the one
+    // moment it is read.
+    await seedConnectedSettings(server, 'test-key', {
+      maxContextTokens: 1152,
+      maxResponseTokens: 1024,
     });
-    await page.reload();
+    await page.goto(server.url);
 
     await send(page, '!long give me a long passage');
     await waitForTurn(page);

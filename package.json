@@ -10,7 +10,6 @@
   ],
   "scripts": {
     "start": "node tools/dev.mjs",
-    "start:app": "npm run start -w app",
     "server": "node server/src/index.js",
     "build": "npm run build -w app",
     "package": "node tools/package.mjs",

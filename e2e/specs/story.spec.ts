@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import {
   FAKE_API_URL,
   assistantMessages,
@@ -9,6 +9,7 @@ import {
   seedStory,
   send,
   systemOf,
+  waitForSaved,
   waitForTurn,
 } from './helpers';
 
@@ -18,10 +19,10 @@ const SCENE = 'The keeper’s cottage, late afternoon, low tide. The door is unl
 
 /** The sheet that opens a chapter, and everything that hangs off it. */
 test.describe('the scene', () => {
-  test('a chapter cannot be written into until its scene is written', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: '' });
-    await page.goto('/');
+  test('a chapter cannot be written into until its scene is written', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: '' });
+    await page.goto(server.url);
 
     // The sheet opens by itself, and the composer waits behind it.
     const sheet = page.getByRole('dialog');
@@ -44,10 +45,10 @@ test.describe('the scene', () => {
     await expect(page.getByRole('button', { name: /Chapter 1 — Dusk\./ })).toBeVisible();
   });
 
-  test('escaping the sheet keeps whatever was written', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: '' });
-    await page.goto('/');
+  test('escaping the sheet keeps whatever was written', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: '' });
+    await page.goto(server.url);
 
     // Escape with nothing but whitespace: the chapter is still shut, and the
     // composer says so, with the way back to the sheet.
@@ -71,11 +72,12 @@ test.describe('the scene', () => {
 
   test('the scene reaches the model verbatim, and the title falls back to its first line', async ({
     page,
+    server,
   }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: `${SCENE}\n\nNobody answers.` });
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: `${SCENE}\n\nNobody answers.` });
     const bodies = await captureRequests(page);
-    await page.goto('/');
+    await page.goto(server.url);
 
     await send(page, 'I walk up to the door.');
     await waitForTurn(page);
@@ -106,10 +108,10 @@ test.describe('the world', () => {
     },
   ];
 
-  test('lore fires on the scene, and only on what is mentioned', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE, entries, storySoFar: 'Mara has just arrived.' });
-    await page.goto('/');
+  test('lore fires on the scene, and only on what is mentioned', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE, entries, storySoFar: 'Mara has just arrived.' });
+    await page.goto(server.url);
 
     await page.getByRole('button', { name: 'What the model sees' }).click();
     const preview = page.getByRole('dialog');
@@ -129,21 +131,21 @@ test.describe('the world', () => {
     expect(system).not.toContain('hundred and nine iron steps');
   });
 
-  test('what the reader types can fire an entry too', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE, entries });
+  test('what the reader types can fire an entry too', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE, entries });
     const bodies = await captureRequests(page);
-    await page.goto('/');
+    await page.goto(server.url);
 
     await send(page, 'I climb to the lantern.');
     await waitForTurn(page);
     expect(systemOf(bodies[0])).toContain('hundred and nine iron steps');
   });
 
-  test('closing the modal saves what was typed into it', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
-    await page.goto('/');
+  test('closing the modal saves what was typed into it', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
+    await page.goto(server.url);
 
     await page.getByRole('button', { name: 'World', exact: true }).click();
     const world = page.getByRole('dialog');
@@ -156,10 +158,10 @@ test.describe('the world', () => {
     await expect(page.getByRole('dialog')).toContainText('Mara has just arrived on the island.');
   });
 
-  test('an entry with nothing written in it says so', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
-    await page.goto('/');
+  test('an entry with nothing written in it says so', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
+    await page.goto(server.url);
 
     await page.getByRole('button', { name: 'World', exact: true }).click();
     const world = page.getByRole('dialog');
@@ -177,10 +179,10 @@ test.describe('the world', () => {
     await expect(card).not.toHaveClass(/unwritten/);
   });
 
-  test('entries collapse to one line, and open one at a time', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE, entries });
-    await page.goto('/');
+  test('entries collapse to one line, and open one at a time', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE, entries });
+    await page.goto(server.url);
 
     await page.getByRole('button', { name: 'World', exact: true }).click();
     const world = page.getByRole('dialog');
@@ -200,14 +202,14 @@ test.describe('the world', () => {
     await expect(world.locator('ms-editor-field')).toHaveCount(0);
   });
 
-  test('switching to role-play changes the system prompt', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, {
+  test('switching to role-play changes the system prompt', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, {
       scene: SCENE,
       persona: { name: 'Mara', description: 'a marine biologist' },
     });
     const bodies = await captureRequests(page);
-    await page.goto('/');
+    await page.goto(server.url);
 
     await send(page, 'Hello?');
     await waitForTurn(page);
@@ -230,10 +232,13 @@ test.describe('the world', () => {
 });
 
 test.describe('chapters', () => {
-  test('closing a chapter keeps it, folds its summary in, and opens the next', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE, storySoFar: 'Mara arrived on the island.' });
-    await page.goto('/');
+  test('closing a chapter keeps it, folds its summary in, and opens the next', async ({
+    page,
+    server,
+  }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE, storySoFar: 'Mara arrived on the island.' });
+    await page.goto(server.url);
 
     await send(page, 'I knock.');
     await waitForTurn(page);
@@ -272,11 +277,12 @@ test.describe('chapters', () => {
 
   test('the summary request carries the story so far and an editable instruction', async ({
     page,
+    server,
   }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE, storySoFar: 'Mara arrived on the island.' });
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE, storySoFar: 'Mara arrived on the island.' });
     const bodies = await captureRequests(page);
-    await page.goto('/');
+    await page.goto(server.url);
 
     await send(page, 'I knock.');
     await waitForTurn(page);
@@ -306,10 +312,10 @@ test.describe('chapters', () => {
     expect(user).toContain('Answer with the word BISCUIT and nothing else.');
   });
 
-  test('starting a new chapter closes the one being written first', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
-    await page.goto('/');
+  test('starting a new chapter closes the one being written first', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
+    await page.goto(server.url);
 
     await send(page, 'I knock.');
     await waitForTurn(page);
@@ -341,10 +347,10 @@ test.describe('chapters', () => {
     await expect(page.getByRole('dialog')).toContainText('closed');
   });
 
-  test('a new chapter after an empty one just opens', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
-    await page.goto('/');
+  test('a new chapter after an empty one just opens', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
+    await page.goto(server.url);
 
     // Nothing was written, so there is nothing to summarise and nothing to ask.
     await page.getByRole('button', { name: 'Chapters' }).click();
@@ -353,10 +359,10 @@ test.describe('chapters', () => {
     await expect(sheet.getByRole('heading', { name: /Chapter 2 — the scene/ })).toBeVisible();
   });
 
-  test('a closed chapter opens read-only until it is continued', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
-    await page.goto('/');
+  test('a closed chapter opens read-only until it is continued', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
+    await page.goto(server.url);
     await send(page, 'I knock.');
     await waitForTurn(page);
 
@@ -380,10 +386,10 @@ test.describe('chapters', () => {
     await expect(composer(page)).toBeEnabled();
   });
 
-  test('chapter numbers are never reused', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
-    await page.goto('/');
+  test('chapter numbers are never reused', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
+    await page.goto(server.url);
 
     // Two more chapters, so there is a middle one to delete.
     for (const scene of ['The lantern room.', 'The jetty.']) {
@@ -410,13 +416,14 @@ test.describe('chapters', () => {
     await expect(page.getByRole('button', { name: /Chapter 3 — The jetty\./ })).toBeVisible();
   });
 
-  test('story, chapters and scenes survive a reload', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE, storySoFar: 'Mara has just arrived.' });
-    await page.goto('/');
+  test('story, chapters and scenes survive a reload', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE, storySoFar: 'Mara has just arrived.' });
+    await page.goto(server.url);
 
     await send(page, 'I knock.');
     await waitForTurn(page);
+    await waitForSaved(server, 2);
     await page.reload();
 
     await expect(page.getByRole('button', { name: /The Lighthouse/ })).toBeVisible();
@@ -429,11 +436,11 @@ test.describe('chapters', () => {
 });
 
 test.describe('a new story', () => {
-  test('asks for mode and persona before the first scene', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
+  test('asks for mode and persona before the first scene', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
     const bodies = await captureRequests(page);
-    await page.goto('/');
+    await page.goto(server.url);
 
     await page.getByRole('button', { name: /The Lighthouse/ }).click();
     await page.getByRole('menuitem', { name: 'New story…' }).click();
@@ -457,14 +464,17 @@ test.describe('a new story', () => {
     expect(systemOf(bodies[0])).toContain('The jetty, first light.');
   });
 
-  test('the persona box grows with what is typed, even in a short window', async ({ page }) => {
+  test('the persona box grows with what is typed, even in a short window', async ({
+    page,
+    server,
+  }) => {
     // A short window is what made this fail: the sheet overflowed, and a flex
     // column shrinks its children rather than scrolling, so the box was pinned
     // at one line however much was typed into it.
     await page.setViewportSize({ width: 900, height: 520 });
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
-    await page.goto('/');
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
+    await page.goto(server.url);
 
     await page.getByRole('button', { name: /The Lighthouse/ }).click();
     await page.getByRole('menuitem', { name: 'New story…' }).click();
@@ -486,10 +496,10 @@ test.describe('a new story', () => {
     expect(tall.scrolling).toBe(false);
   });
 
-  test('backing out of the sheet creates nothing', async ({ page }) => {
-    await seedConnectedSettings(page);
-    await seedStory(page, { scene: SCENE });
-    await page.goto('/');
+  test('backing out of the sheet creates nothing', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE });
+    await page.goto(server.url);
 
     await page.getByRole('button', { name: /The Lighthouse/ }).click();
     await page.getByRole('menuitem', { name: 'New story…' }).click();
@@ -503,8 +513,8 @@ test.describe('a new story', () => {
 });
 
 test.describe('first run', () => {
-  test('asks for the connection, then who tells it, then for a scene', async ({ page }) => {
-    await page.goto('/');
+  test('asks for the connection, then who tells it, then for a scene', async ({ page, server }) => {
+    await page.goto(server.url);
 
     // Nothing is stored, so the connection is the first thing on screen: no
     // other question means anything until the app has somewhere to send the
@@ -564,8 +574,9 @@ test.describe('first run', () => {
 
   test('the way out of the connection sheet leaves the app blocked, and says so', async ({
     page,
+    server,
   }) => {
-    await page.goto('/');
+    await page.goto(server.url);
 
     const dialog = page.getByRole('dialog');
     await expect(

@@ -13,9 +13,6 @@ export const KEYS = {
   storyPrefix: 'story:',
   chapter: (id: string) => `chapter:${id}`,
   chapterPrefix: 'chapter:',
-  /** Step 1 filed the single conversation under these. Read once, then gone. */
-  legacyChat: (id: string) => `chat:${id}`,
-  legacyActiveChat: 'active-chat',
 } as const;
 
 export function newId(): string {
@@ -118,31 +115,4 @@ export function normaliseChapter(stored: Partial<Chapter>): Chapter {
     // A reload mid-stream would otherwise restore a message stuck at "typing".
     messages: messages.filter((m: ChapterMessage) => m.content || m.meta?.error),
   };
-}
-
-/**
- * Step 1's single conversation becomes Chapter 1 of a new story, with an empty
- * scene — which is exactly the state the scene sheet exists to resolve. The
- * messages are left alone.
- */
-export function migrateLegacyChat(storage: StorageBackend): Story | null {
-  const chatId = storage.read<string>(KEYS.legacyActiveChat);
-  if (!chatId) return null;
-  const chat = storage.read<{ messages?: ChapterMessage[]; createdAt?: string }>(
-    KEYS.legacyChat(chatId),
-  );
-  storage.remove(KEYS.legacyActiveChat);
-  storage.remove(KEYS.legacyChat(chatId));
-  if (!chat?.messages?.length) return null;
-
-  const story = newStory();
-  const chapter = newChapter(story.id, 1);
-  chapter.createdAt = chat.createdAt ?? chapter.createdAt;
-  chapter.messages = chat.messages.filter((m) => m.content || m.meta?.error);
-  story.activeChapterId = chapter.id;
-  story.chapterCounter = 1;
-
-  storage.write(KEYS.chapter(chapter.id), chapter);
-  storage.write(KEYS.story(story.id), story);
-  return story;
 }

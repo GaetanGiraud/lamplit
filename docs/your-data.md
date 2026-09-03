@@ -34,12 +34,15 @@ is a perfectly reasonable way to get version history for a novel.
 There is no Save button anywhere in the app, because there is nothing to save — writes happen as
 you type.
 
-Underneath: the browser keeps its own copy (which is what makes a reload paint instantly), and a
-sync layer behind it sends each changed document to the server. Writes are debounced and merged
-per document, one request at a time, so a fast-streaming answer does not turn into a thousand
-writes. On disk, each one goes to a temporary file that is then renamed over the target — so a
-reader sees the old document or the new one, never half of one, and a crash mid-write leaves the
-previous version intact.
+Underneath: the app reads every document from the server once, when it starts, and holds them for
+as long as the tab is open. Changes go to that copy and to the server; a reload starts again from
+disk. **There is exactly one place a document lives**, which is why nothing here has to explain
+what happens when two copies disagree.
+
+Writes are debounced and merged per document, one request at a time, so a fast-streaming answer
+does not turn into a thousand of them. On disk, each one goes to a temporary file that is then
+renamed over the target — so a reader sees the old document or the new one, never half of one, and
+a crash mid-write leaves the previous version intact.
 
 ## When the server is not there
 
@@ -48,31 +51,27 @@ previous version intact.
 If the server stops answering, an **Offline** button appears in the top bar. That is the only time
 the backend is visible at all.
 
-Nothing stops. You keep writing, the model keeps answering, and everything you do is queued —
-including across a reload, because the queue is persisted too. The app retries on its own with a
-widening delay, and clicking **Offline** retries immediately. When the server comes back,
-everything queued is sent and the button disappears.
+Nothing stops. You keep writing, the model keeps answering, and everything is queued. The app
+retries on its own with a widening delay, and clicking **Offline** retries immediately. When the
+server comes back, everything queued is sent and the button disappears.
 
-Closing the tab with work in hand sends one last request per document on the way out.
+**Do not reload while it says Offline.** The tab holds the only copy of what has not been sent
+yet, and a reload starts again from disk. The app tries to stop you if you close the tab with a
+failing queue, and it sends one last request per document on the way out.
 
-### Which side wins
+### Two tabs
 
-When the app starts, it reconciles with the server:
-
-- **The server is the truth.** Whatever it holds is what you get.
-- **Except** for documents this browser wrote and never managed to send — those win, and are sent.
-- A document in the browser's cache that the server does not have was deleted somewhere else, so
-  the cache lets it go.
-
-Two tabs on the same story therefore behave sensibly: edits in one show up when the other reloads,
-last write wins, and no file is ever left half-written.
+Both read from the server when they start, and both write to it. Edits in one show up when the
+other reloads, last write wins, and no file is ever left half-written — the server applies writes
+to a document one at a time, and ignores any that arrive out of order.
 
 ### With no server at all
 
-If nothing is listening on `/api` — you are running just the front end, or serving the built files
-from a static host — the app runs entirely on browser storage, exactly as it did before it grew a
-backend. It will not say anything about it. Your stories live in that browser and nowhere else,
-which is worth knowing before you clear site data.
+The app does not start. It says so, and offers to try again.
+
+That is deliberate. Your stories are on disk and the app is a window onto them; an app that opened
+anyway would be an empty one, indistinguishable from a fresh install, and the first thing you
+typed would be written over a story that was perfectly fine.
 
 ## Backups
 

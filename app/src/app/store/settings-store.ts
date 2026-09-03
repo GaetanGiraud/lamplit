@@ -32,7 +32,17 @@ export class SettingsStore {
   });
 
   constructor() {
-    effect(() => this.storage.write(KEYS.settings, this.state()));
+    // Skip the write the effect would otherwise make the moment it runs: the
+    // document came off disk a tick ago and putting it straight back is a
+    // request that says nothing. The story and chapter stores do the same with
+    // their `written` maps.
+    let written = JSON.stringify(this.state());
+    effect(() => {
+      const next = JSON.stringify(this.state());
+      if (next === written) return;
+      written = next;
+      this.storage.write(KEYS.settings, this.state());
+    });
   }
 
   patchConnection(patch: Partial<ConnectionSettings>): void {

@@ -1,18 +1,19 @@
 import { ChildProcess, spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
  * The real persistence server, started per test on its own port with its own
- * empty data folder — and serving the real production build, so these specs
- * exercise the packaged arrangement rather than the dev server.
+ * empty data folder, serving the real production build.
  *
- * The other specs run against `ng serve`, where nothing answers /api and the
- * app is on `localStorage` alone. Both halves need to keep working.
+ * Every spec runs against this, because it is the only arrangement the app has:
+ * the browser holds no documents of its own, so a test seeds by writing JSON
+ * into the data folder — which is exactly what a person does when they copy a
+ * story onto a new machine.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -69,6 +70,40 @@ export class PersistenceServer {
   async dispose(): Promise<void> {
     await this.stop();
     await rm(this.dataDir, { recursive: true, force: true });
+  }
+
+  /**
+   * Puts documents on disk before the app is opened, keyed the way the client
+   * keys them: `settings`, `story:<id>`, `chapter:<id>`. This is the only way
+   * to seed anything now — there is nowhere else for a document to be.
+   */
+  async seed(documents: Record<string, unknown>): Promise<void> {
+    for (const [key, document] of Object.entries(documents)) {
+      const path = this.pathOf(key);
+      await mkdir(dirname(path), { recursive: true });
+      await writeFile(
+        path,
+        `${JSON.stringify(document, null, 2)}
+`,
+        'utf8',
+      );
+    }
+  }
+
+  private pathOf(key: string): string {
+    if (key === 'settings') return join(this.dataDir, 'settings.json');
+    if (key.startsWith('story:')) {
+      return join(this.dataDir, 'stories', `${key.slice('story:'.length)}.json`);
+    }
+    if (key.startsWith('chapter:')) {
+      return join(this.dataDir, 'chapters', `${key.slice('chapter:'.length)}.json`);
+    }
+    throw new Error(`not a document key: ${key}`);
+  }
+
+  /** Takes a document off disk behind the app's back. */
+  async remove(collection: 'stories' | 'chapters', id: string): Promise<void> {
+    await rm(join(this.dataDir, collection, `${id}.json`), { force: true });
   }
 
   /** What is actually on disk, which is the whole point of these specs. */
