@@ -82,9 +82,21 @@ test('writes its documents into the profile, not beside the app', async () => {
   const dialog = window.getByRole('dialog');
   await dialog.getByLabel('API key').fill('a-key-typed-in-the-desktop-app');
 
+  // Wait for the key, not for the file. settings.json appears before this write
+  // does — the app puts activeStoryId in it the moment it makes the first story —
+  // so polling for the file and then reading it is a race, and the runner lost it
+  // where this machine happened to win.
   const settings = join(userData, 'data', 'settings.json');
-  await expect.poll(() => existsSync(settings), { timeout: 15_000 }).toBe(true);
-
-  const written = JSON.parse(await readFile(settings, 'utf8'));
-  expect(written.connection.apiKey).toBe('a-key-typed-in-the-desktop-app');
+  await expect
+    .poll(
+      async () => {
+        try {
+          return JSON.parse(await readFile(settings, 'utf8')).connection?.apiKey ?? null;
+        } catch {
+          return null; // not written yet, or caught mid-rename
+        }
+      },
+      { timeout: 15_000 },
+    )
+    .toBe('a-key-typed-in-the-desktop-app');
 });
