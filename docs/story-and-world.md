@@ -48,7 +48,7 @@ Two settings, and both of them become a sentence in the style rules the model is
 
 > This is the half of "style" that is a *request to the model*. The half that is about how the
 > text is drawn on your screen — text size, theme, whether quoted lines are visually broken out —
-> lives in the **Reading** menu and changes nothing about the prompt. See
+> lives in **Preferences → Reading** and changes nothing about the prompt. See
 > [Reading and writing](reading-and-writing.md).
 
 ## World → Story so far

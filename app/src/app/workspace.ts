@@ -1,5 +1,6 @@
 import { Component, afterNextRender, effect, inject } from '@angular/core';
 import { DEFAULT_STORY_TITLE } from './core/defaults';
+import { applyUi } from './core/theming';
 import { ChaptersPage } from './features/chapters/chapters-page';
 import { TopBar } from './shared/top-bar';
 import { UpgradeNotice } from './shared/upgrade-notice';
@@ -51,9 +52,12 @@ export class Workspace {
   constructor() {
     inject(Persistence).listen();
 
-    // The whole palette hangs off `color-scheme`, so this one line is the theme.
+    // Everything under Preferences that the page can see — the theme, the
+    // customised colours of that theme, the face the story is set in — is
+    // written onto <html> from here, so a change in the dialog is on the page
+    // before the dialog has finished handling the event.
     effect(() => {
-      document.documentElement.style.colorScheme = this.settings.ui().theme;
+      applyUi(document.documentElement, this.settings.ui());
     });
 
     // What a fresh install is asked, in the order it is asked.

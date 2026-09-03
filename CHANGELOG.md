@@ -7,6 +7,27 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**Preferences, and the colours the story is read in.** The **Reading** menu in
+the top bar is now **Preferences**, a sheet with room in it. **Reading** is the
+same four settings it always was — theme, dialogue on its own line, token
+counts, text size — and it is open when the sheet opens.
+
+- **Colours.** Every colour the two themes are built from is a swatch you can
+  change, and the page redraws as you drag: the page, the paper, the text, your
+  own lines, the accent, the dialogue, the rest. Each theme keeps its own set,
+  so the dark palette and the light one are yours separately. **Reset** puts one
+  theme back to exactly what Lamplit ships.
+- **A reading font** — the serif it ships with, a sans-serif, or a monospace,
+  from the fonts your computer already has. It sets the story; the app around it
+  stays as it is.
+- **It warns rather than blocks.** Text on paper below the 4.5:1 that WCAG AA
+  asks of body text says so, and lets you carry on.
+- Only what you changed is written down, so a `settings.json` from 0.1.0 opens
+  with the theme exactly as it shipped, and a colour a later version improves
+  still reaches you unless you had overridden that one.
+- **Advanced** is there and empty. It is where the options that come with a
+  warning will live.
+
 **The zip is on the release now.** Every release carries `Lamplit.zip` beside the
 installers: the whole app in about a megabyte, for any machine that already has
 Node.js 20.19 or newer. 0.1.0's notes promised it and the release did not have

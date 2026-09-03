@@ -48,11 +48,41 @@ export interface GenerationParams {
 
 export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';
 
+export type ThemeName = 'dark' | 'light';
+
+/**
+ * The names in the reading palette, mirroring `$palette` in `styles.scss`.
+ * These are persisted as object keys, so they are part of the file format: a
+ * name that goes away is simply ignored on load, and one that stays keeps its
+ * meaning.
+ */
+export type ColourKey =
+  | 'page'
+  | 'surface'
+  | 'surface-raised'
+  | 'border'
+  | 'ink'
+  | 'ink-soft'
+  | 'action'
+  | 'muted'
+  | 'accent'
+  | 'speech'
+  | 'danger';
+
+/** Overrides only. An absent name keeps the colour the stylesheet ships. */
+export type ThemeColours = { [K in ColourKey]?: string };
+
+/** The face the story is set in. All three come out of the system stack. */
+export type ReadingFont = 'serif' | 'sans' | 'mono';
+
 export interface UiSettings {
-  theme: 'dark' | 'light';
+  theme: ThemeName;
   bookStyleDialogue: boolean;
   fontSize: number;
   showTokenCounts: boolean;
+  /** Per theme, so the dark palette and the light one are edited separately. */
+  colours: { [T in ThemeName]?: ThemeColours };
+  font: ReadingFont;
 }
 
 export interface Settings {

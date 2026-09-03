@@ -1,6 +1,13 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { DEFAULT_GENERATION, DEFAULT_SETTINGS } from '../core/defaults';
-import { ConnectionSettings, GenerationParams, Settings, UiSettings } from '../core/models';
+import {
+  ColourKey,
+  ConnectionSettings,
+  GenerationParams,
+  Settings,
+  ThemeName,
+  UiSettings,
+} from '../core/models';
 import { KEYS } from './documents';
 import { STORAGE_BACKEND } from './storage';
 
@@ -57,6 +64,28 @@ export class SettingsStore {
     this.state.update((s) => ({ ...s, ui: { ...s.ui, ...patch } }));
   }
 
+  /**
+   * One swatch, in one theme. Passing nothing puts the shipped colour back:
+   * the palette is stored as overrides, so forgetting a name *is* the default.
+   */
+  setColour(theme: ThemeName, key: ColourKey, colour: string | null): void {
+    this.state.update((s) => {
+      const colours = { ...(s.ui.colours[theme] ?? {}) };
+      if (colour) colours[key] = colour;
+      else delete colours[key];
+      return { ...s, ui: { ...s.ui, colours: { ...s.ui.colours, [theme]: colours } } };
+    });
+  }
+
+  /** Every colour this theme overrides, gone. The other theme is untouched. */
+  resetColours(theme: ThemeName): void {
+    this.state.update((s) => {
+      const colours = { ...s.ui.colours };
+      delete colours[theme];
+      return { ...s, ui: { ...s.ui, colours } };
+    });
+  }
+
   setActiveStory(id: string | null): void {
     this.state.update((s) => ({ ...s, activeStoryId: id }));
   }
@@ -77,6 +106,9 @@ export class SettingsStore {
     return {
       connection: { ...DEFAULT_SETTINGS.connection, ...stored.connection },
       generation: { ...DEFAULT_SETTINGS.generation, ...stored.generation },
+      // `colours` and `font` arrived after 0.1.0, so a settings file written by
+      // it has neither and takes both from the defaults — an empty override set
+      // and the serif, which is the theme exactly as it shipped.
       ui: { ...DEFAULT_SETTINGS.ui, ...stored.ui },
       activeStoryId: stored.activeStoryId ?? null,
       acknowledgedVersion: stored.acknowledgedVersion ?? null,

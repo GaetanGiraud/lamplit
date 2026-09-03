@@ -72,12 +72,15 @@ conversation state to get out of step. See [The prompt](the-prompt.md).
 If a request fails, the answer is replaced by the provider's own words and two buttons,
 **Try again** and **Dismiss**. A rejected key reads as a rejected key.
 
-## Reading settings
+## Preferences
 
-![The Reading menu](images/reading-menu.png)
+**Preferences** in the top bar holds everything that changes how the story looks to you and
+nothing about what is sent. It opens on **Reading**, with **Colours** and **Advanced** folded
+away underneath.
 
-**Reading** in the top bar holds the four things that change how the story looks to you and
-nothing about what is sent:
+### Reading
+
+![Preferences, open on Reading](images/preferences.png)
 
 - **Dark theme** — on by default.
 - **Dialogue on its own line** — breaks each quoted line onto its own paragraph. This only has
@@ -91,6 +94,32 @@ nothing about what is sent:
 > These are reading preferences and live in `settings.json`, not in the story. The *prompt*
 > instructions that ask the model to put dialogue on its own line, or to answer at a particular
 > length, live in **Story → Style** — see [Story and world](story-and-world.md).
+
+### Colours
+
+![The colours a theme is built from](images/preferences-colours.png)
+
+Every colour the two themes differ on is here, one swatch each, and changing one redraws the page
+as you drag. Nothing has been added to the palette that was not already in it: **Page**, **Paper**,
+**Raised paper**, **Rules**, **Text**, **Your own lines**, **Action**, **Muted text**, **Accent**,
+**Dialogue** and **Errors** are the names the stylesheet itself uses, and each says what moves
+when it moves.
+
+- **Each theme keeps its own set.** Editing while the dark theme is on edits the dark colours;
+  switch to light in **Reading** and you are editing the light ones. Neither touches the other.
+- **Reading font** — the serif it ships with, a sans-serif, or a monospace, all from fonts your
+  computer already has. It sets the story itself; the app around it stays as it is.
+- **Reset the … colours** puts one theme back to exactly what Lamplit ships, and asks first. It
+  clears only what you changed, so a colour you never touched cannot drift.
+- **A contrast warning**, not a block. If your text and your paper fall below the 4.5:1 that WCAG
+  AA asks of body text, it says so and lets you carry on.
+
+Only what you changed is written down, so a colour a later version of Lamplit improves still
+reaches you unless you had overridden that exact one.
+
+### Advanced
+
+Options for people who want to look under the hood. Nothing lives here yet.
 
 ## Getting around
 

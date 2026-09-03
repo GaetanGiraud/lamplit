@@ -46,6 +46,15 @@ export class DialogsService {
     });
   }
 
+  /**
+   * How the story looks to you: Reading first, then the colours it is drawn in,
+   * then the panel for people who want to look under the hood.
+   */
+  async openPreferences(): Promise<void> {
+    const { PreferencesDialog } = await import('../features/preferences/preferences-dialog');
+    this.dialog.open(PreferencesDialog, { width: '42rem', maxWidth: '95vw', autoFocus: 'dialog' });
+  }
+
   async openStory(): Promise<void> {
     const { StoryDialog } = await import('../features/story/story-dialog');
     this.dialog.open(StoryDialog, { width: '42rem', maxWidth: '95vw', autoFocus: 'dialog' });

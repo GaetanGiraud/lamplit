@@ -25,6 +25,8 @@ export const DEFAULT_SETTINGS: Settings = {
     bookStyleDialogue: true,
     fontSize: 18,
     showTokenCounts: true,
+    colours: {},
+    font: 'serif',
   },
   activeStoryId: null,
   acknowledgedVersion: null,

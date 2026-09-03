@@ -1,8 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatSliderModule } from '@angular/material/slider';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { chapterTitle } from '../core/prompt-builder';
 import { SettingsStore } from '../store/settings-store';
@@ -17,14 +15,7 @@ import { SaveStatusIndicator } from './save-status';
  */
 @Component({
   selector: 'ms-top-bar',
-  imports: [
-    MatButtonModule,
-    MatMenuModule,
-    MatSliderModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
-    SaveStatusIndicator,
-  ],
+  imports: [MatButtonModule, MatMenuModule, MatTooltipModule, SaveStatusIndicator],
   template: `
     <header class="bar">
       <div class="identity">
@@ -67,40 +58,7 @@ import { SaveStatusIndicator } from './save-status';
         <button matButton (click)="dialogs.openWorld()">World</button>
         <button matButton (click)="dialogs.openChapters()">Chapters</button>
         <button matButton (click)="dialogs.openParameters()">Parameters</button>
-
-        <button matButton [matMenuTriggerFor]="reading">Reading</button>
-        <mat-menu #reading="matMenu">
-          <div class="menu-panel" (click)="$event.stopPropagation()">
-            <mat-slide-toggle
-              [checked]="settings.ui().theme === 'dark'"
-              (change)="settings.patchUi({ theme: $event.checked ? 'dark' : 'light' })"
-            >
-              Dark theme
-            </mat-slide-toggle>
-            <mat-slide-toggle
-              [checked]="settings.ui().bookStyleDialogue"
-              (change)="settings.patchUi({ bookStyleDialogue: $event.checked })"
-            >
-              Dialogue on its own line
-            </mat-slide-toggle>
-            <mat-slide-toggle
-              [checked]="settings.ui().showTokenCounts"
-              (change)="settings.patchUi({ showTokenCounts: $event.checked })"
-            >
-              Show token counts
-            </mat-slide-toggle>
-            <label class="size">
-              Text size
-              <mat-slider min="14" max="26" step="1" discrete>
-                <input
-                  matSliderThumb
-                  [value]="settings.ui().fontSize"
-                  (valueChange)="settings.patchUi({ fontSize: $event })"
-                />
-              </mat-slider>
-            </label>
-          </div>
-        </mat-menu>
+        <button matButton (click)="dialogs.openPreferences()">Preferences</button>
 
         <button matButton [matMenuTriggerFor]="more" aria-label="More actions">⋯</button>
         <mat-menu #more="matMenu">
@@ -216,25 +174,10 @@ import { SaveStatusIndicator } from './save-status';
       background: light-dark(#2f8f5b, #6fd39b);
     }
 
-    .menu-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-      padding: 0.75rem 1rem;
-      min-width: 15rem;
-    }
-
     hr {
       border: 0;
       border-top: 1px solid var(--ms-border);
       margin: 0.25rem 0;
-    }
-
-    .size {
-      display: flex;
-      flex-direction: column;
-      font-size: 0.8rem;
-      color: var(--ms-muted);
     }
   `,
 })

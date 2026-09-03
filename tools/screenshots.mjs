@@ -252,15 +252,28 @@ async function theApp() {
   await shot(page, 'chapters', 'every chapter of the story, and what is in it');
   await escape(page);
 
-  // The Reading menu, and the light theme it can switch to.
-  await page.getByRole('button', { name: 'Reading' }).click();
+  // Preferences: Reading as it opens, then the colours behind the second
+  // section, then the light theme the first one can switch to.
+  await page.getByRole('button', { name: 'Preferences' }).click();
   await page.waitForTimeout(400);
-  await shot(page, 'reading-menu', 'text size, book style, theme');
+  await shot(page, 'preferences', 'text size, book style, theme');
+  // Reading folded away so the whole palette is in the frame at once.
+  await page.getByRole('button', { name: 'Reading' }).first().click();
+  await page.getByRole('button', { name: 'Colours' }).first().click();
+  await page.waitForTimeout(600);
+  await shot(
+    page,
+    'preferences-colours',
+    'every colour the theme is built from, and the reading font',
+  );
+  await page.getByRole('button', { name: 'Colours' }).first().click();
+  await page.getByRole('button', { name: 'Reading' }).first().click();
+  await page.waitForTimeout(400);
   await page.getByRole('switch', { name: 'Dark theme' }).click();
   await escape(page);
   await page.waitForTimeout(500);
   await shot(page, 'light', 'the same chapter, light');
-  await page.getByRole('button', { name: 'Reading' }).click();
+  await page.getByRole('button', { name: 'Preferences' }).click();
   await page.getByRole('switch', { name: 'Dark theme' }).click();
   await escape(page);
   await page.waitForTimeout(400);
@@ -274,7 +287,7 @@ async function theApp() {
 
   // The one time the backend is visible: when it stops answering.
   await context.setOffline(true);
-  await page.getByRole('button', { name: 'Reading' }).click();
+  await page.getByRole('button', { name: 'Preferences' }).click();
   await page.getByRole('switch', { name: 'Show token counts' }).click();
   await escape(page);
   await page.getByRole('button', { name: 'Offline' }).waitFor({ timeout: 20_000 });

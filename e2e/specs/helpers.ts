@@ -165,9 +165,15 @@ export async function waitForTurn(page: Page): Promise<void> {
   });
 }
 
-/** Flips the book-style switch in the Reading menu and closes the menu. */
+/** Opens Preferences, which arrives with Reading already open. */
+export async function openPreferences(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Preferences' }).click();
+  await expect(page.getByRole('heading', { name: 'Preferences' })).toBeVisible();
+}
+
+/** Flips the book-style switch under Preferences → Reading and closes the sheet. */
 export async function setBookStyle(page: Page, on: boolean): Promise<void> {
-  await page.getByRole('button', { name: 'Reading' }).click();
+  await openPreferences(page);
   const toggle = page.getByRole('switch', { name: 'Dialogue on its own line' });
   if ((await toggle.getAttribute('aria-checked')) !== String(on)) await toggle.click();
   await page.keyboard.press('Escape');

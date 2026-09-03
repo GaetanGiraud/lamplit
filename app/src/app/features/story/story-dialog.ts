@@ -162,8 +162,8 @@ import { EditorField } from '../../shared/editor-field';
             </div>
 
             <p class="ms-hint">
-              Both become a sentence in the style rules the model is sent. The reading settings in
-              the Reading menu only change how answers are drawn here.
+              Both become a sentence in the style rules the model is sent. The reading settings
+              under Preferences only change how answers are drawn here.
             </p>
           </div>
         </mat-tab>
