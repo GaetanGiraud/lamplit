@@ -20,6 +20,7 @@
     "test:server": "npm run test -w server",
     "e2e": "npm run build -w app && npm run test -w e2e",
     "e2e:quick": "npm run test -w e2e",
+    "smoke": "node tools/smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

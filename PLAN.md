@@ -508,14 +508,53 @@ Added to step 3 on 2026-09-03, ahead of Electron and as the thing Electron will 
 
 ### 4.5 Final acceptance test
 
-1. `npm start` → one process, app served, `data/` created.
-2. Repeat the step 2 live scenario end to end; inspect `data/` after each action and confirm the
-   JSON matches what the UI shows (settings, story, both chapters including their scenes).
-3. Kill the server mid-chat, keep typing → offline indicator; restart server → catches up.
-4. Two tabs open on the same story: edits in one appear on reload of the other, last write wins,
-   no corrupted files.
-5. Full Playwright suite green (fake model server + real persistence server).
-6. If Electron is built: launch the exe, run the smoke scenario once.
+Two halves. The automated half proves the machinery; the live half proves the thing is worth
+using, which no fake model can tell you.
+
+#### The automated half — `npm run e2e`
+
+`e2e/specs/journey.spec.ts` walks one narrator story from nothing: empty data folder, browser that
+has never seen the app, production build served by the real persistence server, no seeding
+anywhere. Eleven stages, in order, each checked against the JSON on disk rather than the screen —
+connection insists → endpoint and model → narrator, title, persona → the scene refuses whitespace
+→ the first turn carries narrator + persona + scene in that order → story so far always sent →
+lore stays out until the story mentions it → close chapter folds it in and replaces the summary →
+chapter 2 opens on the previous scene and carries none of chapter 1's transcript → an empty
+browser reads it all back off disk → the data folder holds that and nothing else.
+
+Plus `persistence.spec.ts` for the backend's own behaviour (offline and catch-up, two tabs, delete
+takes its files with it), and the rest of the suite for everything else. All of it must be green.
+
+#### The live half — `npm run smoke`, then this script
+
+`npm run smoke` builds the package, unzips the **archive** into an empty folder, and starts it
+through `start.bat` / `start.sh`. That is a genuinely fresh install: no data, no settings, no key.
+Narrator mode, a real key, a real model.
+
+1. **It runs at all.** One call, browser opens, no console errors, `data/` appears beside the
+   script.
+2. **Connection.** It opens on the connection sheet and refuses Escape. Paste the key, fetch the
+   models, pick one, **Test** answers. `data/settings.json` now holds the key and model.
+3. **Story.** Narrator, a title, a persona. Check `data/stories/<id>.json`.
+4. **Scene.** Whitespace will not open the chapter; real text will. Check the chapter file.
+5. **Six or eight turns.** This is the part that matters and the part only a person can judge:
+   does it stay in the scene, keep the persona out of its own mouth, and end on something you can
+   answer? Try **Stop** mid-answer, **Edit** a line of your own, **Regenerate** an answer you did
+   not like, **Replay from here**.
+6. **World.** Write the story so far. Add two lore entries, one with a key the story has already
+   used and one it has not. Open **What the model sees** from the composer pill and confirm the
+   right one fired, on the right key. Check the token counts against the provider's real usage
+   under the last answer.
+7. **Close the chapter.** Read the summary it writes: does it keep the names, the promises, the
+   injuries? Edit it, confirm, and check that `world.storySoFar` was *replaced* and the chapter
+   kept its own copy.
+8. **Chapter 2.** The sheet opens pre-filled. Write two turns and confirm from the preview that
+   chapter 1's transcript is gone and only the summary carries it.
+9. **It survives.** Ctrl+C, start it again, everything is there. Then copy the whole folder
+   somewhere else, start it there, and confirm the story came with it.
+10. **Money.** Note what the whole session cost against the provider's dashboard. If a chaptered
+    story is not materially cheaper per reply than one long chat, the central premise is wrong and
+    that is worth knowing.
 
 ---
 

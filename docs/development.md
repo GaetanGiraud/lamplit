@@ -39,6 +39,7 @@ usefully — why each decision went the way it did.
 | `npm test` | Unit tests, both workspaces |
 | `npm run e2e` | Builds the app, then the full Playwright suite |
 | `npm run e2e:quick` | Playwright without the build (skips the specs that need it) |
+| `npm run smoke` | Packages, unzips the archive into an empty folder, and starts it — a genuinely fresh install to walk by hand |
 | `npm run screenshots` | Regenerates every picture in `docs/images` |
 | `npm run format` | Prettier over everything |
 
@@ -55,10 +56,23 @@ document store's write ordering and atomic writes, the API, the zip writer, the 
 servers start automatically; no tokens are spent and no key is needed. The fake endpoint takes
 instructions from the message text: `!slow`, `!long`, `!error`, `!401`, `!prose`.
 
-Most specs run against the dev server with no backend. `persistence.spec.ts` is different: it runs
-against the **real server serving the real production build**, on its own port with its own empty
-data folder per test, and asserts against the files on disk. That is why `npm run e2e` builds
-first — `npm run e2e:quick` skips the build and skips those specs.
+Most specs run against the dev server with no backend. Two are different, and both run against the
+**real server serving the real production build**, on their own port with their own empty data
+folder, asserting against the files on disk. That is why `npm run e2e` builds first —
+`npm run e2e:quick` skips the build and skips those specs.
+
+- **`persistence.spec.ts`** — the backend's own behaviour: documents written as the UI changes
+  them, a fresh browser reading a story off disk, the server going away mid-chat and catching up,
+  two tabs, deleting a story taking its files with it.
+- **`journey.spec.ts`** — the whole app, once, in narrator mode, from nothing. Eleven stages in
+  order, sharing one page, walked through the interface the way a person would: the connection
+  sheet insisting, the story questions, the scene refusing whitespace, the first turn's prompt in
+  the right order, the story so far, lore staying out until the story mentions it, closing a
+  chapter, chapter 2 carrying the summary and not the transcript, and an empty browser reading the
+  lot back. It is the regression net for the shape of the app rather than for any one feature.
+
+The human half of the same walk is `npm run smoke` plus the script in `PLAN.md` §4.5 — the part a
+fake model cannot check is whether a real one tells a decent story.
 
 ## How the screenshots are made
 
