@@ -16,7 +16,7 @@
 | **Endpoint URL** | Ends at `/v1` (or wherever your server puts those two paths). |
 | **API key** | Sent as `Authorization: Bearer …`. Leave it empty for a local server that does not want one. |
 | **Fetch models** | Reads the endpoint's own list. Filter it, then pick one. |
-| **Model** | Prefer one that does not think before it writes. Reasoning models pause and then answer, and you pay for the pause as output tokens; for prose the wait buys little. Your provider's list says which models reason and which of theirs write best — ask them, not the app. MagicStories never asks a model to reason on its own; whether a model reasons when not asked is the model's default, and **Reasoning effort** under [Advanced](#advanced) is the only thing that changes it. |
+| **Model** | Prefer one that does not think before it writes. Reasoning models pause and then answer, and you pay for the pause as output tokens; for prose the wait buys little. Your provider's list says which models reason and which of theirs write best — ask them, not the app. Lamplit never asks a model to reason on its own; whether a model reasons when not asked is the model's default, and **Reasoning effort** under [Advanced](#advanced) is the only thing that changes it. |
 | **Test** | One real round trip. Worth doing once — it tells you whether the URL, the key and the model all work together, rather than making you find out mid-sentence. |
 
 Every change is saved the moment you make it, so however you close this modal, it has already
@@ -89,7 +89,7 @@ Three of these need one thing said about them:
 
 - **Anthropic** only answers a browser when the request says the key is meant to be in one. It
   does, always — this app has no server to hide a key on. Nothing to switch on.
-- **Perplexity** publishes no model list, so MagicStories carries its five, and there is no
+- **Perplexity** publishes no model list, so Lamplit carries its five, and there is no
   **Fetch models** button to press.
 - **SiliconFlow** and **MiniMax** run separate hosts for mainland China (`api.siliconflow.cn`,
   `api.minimaxi.com`). Use **Custom** with that URL.

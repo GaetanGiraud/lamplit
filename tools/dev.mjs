@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
  */
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const APP_PORT = process.env['MS_APP_PORT'] ?? '4200';
+const APP_PORT = process.env['LAMPLIT_APP_PORT'] ?? '4200';
 const WINDOWS = process.platform === 'win32';
 
 const children = [];

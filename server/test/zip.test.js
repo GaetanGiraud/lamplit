@@ -51,7 +51,7 @@ function readZip(buffer) {
 
 describe('writeZip', () => {
   it('writes an archive whose entries read back byte for byte', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'magicstories-zip-'));
+    const dir = await mkdtemp(join(tmpdir(), 'lamplit-zip-'));
     const target = join(dir, 'out.zip');
     const prose = Buffer.from('The lantern room. '.repeat(200), 'utf8');
     await writeZip(target, [
@@ -75,7 +75,7 @@ describe('writeZip', () => {
   });
 
   it('is readable by whatever unzips archives on this machine', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'magicstories-zip-'));
+    const dir = await mkdtemp(join(tmpdir(), 'lamplit-zip-'));
     const target = join(dir, 'out.zip');
     await writeZip(target, [{ name: 'note.txt', data: Buffer.from('lantern', 'utf8') }]);
 
@@ -100,7 +100,7 @@ describe('writeZip', () => {
 
 describe('collectEntries', () => {
   it('walks a folder into archive entries under a prefix', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'magicstories-walk-'));
+    const dir = await mkdtemp(join(tmpdir(), 'lamplit-walk-'));
     await mkdir(join(dir, 'stories'), { recursive: true });
     await writeFile(join(dir, 'settings.json'), '{}', 'utf8');
     await writeFile(join(dir, 'stories', 'abc.json'), '{"id":"abc"}', 'utf8');
@@ -115,7 +115,7 @@ describe('collectEntries', () => {
 
 describe('backupOnStartup', () => {
   it('zips the data folder once a day and skips an empty one', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'magicstories-backup-'));
+    const root = await mkdtemp(join(tmpdir(), 'lamplit-backup-'));
     const dataDir = join(root, 'data');
     const backupsDir = join(root, 'backups');
     await mkdir(dataDir, { recursive: true });

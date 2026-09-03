@@ -12,6 +12,6 @@ const { contextBridge, ipcRenderer } = require('electron');
  * the File menu. It is here so that when the app wants it, the answer is one
  * line rather than a redesign.
  */
-contextBridge.exposeInMainWorld('magicstories', {
-  openDataFolder: () => ipcRenderer.invoke('magicstories:open-data-folder'),
+contextBridge.exposeInMainWorld('lamplit', {
+  openDataFolder: () => ipcRenderer.invoke('lamplit:open-data-folder'),
 });

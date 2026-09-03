@@ -6,7 +6,7 @@ import { createApp } from './app.js';
 import { backupOnStartup } from './backup.js';
 
 /**
- * The one process a packaged MagicStories runs: documents on disk, the built
+ * The one process a packaged Lamplit runs: documents on disk, the built
  * app in front of them, one URL to open. `start.bat` and `start.sh` do nothing
  * but call this file.
  */
@@ -18,16 +18,16 @@ const DEFAULT_PORT = 4177;
 const PORT_ATTEMPTS = 10;
 
 const options = parseArguments(process.argv.slice(2));
-const dataDir = resolve(options.data ?? process.env['MS_DATA_DIR'] ?? join(ROOT, 'data'));
-const backupsDir = resolve(process.env['MS_BACKUP_DIR'] ?? join(ROOT, 'backups'));
-const publicDir = resolve(options.public ?? process.env['MS_PUBLIC_DIR'] ?? findBuiltApp());
-const host = process.env['MS_HOST'] ?? '127.0.0.1';
+const dataDir = resolve(options.data ?? process.env['LAMPLIT_DATA_DIR'] ?? join(ROOT, 'data'));
+const backupsDir = resolve(process.env['LAMPLIT_BACKUP_DIR'] ?? join(ROOT, 'backups'));
+const publicDir = resolve(options.public ?? process.env['LAMPLIT_PUBLIC_DIR'] ?? findBuiltApp());
+const host = process.env['LAMPLIT_HOST'] ?? '127.0.0.1';
 const wanted = Number(
-  options.port ?? process.env['MS_PORT'] ?? process.env['PORT'] ?? DEFAULT_PORT,
+  options.port ?? process.env['LAMPLIT_PORT'] ?? process.env['PORT'] ?? DEFAULT_PORT,
 );
-// The start scripts pass --open, so MS_OPEN=0 has to be able to override it.
+// The start scripts pass --open, so LAMPLIT_OPEN=0 has to be able to override it.
 const shouldOpen =
-  process.env['MS_OPEN'] === '0' ? false : options.open || process.env['MS_OPEN'] === '1';
+  process.env['LAMPLIT_OPEN'] === '0' ? false : options.open || process.env['LAMPLIT_OPEN'] === '1';
 
 const app = createApp({ dataDir, publicDir, version: readVersion() });
 const store = app.locals['store'];
@@ -37,13 +37,13 @@ await store.init();
 const server = await listen(app, host, wanted);
 const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${server.address().port}/`;
 
-console.log(`MagicStories — ${url}`);
+console.log(`Lamplit — ${url}`);
 console.log(`  documents  ${dataDir}`);
 console.log(
   `  app        ${existsSync(join(publicDir, 'index.html')) ? publicDir : '(not built; API only)'}`,
 );
 
-if (process.env['MS_BACKUP'] !== '0') {
+if (process.env['LAMPLIT_BACKUP'] !== '0') {
   backupOnStartup(dataDir, backupsDir).then(
     (made) => made && console.log(`  backup     ${made}`),
     // A backup that cannot be written is worth saying out loud and no more.

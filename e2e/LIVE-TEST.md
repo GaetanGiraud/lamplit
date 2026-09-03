@@ -24,7 +24,7 @@ out so two runs are comparable, and a place to put the numbers.
 - **On disk** means the `data/` folder of the fresh install, which lives at
 
   ```
-  build/fresh-install/magicstories-0.1.0/data/
+  build/fresh-install/lamplit-0.1.0/data/
   ```
 
   relative to the repo root (the version number follows `package.json`). The server prints the
@@ -163,8 +163,8 @@ to wait for a chapter that mentions it.
 | # | Do | Expected | Result |
 |---|---|---|---|
 | 10.1 | **Ctrl+C** in the smoke terminal. Reload the browser tab. | The app does not start. A screen says the server cannot be reached, with **Try again**. Nothing else renders. | |
-| 10.2 | Start it again by hand: `build/fresh-install/magicstories-0.1.0/start.bat` (or `./start.sh`). Press **Try again** in the tab. | Everything is back: The Lighthouse, chapter 2 open, two chapters in the list, the summary in World, the two lore entries, the key and model in Connection. | |
-| 10.3 | Stop it again. Copy the whole `magicstories-0.1.0` folder somewhere else — another drive, a USB stick — and run `start.bat` from the copy. | The copy opens with the story in it. The original was not touched. Delete the copy afterwards. | |
+| 10.2 | Start it again by hand: `build/fresh-install/lamplit-0.1.0/start.bat` (or `./start.sh`). Press **Try again** in the tab. | Everything is back: The Lighthouse, chapter 2 open, two chapters in the list, the summary in World, the two lore entries, the key and model in Connection. | |
+| 10.3 | Stop it again. Copy the whole `lamplit-0.1.0` folder somewhere else — another drive, a USB stick — and run `start.bat` from the copy. | The copy opens with the story in it. The original was not touched. Delete the copy afterwards. | |
 | 10.4 | Look in `backups/` beside `data/`. | One `data-<today>.zip`, made on the first start today. | |
 
 ## 11 · Money

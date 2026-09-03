@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "magicstories",
+      "name": "lamplit",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "start", "-w", "app", "--", "--port", "4200"],
       "port": 4200

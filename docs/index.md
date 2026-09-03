@@ -62,7 +62,7 @@
 # Write a story with a machine that can write
 
 <p class="ms-lede">
-MagicStories is a writing app for stories told a chapter at a time, with a language model of your
+Lamplit is a writing app for stories told a chapter at a time, with a language model of your
 choosing doing the writing beside you. It runs <b>on your own machine</b>. Your stories are files
 you can read, copy and back up. Your key goes to your provider and nowhere else — there is no
 account, no server of ours, and nothing to sign up for.
@@ -82,27 +82,27 @@ images, no marketplace, no feed. Somewhere to write a long story, and keep it.
 <ul class="ms-downloads">
   <li>
     <h3>Windows</h3>
-    <a class="ms-get" href="https://github.com/GaetanGiraud/magic-stories/releases/latest/download/MagicStories-Setup.exe">Download the installer</a>
+    <a class="ms-get" href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit-Setup.exe">Download the installer</a>
     <p>
       The first time you run it, Windows says <b>“Windows protected your PC”</b>. That warning is
       about who paid for a signing certificate, not about what is in the file. Click
       <b>More info</b>, then <b>Run anyway</b>.
     </p>
     <p>
-      Or the <a href="https://github.com/GaetanGiraud/magic-stories/releases/latest/download/MagicStories-portable.exe">portable version</a>,
+      Or the <a href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit-portable.exe">portable version</a>,
       which installs nothing and keeps your stories beside it — a USB stick can carry both.
     </p>
   </li>
   <li>
     <h3>Linux</h3>
-    <a class="ms-get" href="https://github.com/GaetanGiraud/magic-stories/releases/latest/download/MagicStories.AppImage">Download the AppImage</a>
+    <a class="ms-get" href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.AppImage">Download the AppImage</a>
     <p>
       An AppImage installs nothing. Once it has downloaded, make it runnable —
       <b>Properties → Permissions → Allow executing</b>, or
-      <code>chmod +x MagicStories.AppImage</code> — and open it like anything else.
+      <code>chmod +x Lamplit.AppImage</code> — and open it like anything else.
     </p>
     <p>
-      Or the <a href="https://github.com/GaetanGiraud/magic-stories/releases/latest/download/MagicStories.deb">.deb package</a>,
+      Or the <a href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.deb">.deb package</a>,
       for Debian, Ubuntu and their relatives.
     </p>
   </li>
@@ -115,12 +115,12 @@ images, no marketplace, no feed. Somewhere to write a long story, and keep it.
     </p>
     <p>
       <b>If you have that licence and would like to contribute the builds,</b>
-      <a href="https://github.com/GaetanGiraud/magic-stories/issues">open an issue</a> — that is the
+      <a href="https://github.com/GaetanGiraud/lamplit/issues">open an issue</a> — that is the
       one way to reach this project, and it would be very welcome.
     </p>
     <p>
-      Meanwhile MagicStories runs on a Mac
-      <a href="https://github.com/GaetanGiraud/magic-stories#quick-start">from the source</a>, or as
+      Meanwhile Lamplit runs on a Mac
+      <a href="https://github.com/GaetanGiraud/lamplit#quick-start">from the source</a>, or as
       <a href="running-anywhere.html">the zip</a> if you already have Node.js.
     </p>
   </li>
@@ -166,7 +166,7 @@ It asks three things, and then gets out of the way. It never asks again.
 
 ## Where do I get a key?
 
-MagicStories sells nothing and takes no cut. You bring a key from whoever you want to write with,
+Lamplit sells nothing and takes no cut. You bring a key from whoever you want to write with,
 and the app talks to them straight from your machine.
 
 If you have never done this before, an **aggregator** is the easiest start: one key, and every
@@ -196,7 +196,7 @@ sent to the model](the-prompt.md), and [where your files are](your-data.md).
 
 <p class="ms-note">
 Free and open source, MIT licensed, on
-<a href="https://github.com/GaetanGiraud/magic-stories">GitHub</a> — which is also where to
-<a href="https://github.com/GaetanGiraud/magic-stories/issues">report anything wrong</a>. To run it
+<a href="https://github.com/GaetanGiraud/lamplit">GitHub</a> — which is also where to
+<a href="https://github.com/GaetanGiraud/lamplit/issues">report anything wrong</a>. To run it
 from the source, or build it yourself, start at <a href="development.html">Development</a>.
 </p>

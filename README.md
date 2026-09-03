@@ -1,4 +1,4 @@
-<h1 align="center">MagicStories</h1>
+<h1 align="center">Lamplit</h1>
 
 <p align="center">
   A quiet place to write a long story with a language model.<br>
@@ -9,7 +9,7 @@
 ![The reading surface: a chapter of a story, set like a page of a book](docs/images/reading.png)
 
 <p align="center">
-  <b><a href="https://gaetangiraud.github.io/magic-stories/">Download it for Windows or Linux →</a></b><br>
+  <b><a href="https://gaetangiraud.github.io/lamplit/">Download it for Windows or Linux →</a></b><br>
   <sub>No Node.js, no terminal. macOS is not built; that page says why.</sub>
 </p>
 
@@ -17,7 +17,7 @@
 
 ## What it is
 
-MagicStories is a single-page app for **collaborative fiction**: you write a line, a model writes
+Lamplit is a single-page app for **collaborative fiction**: you write a line, a model writes
 the next passage, and the two of you keep going. It is built around one idea that most tools of
 this kind leave out — **a story is written in chapters**.
 
@@ -68,8 +68,8 @@ who want to *read what comes out*. Two things follow from that:
 
 ## Quick start
 
-Nothing below is needed to *use* MagicStories — the
-[download page](https://gaetangiraud.github.io/magic-stories/) has installers that carry Node
+Nothing below is needed to *use* Lamplit — the
+[download page](https://gaetangiraud.github.io/lamplit/) has installers that carry Node
 inside them. This is the way in for people who want the source.
 
 Node 20.19+, 22.12+ or 24+.
@@ -117,7 +117,7 @@ builds the desktop installers for whatever OS you are on. See
 ## A note on your API key
 
 Your key is stored in plain text, in `data/settings.json` on your own machine. That is deliberate:
-MagicStories is a single-user tool on your own computer, and a local file you control beats a
+Lamplit is a single-user tool on your own computer, and a local file you control beats a
 secret store you have to unlock every time. The server listens on `127.0.0.1` only, so nothing
 else on your network can reach it. Don't run it on a machine you share, and don't put it on the
 open internet.

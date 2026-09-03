@@ -88,7 +88,7 @@ describe('the two quirks that are not URLs', () => {
 
   it('credits the app to the aggregators that ask for it', () => {
     for (const id of ['openrouter', 'aimlapi']) {
-      expect(providerPreset(id).headers?.['X-Title'], id).toBe('MagicStories');
+      expect(providerPreset(id).headers?.['X-Title'], id).toBe('Lamplit');
     }
   });
 

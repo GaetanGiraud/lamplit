@@ -4,7 +4,7 @@
 
 ---
 
-The repo is for working on MagicStories. To *use* it — on this machine, on a laptop, on a machine
+The repo is for working on Lamplit. To *use* it — on this machine, on a laptop, on a machine
 that has never seen npm — build the package.
 
 ```bash
@@ -15,14 +15,14 @@ That builds the app and writes two things into `build/`:
 
 ```
 build/
-  magicstories-0.1.0/          the folder, ready to run
-  magicstories-0.1.0.zip       the same folder, ~1 MB
+  lamplit-0.1.0/          the folder, ready to run
+  lamplit-0.1.0.zip       the same folder, ~1 MB
 ```
 
 ## What is in it
 
 ```
-magicstories-0.1.0/
+lamplit-0.1.0/
   start.bat          Windows: double-click it
   start.sh           Linux, macOS: ./start.sh
   server/            the persistence server
@@ -69,11 +69,11 @@ And by environment variable:
 
 | | |
 |---|---|
-| `MS_PORT`, `MS_DATA_DIR` | the same two, as variables |
-| `MS_OPEN=0` | do not open a browser |
-| `MS_BACKUP=0` | skip the daily backup |
-| `MS_BACKUP_DIR` | put backups somewhere else |
-| `MS_HOST` | bind somewhere other than `127.0.0.1` — think before you do |
+| `LAMPLIT_PORT`, `LAMPLIT_DATA_DIR` | the same two, as variables |
+| `LAMPLIT_OPEN=0` | do not open a browser |
+| `LAMPLIT_BACKUP=0` | skip the daily backup |
+| `LAMPLIT_BACKUP_DIR` | put backups somewhere else |
+| `LAMPLIT_HOST` | bind somewhere other than `127.0.0.1` — think before you do |
 
 ## Moving it
 

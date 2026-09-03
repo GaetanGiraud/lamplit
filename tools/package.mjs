@@ -12,7 +12,7 @@ import { collectEntries, writeZip } from '../server/src/zip.js';
  * There is nothing to install: the server's dependencies travel inside, and
  * Node is the only thing expected to be on the machine already.
  *
- *   magicstories-<version>/
+ *   lamplit-<version>/
  *     start.bat  start.sh   one call, opens the browser
  *     server/               the persistence server, unchanged from the repo
  *     public/               the built Angular app, served by it
@@ -31,12 +31,12 @@ const BUILT_APP = join(ROOT, 'app', 'dist', 'app', 'browser');
 
 const options = parseArguments(process.argv.slice(2));
 const version = readJson(join(ROOT, 'package.json')).version;
-const name = `magicstories-${version}`;
+const name = `lamplit-${version}`;
 const outDir = resolve(options.out ?? join(ROOT, 'build'));
 const stageDir = options.stage ? resolve(options.stage) : join(outDir, name);
 const zipPath = join(outDir, `${name}.zip`);
 
-step(`MagicStories ${version} → ${options.zip === false ? stageDir : zipPath}`);
+step(`Lamplit ${version} → ${options.zip === false ? stageDir : zipPath}`);
 
 if (options.build === false) {
   step('skipping the Angular build (--no-build)');
@@ -87,7 +87,7 @@ function manifest() {
   const server = readJson(join(ROOT, 'server', 'package.json'));
   return `${JSON.stringify(
     {
-      name: 'magicstories',
+      name: 'lamplit',
       version,
       private: true,
       type: 'module',
@@ -103,13 +103,13 @@ function manifest() {
 
 function startBat() {
   return `@echo off
-rem MagicStories — start the app and open it in the browser.
+rem Lamplit — start the app and open it in the browser.
 setlocal
 cd /d "%~dp0"
 
 where node >nul 2>nul
 if errorlevel 1 (
-  echo MagicStories needs Node.js 20.19 or newer.
+  echo Lamplit needs Node.js 20.19 or newer.
   echo Install it from https://nodejs.org and run this again.
   echo.
   pause
@@ -123,12 +123,12 @@ if errorlevel 1 pause
 
 function startSh() {
   return `#!/bin/sh
-# MagicStories — start the app and open it in the browser.
+# Lamplit — start the app and open it in the browser.
 set -eu
 cd "$(dirname "$0")"
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "MagicStories needs Node.js 20.19 or newer." >&2
+  echo "Lamplit needs Node.js 20.19 or newer." >&2
   echo "Install it from https://nodejs.org and run this again." >&2
   exit 1
 fi
@@ -138,7 +138,7 @@ exec node server/src/index.js --open "$@"
 }
 
 function readme() {
-  return `MagicStories ${version}
+  return `Lamplit ${version}
 =====================================
 
 Running it
@@ -163,8 +163,8 @@ Options
 -------
   start.bat --port 5000        listen somewhere else
   start.bat --data D:\\stories  keep the documents somewhere else
-  MS_OPEN=0                    do not open a browser
-  MS_BACKUP=0                  do not take the daily backup
+  LAMPLIT_OPEN=0                    do not open a browser
+  LAMPLIT_BACKUP=0                  do not take the daily backup
 
 Your API key
 ------------

@@ -46,8 +46,8 @@ export const DEFAULT_PROVIDER_ID = 'nanogpt';
 
 /** Sent to providers that credit the apps calling them. */
 export const ATTRIBUTION_HEADERS: Readonly<Record<string, string>> = {
-  'HTTP-Referer': 'https://gaetangiraud.github.io/magic-stories/',
-  'X-Title': 'MagicStories',
+  'HTTP-Referer': 'https://gaetangiraud.github.io/lamplit/',
+  'X-Title': 'Lamplit',
 };
 
 /** Perplexity publishes no `/models`; this is its documented chat set. */

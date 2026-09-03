@@ -24,7 +24,7 @@ backups/
 ```
 
 Running from the repo, that is the repo root. Running an unzipped build, it is beside `start.bat`.
-Either way, `--data D:\somewhere` or `MS_DATA_DIR` moves it. The
+Either way, `--data D:\somewhere` or `LAMPLIT_DATA_DIR` moves it. The
 [desktop app](desktop.md) is the one exception: it keeps the same folder in your profile instead,
 and **File → Open data folder** takes you to it.
 
@@ -81,7 +81,7 @@ When the server starts, it zips `data/` into `backups/data-<date>.zip`, once per
 last fourteen. It is cheap insurance against a mistake made inside the app — the stores overwrite
 documents happily, and nothing else on your machine holds a second copy.
 
-`MS_BACKUP=0` turns it off. `MS_BACKUP_DIR` moves it.
+`LAMPLIT_BACKUP=0` turns it off. `LAMPLIT_BACKUP_DIR` moves it.
 
 ## Moving, copying, sharing
 

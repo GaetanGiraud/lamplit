@@ -6,7 +6,7 @@ import { after, describe, it } from 'node:test';
 import { DocumentStore, isCollection, isId } from '../src/store.js';
 
 async function freshStore() {
-  const dir = await mkdtemp(join(tmpdir(), 'magicstories-store-'));
+  const dir = await mkdtemp(join(tmpdir(), 'lamplit-store-'));
   const store = new DocumentStore(dir);
   await store.init();
   return store;

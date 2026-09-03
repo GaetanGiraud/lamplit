@@ -1,5 +1,5 @@
 {
-  "name": "magicstories-desktop",
+  "name": "lamplit-desktop",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -19,8 +19,8 @@
   },
   "author": {
     "name": "Gaetan Giraud",
-    "url": "https://github.com/GaetanGiraud/magic-stories"
+    "url": "https://github.com/GaetanGiraud/lamplit"
   },
-  "homepage": "https://gaetangiraud.github.io/magic-stories/",
+  "homepage": "https://gaetangiraud.github.io/lamplit/",
   "license": "MIT"
 }

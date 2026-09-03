@@ -38,7 +38,7 @@ export class PersistenceServer {
 
   /** A fresh folder and a free port, so nothing carries over between tests. */
   static async create(): Promise<PersistenceServer> {
-    const dataDir = await mkdtemp(join(tmpdir(), 'magicstories-e2e-'));
+    const dataDir = await mkdtemp(join(tmpdir(), 'lamplit-e2e-'));
     return new PersistenceServer(dataDir, await freePort());
   }
 
@@ -47,10 +47,10 @@ export class PersistenceServer {
     this.child = spawn(process.execPath, [ENTRY], {
       env: {
         ...process.env,
-        MS_DATA_DIR: this.dataDir,
-        MS_PUBLIC_DIR: BUILT_APP,
-        MS_PORT: String(this.port),
-        MS_BACKUP: '0',
+        LAMPLIT_DATA_DIR: this.dataDir,
+        LAMPLIT_PUBLIC_DIR: BUILT_APP,
+        LAMPLIT_PORT: String(this.port),
+        LAMPLIT_BACKUP: '0',
       },
       stdio: 'ignore',
     });

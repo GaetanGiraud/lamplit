@@ -499,17 +499,17 @@ async function freshServer({ withStory = false } = {}) {
     await stopped;
     await waitForHealth(false);
   }
-  const data = await mkdtemp(join(tmpdir(), 'magicstories-shots-'));
+  const data = await mkdtemp(join(tmpdir(), 'lamplit-shots-'));
   dataDirs.push(data);
   if (withStory) await seed(data);
   persistence = spawn(process.execPath, [join(ROOT, 'server', 'src', 'index.js')], {
     env: {
       ...process.env,
-      MS_DATA_DIR: data,
-      MS_PUBLIC_DIR: BUILT_APP,
-      MS_PORT: String(appPort),
-      MS_BACKUP: '0',
-      MS_OPEN: '0',
+      LAMPLIT_DATA_DIR: data,
+      LAMPLIT_PUBLIC_DIR: BUILT_APP,
+      LAMPLIT_PORT: String(appPort),
+      LAMPLIT_BACKUP: '0',
+      LAMPLIT_OPEN: '0',
     },
     stdio: 'ignore',
   });

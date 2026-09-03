@@ -11,7 +11,7 @@
 # index.md is the landing page. README.md stays the guide's index, at
 # README.html, which is where every page's "← Documentation" link already goes.
 
-title: MagicStories
+title: Lamplit
 description: >-
   Write a story with a language model, in chapters, on your own machine.
   Your stories are files. Your key goes to your provider and nowhere else.
@@ -27,6 +27,6 @@ header_pages:
 
 # `url` and `baseurl` are deliberately not set. jekyll-github-metadata — also on
 # by default — fills them in from the repository itself, which is what makes the
-# theme's stylesheet resolve under /magic-stories/ rather than at the domain
+# theme's stylesheet resolve under /lamplit/ rather than at the domain
 # root. Setting them here would be one more thing to remember to change if the
 # repository is ever renamed.

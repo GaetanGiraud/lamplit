@@ -11,7 +11,7 @@ is the only reason this exists alongside [the zip](running-anywhere.md).
 page says why.
 
 Everything else in this guide applies unchanged. It is the same app, the same server and the same
-files as every other way of running MagicStories; the window is a browser with the address bar
+files as every other way of running Lamplit; the window is a browser with the address bar
 taken off.
 
 ## Where your stories are
@@ -21,8 +21,8 @@ keeps your documents in your own profile:
 
 | | |
 |---|---|
-| **Windows** | `%APPDATA%\MagicStories\data` — that is `C:\Users\<you>\AppData\Roaming\MagicStories\data` |
-| **Linux** | `~/.config/MagicStories/data` |
+| **Windows** | `%APPDATA%\Lamplit\data` — that is `C:\Users\<you>\AppData\Roaming\Lamplit\data` |
+| **Linux** | `~/.config/Lamplit/data` |
 
 **File → Open data folder** opens it, which is easier than typing any of that.
 
@@ -51,7 +51,7 @@ stories together and both travel.
 Links that lead somewhere else — a provider's "get a key" page, for instance — open in your normal
 browser rather than taking the app's window away from you.
 
-Opening MagicStories a second time brings the window you already have to the front. One app, one
+Opening Lamplit a second time brings the window you already have to the front. One app, one
 set of files, no chance of two of them writing over each other.
 
 ## Updates

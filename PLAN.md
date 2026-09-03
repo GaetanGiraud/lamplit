@@ -1,4 +1,4 @@
-# MagicStories — Implementation Plan
+# Lamplit — Implementation Plan
 
 A single-page, text-only storytelling app (Narrator / Role-play) written in chapters, talking
 directly from the browser to any OpenAI-compatible endpoint. SillyTavern is the functional
@@ -50,7 +50,7 @@ Guiding principles
 ### 1.2 Repository layout
 
 ```
-MagicStories/
+Lamplit/
   PLAN.md
   package.json              npm workspaces: app, server, e2e, electron
   app/                      Angular 21 workspace
@@ -492,7 +492,7 @@ Added to step 3 on 2026-09-03, ahead of Electron and as the thing Electron will 
 
 - `tools/package.mjs` builds the app, stages `server/src`, the Angular output as `public/`, and
   the server's production dependency closure as `node_modules/`, then writes
-  `build/magicstories-<version>.zip` (~1 MB).
+  `build/lamplit-<version>.zip` (~1 MB).
 - The dependency closure is resolved the way Node resolves it, from the installed tree, rather
   than by asking npm to install again: it works offline and copies the versions that were tested.
 - Zipping is done by `server/src/zip.js`, a hundred-line deflate writer, so neither the package
@@ -500,7 +500,7 @@ Added to step 3 on 2026-09-03, ahead of Electron and as the thing Electron will 
 - Unzip anywhere, run `start.bat` (Windows) or `start.sh` (Linux, macOS): one call starts the
   server, opens the browser, and creates `data/` next to the script. Node 20.19+ is the only
   prerequisite; nothing is installed or built at the far end.
-- The start scripts pass `--open`; `--port`, `--data`, `MS_OPEN=0` and `MS_BACKUP=0` all work.
+- The start scripts pass `--open`; `--port`, `--data`, `LAMPLIT_OPEN=0` and `LAMPLIT_BACKUP=0` all work.
 
 ### 4.4 Electron (not built here — became step 4, §5)
 
@@ -675,7 +675,7 @@ to be needed "for Electron", that is a sign the shell is doing too much.
 
 | Platform | Artifacts | Notes |
 |---|---|---|
-| Windows | NSIS installer (`MagicStories-Setup-<v>.exe`), portable (`MagicStories-<v>.exe`) | x64. The portable keeps `data/` beside itself like the zip does, which is what a USB-stick user wants; the installer uses `userData`. |
+| Windows | NSIS installer (`Lamplit-Setup-<v>.exe`), portable (`Lamplit-<v>.exe`) | x64. The portable keeps `data/` beside itself like the zip does, which is what a USB-stick user wants; the installer uses `userData`. |
 | macOS | **none — not built.** Decided 2026-09-03; see 5.5. | The `.dmg` target stays in `electron-builder.yml`, commented out, so a contributor with an Apple Developer licence can produce it without redesigning anything. |
 | Linux | `.AppImage`, `.deb` | x64. AppImage needs no install at all. |
 
@@ -755,7 +755,7 @@ copy of the documentation.
   and the `jekyll-relative-links` plugin it enables by default turns the `[Chapters](chapters.md)`
   links these pages already use into working `.html` links. The docs become the website by being
   told to.
-- The site is `https://gaetangiraud.github.io/magic-stories/`. Repo setting: Pages → Source →
+- The site is `https://gaetangiraud.github.io/lamplit/`. Repo setting: Pages → Source →
   `main`, folder `/docs`. (`has_pages` is `false` today; the URL answers a 301 to nowhere.)
 - `docs/_config.yml`: a clean theme (`minima`, or `just-the-docs` via `remote_theme` for a
   sidebar), `relative_links` on, `title`, `description`, and `exclude: [development.md]` is *not*
@@ -764,7 +764,7 @@ copy of the documentation.
   of a language model endpoint.** It is not the README. It has: one sentence saying what this is
   and one saying what it is not; the reading screenshot; three download slots — **Windows** and
   **Linux** as live buttons pointing at
-  `https://github.com/GaetanGiraud/magic-stories/releases/latest/download/<asset>`, the *latest*
+  `https://github.com/GaetanGiraud/lamplit/releases/latest/download/<asset>`, the *latest*
   URL being stable so the page is never edited for a release, and **macOS greyed out** with the
   three-part text from 5.5 (not supported for want of the licence; contributors with one are
   welcome; run from source or the zip meanwhile, with the repository linked); under each live
@@ -789,7 +789,7 @@ Today `Provider` is `'nanogpt' | 'custom'`, in four places. SillyTavern's
 `src/endpoints/backends/chat-completions.js` keeps a base URL for twenty-odd chat-completion
 sources, and its client `public/scripts/openai.js` knows each one's quirks. The plan is to lift
 the URLs and the quirks, not the code: every one of these speaks OpenAI's chat-completions shape,
-which is the only shape MagicStories sends.
+which is the only shape Lamplit sends.
 
 **The question that decides the design is CORS**, because the browser calls the provider directly
 (§1.4, and *docs/models-and-parameters.md*). Probed on 2026-09-03 with a preflight from
@@ -798,7 +798,7 @@ which is the only shape MagicStories sends.
 | Provider | Base URL | Preflight | Quirks |
 |---|---|---|---|
 | NanoGPT | `https://nano-gpt.com/api/v1` | `*` | `?detailed=true` on `/models` (already done) |
-| OpenRouter | `https://openrouter.ai/api/v1` | `*` | optional `HTTP-Referer` / `X-Title` headers for attribution — send the site URL and "MagicStories" |
+| OpenRouter | `https://openrouter.ai/api/v1` | `*` | optional `HTTP-Referer` / `X-Title` headers for attribution — send the site URL and "Lamplit" |
 | OpenAI | `https://api.openai.com/v1` | `*` | `/models` lists everything incl. non-chat; filter on the client is enough |
 | Anthropic | `https://api.anthropic.com/v1` | `*` **only if** the request also carries `anthropic-dangerous-direct-browser-access: true` and `anthropic-version` | OpenAI-compatible `/chat/completions` is a documented compatibility layer; `/models` answers with the native shape (`data[].id` is there, `owned_by` is not) |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | echoes the origin | model ids come back as `models/gemini-…`; verify whether the prefix must be stripped for `/chat/completions` |
@@ -861,7 +861,7 @@ did not know, and the doing found out:
 
 - **Every one of the twenty-two providers answers a browser**, confirmed rather than assumed:
   `npm run providers` drives a real Chromium page on `localhost:4177` and prints the table.
-- **Electron ignores `--user-data-dir`**, so a spec cannot get a first run that way. `MS_USER_DATA`
+- **Electron ignores `--user-data-dir`**, so a spec cannot get a first run that way. `LAMPLIT_USER_DATA`
   does, and it pays for itself twice: `PORTABLE_EXECUTABLE_DIR` beside it is what gives §5.3's
   portable build its `data/` next to the .exe.
 - **`extraResources` will not copy `node_modules`** however the filter is written, so each staged
@@ -871,8 +871,8 @@ did not know, and the doing found out:
   1.5 seconds, and then `app.exit(0)`.
 - **§5.3's versioned artifact names cannot coexist with §5.6's stable download URLs.**
   `/releases/latest/download/<name>` is only a link if `<name>` never changes, so the artifacts
-  are `MagicStories-Setup.exe`, `MagicStories-portable.exe`, `MagicStories.AppImage`,
-  `MagicStories.deb`. The version is on the release, in the installer, and under **Help**.
+  are `Lamplit-Setup.exe`, `Lamplit-portable.exe`, `Lamplit.AppImage`,
+  `Lamplit.deb`. The version is on the release, in the installer, and under **Help**.
 - **The website needs no front matter and no `baseurl`.** GitHub Pages enables
   `jekyll-optional-front-matter`, `jekyll-relative-links`, `jekyll-titles-from-headings` and
   `jekyll-github-metadata` by default and cannot be told not to, which between them render the

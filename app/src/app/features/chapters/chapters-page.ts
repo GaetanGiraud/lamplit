@@ -28,8 +28,8 @@ import { MessageList } from './message-list';
             } @else if (!settings.isConnected()) {
               <h1>{{ title() }}</h1>
               <p>
-                MagicStories talks straight from this page to any OpenAI-compatible endpoint. Point
-                it at one and start writing.
+                Lamplit talks straight from this page to any OpenAI-compatible endpoint. Point it at
+                one and start writing.
               </p>
               <button matButton="filled" (click)="dialogs.openConnection()">Connect a model</button>
             } @else {

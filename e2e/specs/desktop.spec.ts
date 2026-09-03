@@ -36,10 +36,10 @@ let userData: string;
 test.beforeAll(async () => {
   // A profile of its own, so this is a first run every time — which is the
   // only state where the connection sheet is the thing on screen.
-  userData = await mkdtemp(join(tmpdir(), 'magicstories-desktop-'));
+  userData = await mkdtemp(join(tmpdir(), 'lamplit-desktop-'));
   app = await electron.launch({
     args: [ELECTRON_DIR],
-    env: { ...process.env, MS_USER_DATA: userData },
+    env: { ...process.env, LAMPLIT_USER_DATA: userData },
   });
   window = await app.firstWindow();
   await window.waitForLoadState('domcontentloaded');
@@ -60,7 +60,7 @@ test('starts its own server on a port it picked, and answers on it', async () =>
   const health = await window.evaluate(async () =>
     fetch('/api/health').then((response) => response.json()),
   );
-  expect(health).toMatchObject({ ok: true, name: 'magicstories' });
+  expect(health).toMatchObject({ ok: true, name: 'lamplit' });
   expect(health.dataDir).toBe(join(userData, 'data'));
 });
 

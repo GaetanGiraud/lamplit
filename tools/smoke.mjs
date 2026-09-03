@@ -32,7 +32,7 @@ const WINDOWS = process.platform === 'win32';
 const BUILD = join(ROOT, 'build');
 
 const version = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
-const zip = join(BUILD, `magicstories-${version}.zip`);
+const zip = join(BUILD, `lamplit-${version}.zip`);
 const fresh = join(BUILD, 'fresh-install');
 
 const argv = process.argv.slice(2);
@@ -68,7 +68,7 @@ async function main() {
     );
   }
   extract(zip, fresh);
-  const app = join(fresh, `magicstories-${version}`);
+  const app = join(fresh, `lamplit-${version}`);
   if (!existsSync(app)) throw new Error(`the archive did not unpack as expected into ${fresh}`);
 
   step('starting it the way anyone else would');
@@ -77,7 +77,7 @@ async function main() {
     cwd: app,
     stdio: 'inherit',
     shell: WINDOWS,
-    env: { ...process.env, MS_PORT: String(port), MS_OPEN: '1' },
+    env: { ...process.env, LAMPLIT_PORT: String(port), LAMPLIT_OPEN: '1' },
   });
   server.on('exit', (code) => stop(code ?? 0));
   server.on('error', (error) => {

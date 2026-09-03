@@ -8,7 +8,7 @@ person who wrote the code.
 
 The first version anyone can install without a terminal.
 
-MagicStories writes a story with you, in chapters, with a language model of your
+Lamplit writes a story with you, in chapters, with a language model of your
 choosing. It runs on your machine, keeps every story as a plain JSON file you can
 copy or back up yourself, and sends your API key straight to your provider and
 nowhere else — there is no account, no server of ours, and nothing to sign up for.

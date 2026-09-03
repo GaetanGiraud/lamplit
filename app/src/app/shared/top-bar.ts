@@ -28,7 +28,7 @@ import { SaveStatusIndicator } from './save-status';
   template: `
     <header class="bar">
       <div class="identity">
-        <span class="wordmark">MagicStories</span>
+        <span class="wordmark">Lamplit</span>
         <button matButton class="here" [matMenuTriggerFor]="storiesMenu">
           <span class="label">
             <span class="story">{{ stories.story().title }}</span

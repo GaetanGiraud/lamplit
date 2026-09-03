@@ -22,7 +22,7 @@ export function createApp({ dataDir, publicDir, version = '0.0.0' }) {
   app.use('/api', express.json({ limit: '16mb' }));
 
   app.get('/api/health', (request, response) => {
-    response.json({ ok: true, name: 'magicstories', version, dataDir });
+    response.json({ ok: true, name: 'lamplit', version, dataDir });
   });
 
   app.get('/api/docs/:collection', async (request, response, next) => {
@@ -87,7 +87,7 @@ export function createApp({ dataDir, publicDir, version = '0.0.0' }) {
         .status(200)
         .type('text/plain')
         .send(
-          'MagicStories API is running. The built app is not being served from here.\n' +
+          'Lamplit API is running. The built app is not being served from here.\n' +
             'Run `npm start` in the repository to develop, or `npm run package` to build a copy that is.\n',
         );
     });
@@ -96,7 +96,7 @@ export function createApp({ dataDir, publicDir, version = '0.0.0' }) {
   app.use((error, request, response, next) => {
     if (response.headersSent) return next(error);
     const status = error.status ?? error.statusCode ?? 500;
-    if (status >= 500) console.error('[magicstories]', error);
+    if (status >= 500) console.error('[lamplit]', error);
     response.status(status).json({ ok: false, error: error.message ?? 'server error' });
   });
 

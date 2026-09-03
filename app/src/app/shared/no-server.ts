@@ -15,7 +15,7 @@ import { Persistence } from '../store/persistence';
   imports: [MatButtonModule],
   template: `
     <div class="panel">
-      <h1>MagicStories cannot reach its server</h1>
+      <h1>Lamplit cannot reach its server</h1>
       <p>
         Your stories are files on this machine, and the small server that reads them is not
         answering. Nothing is lost — it is all still on disk.

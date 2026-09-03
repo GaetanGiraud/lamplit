@@ -1,6 +1,6 @@
-appId: com.magicstories.app
-productName: MagicStories
-copyright: MIT — https://github.com/GaetanGiraud/magic-stories
+appId: com.lamplit.app
+productName: Lamplit
+copyright: MIT — https://github.com/GaetanGiraud/lamplit
 
 directories:
   output: ../build/desktop
@@ -34,7 +34,7 @@ extraResources:
 publish:
   provider: github
   owner: GaetanGiraud
-  repo: magic-stories
+  repo: lamplit
   # A draft, always: nothing here is signed, so a person looks at what arrived
   # before anyone can download it.
   releaseType: draft
@@ -59,12 +59,12 @@ nsis:
   # Stories live in the profile, not in the install folder. Uninstalling must
   # not take them, and the docs say so — this is the line that makes it true.
   deleteAppDataOnUninstall: false
-  artifactName: MagicStories-Setup.${ext}
+  artifactName: Lamplit-Setup.${ext}
 
 portable:
   # A USB-stick copy keeps its data beside itself, the way the zip does.
-  unpackDirName: MagicStories
-  artifactName: MagicStories-portable.${ext}
+  unpackDirName: Lamplit
+  artifactName: Lamplit-portable.${ext}
 
 linux:
   target:
@@ -77,8 +77,8 @@ linux:
   # A .deb has to name a maintainer, and this project's only contact is its
   # issues. GitHub's noreply address is the nearest thing to saying so in a
   # field that will not take "open an issue" for an answer.
-  maintainer: MagicStories <GaetanGiraud@users.noreply.github.com>
-  artifactName: MagicStories.${ext}
+  maintainer: Lamplit <GaetanGiraud@users.noreply.github.com>
+  artifactName: Lamplit.${ext}
 # macOS is deliberately not built: an unsigned build is refused by Gatekeeper,
 # and notarising it needs an Apple Developer licence this project does not hold.
 # See PLAN.md §5.5. A contributor who has one needs this block and a
@@ -89,4 +89,4 @@ linux:
 #     - target: dmg
 #       arch: [x64, arm64]
 #   category: public.app-category.productivity
-#   artifactName: MagicStories-${arch}.${ext}
+#   artifactName: Lamplit-${arch}.${ext}

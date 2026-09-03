@@ -1,5 +1,5 @@
 {
-  "name": "magicstories",
+  "name": "lamplit",
   "version": "0.1.0",
   "private": true,
   "description": "A chat-centred, text-only storytelling app talking straight to any OpenAI-compatible endpoint.",

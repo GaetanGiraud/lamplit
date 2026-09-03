@@ -53,8 +53,8 @@ export interface ConnectionData {
     <mat-dialog-content>
       @if (insisting) {
         <p class="lede">
-          MagicStories writes with a model of your choosing and keeps nothing of its own. Point it
-          at an endpoint and pick one; the story comes next.
+          Lamplit writes with a model of your choosing and keeps nothing of its own. Point it at an
+          endpoint and pick one; the story comes next.
         </p>
       }
 

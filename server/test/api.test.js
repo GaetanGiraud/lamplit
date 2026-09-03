@@ -7,7 +7,7 @@ import { createApp } from '../src/app.js';
 
 /** Starts the real app on a free port and hands back a `fetch` bound to it. */
 async function serve({ withApp = false } = {}) {
-  const dataDir = await mkdtemp(join(tmpdir(), 'magicstories-api-'));
+  const dataDir = await mkdtemp(join(tmpdir(), 'lamplit-api-'));
   let publicDir;
   if (withApp) {
     publicDir = join(dataDir, 'public');
@@ -43,7 +43,7 @@ describe('GET /api/health', () => {
     const response = await api.call('/api/health');
     const body = await response.json();
     assert.equal(response.status, 200);
-    assert.equal(body.name, 'magicstories');
+    assert.equal(body.name, 'lamplit');
     assert.equal(body.version, '9.9.9');
     assert.equal(body.ok, true);
     await api.close();

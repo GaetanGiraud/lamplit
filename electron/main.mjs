@@ -39,11 +39,13 @@ const PUBLIC_DIR = app.isPackaged
  * - `PORTABLE_EXECUTABLE_DIR`, set by electron-builder's portable build, which
  *   puts `data/` beside the .exe exactly as the zip does — the point of a
  *   portable build being that the stick holds the stories too.
- * - `MS_USER_DATA`, which is how the desktop spec gets a first run every time,
+ * - `LAMPLIT_USER_DATA`, which is how the desktop spec gets a first run every time,
  *   and how anyone else can keep a profile somewhere of their choosing.
  */
 const PROFILE =
-  process.env['MS_USER_DATA'] ?? process.env['PORTABLE_EXECUTABLE_DIR'] ?? app.getPath('userData');
+  process.env['LAMPLIT_USER_DATA'] ??
+  process.env['PORTABLE_EXECUTABLE_DIR'] ??
+  app.getPath('userData');
 if (PROFILE !== app.getPath('userData')) app.setPath('userData', resolve(PROFILE));
 
 const DATA_DIR = join(app.getPath('userData'), 'data');
@@ -90,7 +92,7 @@ async function start() {
     console.warn(`backup failed: ${error.message}`),
   );
 
-  ipcMain.handle('magicstories:open-data-folder', openDataFolder);
+  ipcMain.handle('lamplit:open-data-folder', openDataFolder);
   Menu.setApplicationMenu(buildMenu());
   await openWindow(url);
   checkForUpdates();
@@ -113,7 +115,7 @@ async function openWindow(url) {
     minHeight: MINIMUM_WINDOW.height,
     show: false,
     backgroundColor: '#14151a',
-    title: 'MagicStories',
+    title: 'Lamplit',
     webPreferences: {
       preload: join(HERE, 'preload.cjs'),
       contextIsolation: true,
@@ -226,7 +228,7 @@ function buildMenu() {
     {
       label: 'Help',
       submenu: [
-        { label: 'MagicStories on the web', click: () => openExternal(WEBSITE) },
+        { label: 'Lamplit on the web', click: () => openExternal(WEBSITE) },
         { label: 'Report a problem', click: () => openExternal(`${REPOSITORY}/issues`) },
         { type: 'separator' },
         { label: `Version ${app.getVersion()}`, enabled: false },
@@ -235,8 +237,8 @@ function buildMenu() {
   ]);
 }
 
-const WEBSITE = 'https://gaetangiraud.github.io/magic-stories/';
-const REPOSITORY = 'https://github.com/GaetanGiraud/magic-stories';
+const WEBSITE = 'https://gaetangiraud.github.io/lamplit/';
+const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
 
 // -- updates -----------------------------------------------------------------
 
@@ -297,6 +299,6 @@ app.on('will-quit', (event) => {
 const SHUTDOWN_GRACE = 1500;
 
 function fatal(error) {
-  console.error(`MagicStories could not start: ${error.stack ?? error.message}`);
+  console.error(`Lamplit could not start: ${error.stack ?? error.message}`);
   app.exit(1);
 }
