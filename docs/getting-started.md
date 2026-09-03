@@ -26,9 +26,7 @@ npm start
 <http://localhost:4177>, and the dev server on <http://localhost:4200> which proxies `/api` to it.
 Open **4200**.
 
-> Everything comes from the public npm registry. (`npm run aws-login` in `package.json` is the
-> author's own CodeArtifact proxy — if `npm install` ever answers `E401`, that is what refreshes
-> the token. It is not needed to install from npmjs.)
+> Everything comes from the public npm registry, and there is no postinstall step.
 
 If you would rather have a copy that runs on its own — no repo, no `npm install`, one
 double-click — build the zip instead. See [Running it anywhere](running-anywhere.md).

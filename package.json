@@ -22,5 +22,6 @@
     "e2e:quick": "npm run test -w e2e",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
-  }
+  },
+  "license": "MIT"
 }

@@ -41,7 +41,6 @@ usefully — why each decision went the way it did.
 | `npm run e2e:quick` | Playwright without the build (skips the specs that need it) |
 | `npm run screenshots` | Regenerates every picture in `docs/images` |
 | `npm run format` | Prettier over everything |
-| `npm run aws-login` | Author-specific: refreshes a CodeArtifact registry token. Not needed to install from npmjs |
 
 ## Tests
 

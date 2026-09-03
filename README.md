@@ -118,3 +118,7 @@ build is already shaped for it.
 
 Angular 21 (standalone, signals, zoneless) · Angular Material · Express 5 · Playwright · Vitest.
 No state library, no HTTP client, no model SDK — `fetch` and a hand-written SSE reader.
+
+## License
+
+[MIT](LICENSE). Do what you like with it.
