@@ -48,6 +48,7 @@ usefully — why each decision went the way it did.
 | `npm run screenshots` | Regenerates every picture in `docs/images` |
 | `npm run icons` | Regenerates favicon.ico and apple-touch-icon.png from `app/public/favicon.svg` |
 | `npm run providers` | Asks every provider in the list whether it still lets a browser call it, and prints the table for [Models and parameters](models-and-parameters.md). Not in CI: it talks to twenty companies |
+| `npm run electron` | Downloads Electron's binary. Runs on `postinstall`, so normally you never call it — Electron 44 ships no install script of its own, and `npm ci` alone leaves you with the JavaScript and no executable |
 | `npm run desktop` | Opens the Electron window against the repository — no packaging, so a change to the app needs `npm run build` and a reload |
 | `npm run desktop:stage` | Stages the folder the installers wrap (`build/desktop-stage`), and stops |
 | `npm run desktop:dist` | Stages, then builds installers for the OS you are on, into `build/desktop` |

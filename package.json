@@ -10,6 +10,8 @@
     "electron"
   ],
   "scripts": {
+    "postinstall": "node tools/fetch-electron.mjs",
+    "electron": "node tools/fetch-electron.mjs",
     "start": "node tools/dev.mjs",
     "server": "node server/src/index.js",
     "build": "npm run build -w app",
