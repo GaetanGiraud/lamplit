@@ -6,13 +6,13 @@ name: Release
 #   git push --follow-tags
 #
 # Everything below then happens on its own, and stops one click short of done:
-# the installers are uploaded to a *draft* release, which a person publishes
-# after looking at what arrived. Nothing is signed (see PLAN.md §5.5), so what
-# is worth looking at is that both platforms produced what they should.
+# the installers and the zip are uploaded to a *draft* release, which a person
+# publishes after looking at what arrived. Nothing is signed (see PLAN.md §5.5),
+# so what is worth looking at is that both platforms produced what they should.
 #
 # `workflow_dispatch` runs the same build without publishing anything, and
-# leaves the installers as workflow artifacts. That is how to prove a change to
-# this file before trusting it with a tag.
+# leaves the installers and the zip as workflow artifacts. That is how to prove
+# a change to this file before trusting it with a tag.
 
 on:
   push:
@@ -90,6 +90,30 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # The third way in, for a machine that has Node and would rather have one
+      # megabyte than a hundred — and the only way in on a Mac. It is zipped
+      # from the folder the installers were just built from, so the two channels
+      # are the same server, the same app and the same dependencies by
+      # construction rather than by promise.
+      #
+      # Linux only: one zip is enough, and it has to be made on a Unix runner —
+      # the archive carries the file modes of the machine that wrote it, and
+      # start.sh has to arrive runnable.
+      - name: Build the zip
+        if: runner.os == 'Linux'
+        run: |
+          node tools/package.mjs --stage build/desktop-stage --zip-only
+          mv build/lamplit-*.zip build/Lamplit.zip
+
+      # Unversioned, like the installers, so that
+      # releases/latest/download/Lamplit.zip stays a link forever. The version
+      # is inside, in package.json and README.txt.
+      - name: Put the zip on the draft release
+        if: ${{ runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/v') }}
+        run: gh release upload "${GITHUB_REF_NAME}" build/Lamplit.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Keep the installers when nothing was published
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/upload-artifact@v7
@@ -99,6 +123,14 @@ jobs:
             build/desktop/*.exe
             build/desktop/*.AppImage
             build/desktop/*.deb
+          if-no-files-found: error
+
+      - name: Keep the zip when nothing was published
+        if: ${{ runner.os == 'Linux' && !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: zip
+          path: build/Lamplit.zip
           if-no-files-found: error
 
   notes:

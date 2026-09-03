@@ -23,8 +23,8 @@ New here? Start with **[Getting started](getting-started.md)**.
 7. **[Your data](your-data.md)** — where your stories live on disk, backups, what happens when
    the server is not there, and keeping several stories.
 8. **[The desktop app](desktop.md)** — one download, one icon, and where it keeps your stories.
-9. **[Running it anywhere](running-anywhere.md)** — building the zip and running it on another
-   machine with one call.
+9. **[Running it anywhere](running-anywhere.md)** — the zip: one download, one call, on any
+   machine that has Node.js.
 10. **[Development](development.md)** — repo layout, npm scripts, the test suites, and how these
     screenshots are made.
 

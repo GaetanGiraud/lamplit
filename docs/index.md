@@ -44,7 +44,35 @@
   .ms-off { background: #f5f3ef; border-style: dashed !important; }
   .ms-off h3 { color: #8a8479; }
 
+  /* The card for the machine reading the page. Both of these do nothing until
+     the script at the foot adds .ms-here, so with JavaScript off the page reads
+     exactly as it is written and no card is hidden or reordered. */
+  .ms-downloads > li.ms-here { border-color: #4b3d72; box-shadow: 0 0 0 2px #4b3d72; }
+  .ms-here-note { display: none; }
+  .ms-downloads > li.ms-here .ms-here-note {
+    display: block;
+    margin: -.4rem 0 .8rem !important;
+    font-size: .74rem !important;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #4b3d72 !important;
+  }
+
   .ms-note { font-size: .88rem; color: #55514a; line-height: 1.55; }
+
+  .ms-advanced {
+    border: 1px solid #dfdcd4;
+    border-radius: 12px;
+    padding: .9rem 1.15rem;
+    background: #fff;
+    margin: 1.4rem 0;
+  }
+  .ms-advanced > summary { cursor: pointer; font-weight: 600; }
+  .ms-advanced[open] > summary { margin-bottom: .6rem; }
+  .ms-advanced p { font-size: .9rem; line-height: 1.6; color: #55514a; }
+  .ms-advanced .ms-get { max-width: 20rem; margin: 1rem 0 .2rem; }
+  .ms-advanced code { font-size: .85em; }
 
   .ms-steps {
     display: grid;
@@ -80,8 +108,9 @@ images, no marketplace, no feed. Somewhere to write a long story, and keep it.
 ## Download it
 
 <ul class="ms-downloads">
-  <li>
+  <li id="ms-windows">
     <h3>Windows</h3>
+    <p class="ms-here-note">For this computer</p>
     <a class="ms-get" href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit-Setup.exe">Download the installer</a>
     <p>
       The first time you run it, Windows says <b>“Windows protected your PC”</b>. That warning is
@@ -93,8 +122,9 @@ images, no marketplace, no feed. Somewhere to write a long story, and keep it.
       which installs nothing and keeps your stories beside it — a USB stick can carry both.
     </p>
   </li>
-  <li>
+  <li id="ms-linux">
     <h3>Linux</h3>
+    <p class="ms-here-note">For this computer</p>
     <a class="ms-get" href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.AppImage">Download the AppImage</a>
     <p>
       An AppImage installs nothing. Once it has downloaded, make it runnable —
@@ -106,12 +136,14 @@ images, no marketplace, no feed. Somewhere to write a long story, and keep it.
       for Debian, Ubuntu and their relatives.
     </p>
   </li>
-  <li class="ms-off">
+  <li class="ms-off" id="ms-macos">
     <h3>macOS</h3>
-    <span class="ms-get--off">Not available</span>
+    <p class="ms-here-note">For this computer</p>
+    <span class="ms-get--off">No installer</span>
     <p>
       A macOS build that opens without a fight needs Apple’s developer licence, which this project
-      does not hold. Rather than hand you something your Mac refuses to open, there is nothing here.
+      does not hold. Rather than hand you something your Mac refuses to open, there is no installer
+      here.
     </p>
     <p>
       <b>If you have that licence and would like to contribute the builds,</b>
@@ -119,9 +151,8 @@ images, no marketplace, no feed. Somewhere to write a long story, and keep it.
       one way to reach this project, and it would be very welcome.
     </p>
     <p>
-      Meanwhile Lamplit runs on a Mac
-      <a href="https://github.com/GaetanGiraud/lamplit#quick-start">from the source</a>, or as
-      <a href="running-anywhere.html">the zip</a> if you already have Node.js.
+      Meanwhile Lamplit does run on a Mac, as a one-megabyte zip you start by double-clicking —
+      <b><a href="#own-node">Advanced: run it with your own Node.js</a></b>, just below.
     </p>
   </li>
 </ul>
@@ -131,6 +162,31 @@ Each download is about 110 MB, nearly all of it the browser engine the window is
 <a href="desktop.html">The desktop app</a> says where your stories are kept, how to move them, and
 why uninstalling leaves them alone.
 </p>
+
+<details class="ms-advanced" id="own-node">
+  <summary>Advanced: run it with your own Node.js</summary>
+  <p>
+    The same app without the browser engine: one megabyte instead of a hundred, and
+    <b>Node.js 20.19 or newer</b> on the machine instead. This is the way in on a Mac, and the way
+    in on a server or anything else with no desktop to speak of.
+  </p>
+  <a class="ms-get" href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.zip">Download the zip</a>
+  <p>
+    Unzip it anywhere and run <code>start.bat</code> (Windows), <code>start.command</code> (macOS)
+    or <code>start.sh</code> (Linux). It starts the server and opens the app in your browser; your
+    stories are written to a <code>data</code> folder beside it. If Node.js is missing or too old,
+    the script says so and offers the one command that installs it here — and installs nothing
+    unless you say yes.
+  </p>
+  <p>
+    On a Mac, the first run of a file you downloaded may be refused; right-click
+    <code>start.command</code> and choose <b>Open</b> instead, which asks once and never again.
+  </p>
+  <p>
+    <a href="running-anywhere.html">Running it anywhere</a> has the rest: the options, moving the
+    folder, and how to build the zip yourself.
+  </p>
+</details>
 
 ## The first run, in three questions
 
@@ -202,3 +258,37 @@ Free and open source, MIT licensed, on
 <a href="https://github.com/GaetanGiraud/lamplit/issues">report anything wrong</a>. To run it
 from the source, or build it yourself, start at <a href="development.html">Development</a>.
 </p>
+
+<script>
+  // Two small courtesies, both additive: the page is written to read correctly
+  // with this file blocked, missing or broken, and nothing here hides a card,
+  // reorders one, or redirects anyone.
+  //
+  //   1. Mark the card for the machine this page is being read on.
+  //   2. Open the Advanced section when a link points into it, since a browser
+  //      is not obliged to open a <details> to reach its own id.
+  (function () {
+    var agent = navigator.userAgent || '';
+    // A phone or tablet says Linux or Mac and runs none of these, so it gets no
+    // card marked rather than the wrong one.
+    var phone = /Android|iPhone|iPad|iPod/.test(agent);
+    var card =
+      phone ? null
+      : /Windows|Win64|Win32/.test(agent) ? 'ms-windows'
+      : /Macintosh|Mac OS X/.test(agent) ? 'ms-macos'
+      : /Linux|X11|CrOS/.test(agent) ? 'ms-linux'
+      : null;
+    var here = card && document.getElementById(card);
+    if (here) here.className += ' ms-here';
+
+    var advanced = document.getElementById('own-node');
+    if (!advanced) return;
+    var links = document.querySelectorAll('a[href="#own-node"]');
+    for (var i = 0; i < links.length; i++) {
+      links[i].addEventListener('click', function () {
+        advanced.open = true;
+      });
+    }
+    if (location.hash === '#own-node') advanced.open = true;
+  })();
+</script>

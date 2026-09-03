@@ -2,7 +2,30 @@
 
 The top section of this file is the release notes: the tag's workflow copies it
 onto the draft release, so it is written for the person downloading, not for the
-person who wrote the code.
+person who wrote the code. A section is written as the work happens, under
+`## Unreleased`, and renamed to the version when the tag goes out.
+
+## Unreleased
+
+**The zip is on the release now.** Every release carries `Lamplit.zip` beside the
+installers: the whole app in about a megabyte, for any machine that already has
+Node.js 20.19 or newer. 0.1.0's notes promised it and the release did not have
+it — this is that, and
+[the link](https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.zip)
+always points at the newest one. It is also the way in on a Mac, which has no
+installer of its own.
+
+- **The start scripts look for Node.js before they start anything.** If it is
+  missing, or older than 20.19, they say so in one line and then offer the one
+  command that would install it on this machine — winget on Windows, Homebrew on
+  a Mac, apt, dnf or pacman on Linux. It is an offer: the command is on screen,
+  and nothing is installed unless you answer yes. Say no and it leaves you the
+  exact download from nodejs.org.
+- **`start.command`, for a Mac.** Finder opens a double-clicked `.sh` in a text
+  editor and runs a `.command`, so the zip now carries both — the same script
+  under the name that works.
+- **The download page** marks the card for the computer you are reading it on,
+  and keeps the zip one click away under *Advanced*.
 
 ## 0.1.0 — the first release
 

@@ -86,8 +86,10 @@ who you play, then the opening scene — and you are writing.
 npm run package
 ```
 
-builds a self-contained folder and a ~1 MB zip. Unzip it anywhere, run `start.bat` (Windows) or
-`./start.sh` (Linux, macOS), and the app opens in your browser with no install step at all.
+builds a self-contained folder and a ~1 MB zip — the same one every release publishes as
+[Lamplit.zip](https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.zip).
+Unzip it anywhere, run `start.bat` (Windows), `start.command` (macOS) or `./start.sh` (Linux), and
+the app opens in your browser with no install step at all.
 See [Running it anywhere](docs/running-anywhere.md).
 
 ```bash
