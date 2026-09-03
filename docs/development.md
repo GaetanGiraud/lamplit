@@ -19,7 +19,8 @@ app/        Angular 21 workspace — standalone components, signals, zoneless
 server/     Express 5 — JSON documents on disk, the built app in front of them,
             a dependency-free zip writer
 tools/      dev.mjs (both halves at once), package.mjs (the runnable zip),
-            screenshots.mjs (every picture in docs/)
+            smoke.mjs (a fresh install to walk by hand), screenshots.mjs
+            (every picture in docs/), icons.mjs (the raster favicons)
 e2e/        Playwright specs + a fake OpenAI endpoint
 docs/       these pages
 ```
@@ -41,6 +42,7 @@ usefully — why each decision went the way it did.
 | `npm run e2e:quick` | Playwright without the build (skips the specs that need it) |
 | `npm run smoke` | Packages, unzips the archive into an empty folder, and starts it — a genuinely fresh install to walk by hand |
 | `npm run screenshots` | Regenerates every picture in `docs/images` |
+| `npm run icons` | Regenerates favicon.ico and apple-touch-icon.png from `app/public/favicon.svg` |
 | `npm run format` | Prettier over everything |
 
 ## Tests

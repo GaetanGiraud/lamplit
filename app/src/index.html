@@ -6,7 +6,11 @@
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
-    <link rel="icon" href="favicon.ico" />
+    <!-- The .ico first, the SVG after it: browsers take the last one they
+         understand, so anything modern gets the scalable mark. -->
+    <link rel="icon" href="favicon.ico" sizes="32x32" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   </head>
   <body>
     <app-root></app-root>

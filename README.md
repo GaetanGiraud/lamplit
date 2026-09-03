@@ -122,3 +122,5 @@ No state library, no HTTP client, no model SDK — `fetch` and a hand-written SS
 ## License
 
 [MIT](LICENSE). Do what you like with it.
+
+The book in the icon is Lucide’s `book-open-text`, under the ISC licence — see [NOTICE](NOTICE).

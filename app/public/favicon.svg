@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32"
+     role="img" aria-label="MagicStories">
+  <title>MagicStories</title>
+  <!--
+    An open book, in the app's own accent on the app's own surface. The glyph is
+    Lucide's "book-open-text" (ISC — see NOTICE), restroked for the sizes a
+    favicon is actually looked at: 2.4 units on the 24-grid still reads at 16px,
+    where the 2 it ships with turns to grey mush.
+  -->
+  <rect width="32" height="32" rx="7" fill="#1c1e25" />
+  <g transform="translate(3.5 3.5) scale(1.04)"
+     fill="none" stroke="#b79cf0" stroke-width="2.4"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 5v16" />
+    <path d="M16 13h2" />
+    <path d="M16 9h2" />
+    <path d="M6 9h2" />
+    <path d="M6 13h2" />
+    <path d="M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4.001a5 5 0 0 1 3.999 2 5 5 0 0 1 4-2z" />
+  </g>
+</svg>
