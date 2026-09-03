@@ -2,3 +2,6 @@
 # does not show every file as modified.
 * text=auto eol=lf
 *.ico binary
+
+# Screenshots in docs/ are generated; keep git out of them.
+*.png binary
