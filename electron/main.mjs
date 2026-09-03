@@ -69,6 +69,8 @@ let server = null;
 let finished = false;
 /** @type {BrowserWindow | null} */
 let window = null;
+/** @type {{version: string, commit: string, builtAt: string, build: string, channel: string} | null} */
+let build = null;
 
 async function start() {
   if (!existsSync(join(PUBLIC_DIR, 'index.html'))) {
@@ -76,10 +78,19 @@ async function start() {
   }
 
   const { createApp } = await import(pathToFileURL(join(SERVER, 'app.js')).href);
+  // The same stamp the zip reads, from the same file, so the window and the
+  // browser tab cannot disagree about which build this is. `app.getVersion()`
+  // knows the version and nothing else — no commit, no build number.
+  const { readBuildInfo, recordRun } = await import(pathToFileURL(join(SERVER, 'version.js')).href);
+  build = readBuildInfo({ root: BUNDLE, publicDir: PUBLIC_DIR, channel: 'desktop' });
+  const { previousVersion, upgraded } = await recordRun(DATA_DIR, build.version);
+  if (upgraded) console.log(`upgraded ${previousVersion} → ${build.version}`);
+
   const expressApp = createApp({
     dataDir: DATA_DIR,
     publicDir: PUBLIC_DIR,
-    version: app.getVersion(),
+    build,
+    previousVersion,
   });
   await expressApp.locals['store'].init();
 
@@ -231,10 +242,23 @@ function buildMenu() {
         { label: 'Lamplit on the web', click: () => openExternal(WEBSITE) },
         { label: 'Report a problem', click: () => openExternal(`${REPOSITORY}/issues`) },
         { type: 'separator' },
-        { label: `Version ${app.getVersion()}`, enabled: false },
+        // The same line the About sheet shows, from the same stamp.
+        { label: `Version ${versionLine()}`, enabled: false },
       ],
     },
   ]);
+}
+
+/** `0.1.0 (build 42 · a1b2c3d)`, or just the version when nothing stamped it. */
+function versionLine() {
+  const version = build?.version ?? app.getVersion();
+  const detail = [
+    build && build.build !== 'local' ? `build ${build.build}` : '',
+    build?.commit ?? '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return detail ? `${version} (${detail})` : version;
 }
 
 const WEBSITE = 'https://gaetangiraud.github.io/lamplit/';

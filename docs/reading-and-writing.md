@@ -96,7 +96,9 @@ nothing about what is sent:
 
 The top bar always says which story and which chapter you are in, and which model is answering.
 Click the story name for the story menu — switch, rename, duplicate, delete, or start a new one.
-The **⋯** menu holds **New chapter**, **Edit this scene** and **Clear this chapter**.
+The **⋯** menu holds **New chapter**, **Edit this scene**, **Clear this chapter**, and
+**About Lamplit** — which says exactly which build you are running, the line to quote in a bug
+report. See [Upgrading](upgrading.md).
 
 Everything is saved as you write it. There is no Save button anywhere in the app, and Escape out
 of any modal keeps what you typed in it.

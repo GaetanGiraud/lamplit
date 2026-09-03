@@ -56,6 +56,12 @@ export class DialogsService {
     this.dialog.open(WorldDialog, { width: '46rem', maxWidth: '95vw', autoFocus: 'dialog' });
   }
 
+  /** No settings on it: what this is, which build of it, and where to go next. */
+  async openAbout(): Promise<void> {
+    const { AboutDialog } = await import('./about-dialog');
+    this.dialog.open(AboutDialog, { width: '30rem', maxWidth: '95vw', autoFocus: 'dialog' });
+  }
+
   async openChapters(): Promise<void> {
     const { ChaptersDialog } = await import('../features/chapters/chapters-dialog');
     this.dialog.open(ChaptersDialog, { width: '40rem', maxWidth: '95vw', autoFocus: 'dialog' });

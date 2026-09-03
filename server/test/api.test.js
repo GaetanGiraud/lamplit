@@ -15,7 +15,18 @@ async function serve({ withApp = false } = {}) {
     await writeFile(join(publicDir, 'index.html'), '<!doctype html><title>app</title>', 'utf8');
     await writeFile(join(publicDir, 'main.js'), 'console.log(1)', 'utf8');
   }
-  const app = createApp({ dataDir, publicDir, version: '9.9.9' });
+  const app = createApp({
+    dataDir,
+    publicDir,
+    build: {
+      version: '9.9.9',
+      commit: 'abc1234',
+      builtAt: '2026-09-04T00:00:00.000Z',
+      build: '42',
+      channel: 'zip',
+    },
+    previousVersion: '9.9.8',
+  });
   await app.locals.store.init();
   const server = await new Promise((fulfil) => {
     const instance = app.listen(0, '127.0.0.1', () => fulfil(instance));
@@ -47,6 +58,30 @@ describe('GET /api/health', () => {
     assert.equal(body.version, '9.9.9');
     assert.equal(body.ok, true);
     await api.close();
+  });
+
+  it('carries the build stamp, which is what makes a bug report answerable', async () => {
+    const api = await serve();
+    const body = await (await api.call('/api/health')).json();
+    assert.equal(body.commit, 'abc1234');
+    assert.equal(body.builtAt, '2026-09-04T00:00:00.000Z');
+    assert.equal(body.build, '42');
+    assert.equal(body.channel, 'zip');
+    assert.equal(body.previousVersion, '9.9.8');
+    await api.close();
+  });
+
+  it('answers with defaults when nothing stamped the build', async () => {
+    const dataDir = await mkdtemp(join(tmpdir(), 'lamplit-api-'));
+    const app = createApp({ dataDir });
+    const server = await new Promise((fulfil) => {
+      const instance = app.listen(0, '127.0.0.1', () => fulfil(instance));
+    });
+    const body = await (await fetch(`http://127.0.0.1:${server.address().port}/api/health`)).json();
+    assert.equal(body.version, '0.0.0');
+    assert.equal(body.channel, 'dev');
+    assert.equal(body.previousVersion, null);
+    await new Promise((fulfil) => server.close(fulfil));
   });
 });
 

@@ -1,9 +1,10 @@
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 import { backupOnStartup } from './backup.js';
+import { readBuildInfo, recordRun } from './version.js';
 
 /**
  * The one process a packaged Lamplit runs: documents on disk, the built
@@ -29,7 +30,15 @@ const wanted = Number(
 const shouldOpen =
   process.env['LAMPLIT_OPEN'] === '0' ? false : options.open || process.env['LAMPLIT_OPEN'] === '1';
 
-const app = createApp({ dataDir, publicDir, version: readVersion() });
+// Which build this is: the stamp next to the built app in a packaged copy,
+// package.json and git when running from the repository.
+const build = readBuildInfo({ root: ROOT, publicDir });
+
+// What ran here last. A data folder written by an older version is the only
+// signal that an upgrade happened, and the app shows one notice for it.
+const { previousVersion, upgraded } = await recordRun(dataDir, build.version);
+
+const app = createApp({ dataDir, publicDir, build, previousVersion });
 const store = app.locals['store'];
 
 await store.init();
@@ -37,8 +46,9 @@ await store.init();
 const server = await listen(app, host, wanted);
 const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${server.address().port}/`;
 
-console.log(`Lamplit — ${url}`);
+console.log(`Lamplit ${versionLine(build)} — ${url}`);
 console.log(`  documents  ${dataDir}`);
+if (upgraded) console.log(`  upgraded   ${previousVersion} → ${build.version}`);
 console.log(
   `  app        ${existsSync(join(publicDir, 'index.html')) ? publicDir : '(not built; API only)'}`,
 );
@@ -82,15 +92,10 @@ function findBuiltApp() {
   return join(ROOT, 'app', 'dist', 'app', 'browser');
 }
 
-function readVersion() {
-  for (const candidate of [join(ROOT, 'package.json'), join(ROOT, 'server', 'package.json')]) {
-    try {
-      return JSON.parse(readFileSync(candidate, 'utf8')).version ?? '0.0.0';
-    } catch {
-      /* try the next one */
-    }
-  }
-  return '0.0.0';
+/** `0.1.0 (build 42 · a1b2c3d)`, or just the version when nothing stamped it. */
+function versionLine({ version, build: number, commit }) {
+  const detail = [number === 'local' ? '' : `build ${number}`, commit].filter(Boolean).join(' · ');
+  return detail ? `${version} (${detail})` : version;
 }
 
 function parseArguments(argv) {

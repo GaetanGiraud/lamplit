@@ -61,6 +61,11 @@ export class SettingsStore {
     this.state.update((s) => ({ ...s, activeStoryId: id }));
   }
 
+  /** The upgrade notice for this version has been seen; do not show it again. */
+  acknowledgeVersion(version: string): void {
+    this.state.update((s) => ({ ...s, acknowledgedVersion: version }));
+  }
+
   resetGeneration(): void {
     this.state.update((s) => ({ ...s, generation: { ...DEFAULT_GENERATION } }));
   }
@@ -74,6 +79,7 @@ export class SettingsStore {
       generation: { ...DEFAULT_SETTINGS.generation, ...stored.generation },
       ui: { ...DEFAULT_SETTINGS.ui, ...stored.ui },
       activeStoryId: stored.activeStoryId ?? null,
+      acknowledgedVersion: stored.acknowledgedVersion ?? null,
     };
   }
 }

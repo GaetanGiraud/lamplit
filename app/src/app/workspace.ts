@@ -2,6 +2,7 @@ import { Component, afterNextRender, effect, inject } from '@angular/core';
 import { DEFAULT_STORY_TITLE } from './core/defaults';
 import { ChaptersPage } from './features/chapters/chapters-page';
 import { TopBar } from './shared/top-bar';
+import { UpgradeNotice } from './shared/upgrade-notice';
 import { SettingsStore } from './store/settings-store';
 import { ChapterStore } from './store/chapter-store';
 import { StoryStore } from './store/story-store';
@@ -18,9 +19,10 @@ import { DialogsService } from './shared/dialogs.service';
  */
 @Component({
   selector: 'ms-workspace',
-  imports: [TopBar, ChaptersPage],
+  imports: [TopBar, UpgradeNotice, ChaptersPage],
   template: `
     <ms-top-bar />
+    <ms-upgrade-notice />
     <ms-chapters-page />
   `,
   styles: `

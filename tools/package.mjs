@@ -4,6 +4,7 @@ import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collectEntries, writeZip } from '../server/src/zip.js';
+import { STAMP_FILE, buildStamp } from '../server/src/version.js';
 
 /**
  * `npm run package` — the whole app as one folder, and that folder as one zip.
@@ -18,7 +19,8 @@ import { collectEntries, writeZip } from '../server/src/zip.js';
  *     start.command         the same, for double-clicking on a Mac
  *     start.sh              the same, byte for byte, for Linux
  *     server/               the persistence server, unchanged from the repo
- *     public/               the built Angular app, served by it
+ *     public/               the built Angular app, served by it, and the
+ *                           version.json stamped into it (see server/src/version.js)
  *     node_modules/         the server's production dependencies, and only those
  *     package.json  README.txt
  *     data/                 created on first run, next to the script
@@ -67,6 +69,15 @@ if (options.zipOnly) {
   await mkdir(stageDir, { recursive: true });
   await cp(join(ROOT, 'server', 'src'), join(stageDir, 'server', 'src'), { recursive: true });
   await cp(BUILT_APP, join(stageDir, 'public'), { recursive: true });
+  // Next to the built app: which commit, which CI run, and when. The server
+  // reads it back and /api/health repeats it, so a bug report can name the
+  // build it came from rather than a version two dozen builds have carried.
+  const stamp = buildStamp({ version, root: ROOT });
+  await writeFile(
+    join(stageDir, 'public', STAMP_FILE),
+    `${JSON.stringify(stamp, null, 2)}
+`,
+  );
   await writeFile(join(stageDir, 'package.json'), manifest(), 'utf8');
   await writeFile(join(stageDir, 'start.bat'), startBat().replaceAll('\n', '\r\n'), 'utf8');
   await writeFile(join(stageDir, 'start.sh'), startSh(), { encoding: 'utf8', mode: 0o755 });
@@ -81,6 +92,7 @@ if (options.zipOnly) {
     await cp(from, join(stageDir, 'node_modules', ...dependency.split('/')), { recursive: true });
   }
   console.log(`   ${dependencies.size} packages`);
+  console.log(`   stamped  build ${stamp.build}, commit ${stamp.commit || '(no git)'}`);
 }
 
 if (options.zip === false) {
@@ -353,6 +365,13 @@ and you have copied everything. A zip of it is taken into "backups" once a day
 when the app starts.
 
 Move the whole folder wherever you like; the data goes with it.
+
+Upgrading
+---------
+Unzip the new version beside this one and move this folder's "data" into it —
+or leave it here and start the new one with --data pointing at it. Then the old
+folder can be deleted whole; nothing is registered outside it. The app says
+which build it is under the ... menu, in About Lamplit.
 
 Options
 -------

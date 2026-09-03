@@ -1,6 +1,6 @@
 # Development
 
-[← Documentation](README.md) · Previous: [Running it anywhere](running-anywhere.md)
+[← Documentation](README.md) · Previous: [Upgrading](upgrading.md)
 
 ---
 
@@ -17,7 +17,8 @@ app/        Angular 21 workspace — standalone components, signals, zoneless
               story, world
   shared/     top bar, save indicator, dialog openers, editor field, controls
 server/     Express 5 — JSON documents on disk, the built app in front of them,
-            a dependency-free zip writer
+            a dependency-free zip writer, and the build stamp (version.js: which
+            build this is, and which one wrote this data folder last)
 electron/   the desktop shell: main process, preload, electron-builder config.
             It starts the same server in-process and opens one window at it,
             and knows nothing else about the app
@@ -62,7 +63,8 @@ token estimates, the story formatter, the prompt builder (block order, the scene
 scanning, budget trimming, chapter titles, the summary request), and the persistence layer (the
 startup load, coalescing, sequence numbers, offline queueing, and refusing to start without a
 server). `node --test` for the server: the document store's write ordering and atomic writes, the
-API, the zip writer, the daily backup.
+API, the zip writer, the daily backup, and the build stamp (reading it, the dev fallback, and how
+an upgrade is noticed).
 
 **End to end — `npm run e2e`.** Playwright drives the real app against
 `e2e/fake-openai-server.mjs`, a deterministic stand-in for an OpenAI-compatible endpoint. Both

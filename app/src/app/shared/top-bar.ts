@@ -111,6 +111,8 @@ import { SaveStatusIndicator } from './save-status';
           <button mat-menu-item [disabled]="chapters.isEmpty()" (click)="clear()">
             Clear this chapter
           </button>
+          <hr />
+          <button mat-menu-item (click)="dialogs.openAbout()">About Lamplit…</button>
         </mat-menu>
       </div>
     </header>

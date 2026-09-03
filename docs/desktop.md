@@ -35,6 +35,10 @@ stories are there.
 where it is, so reinstalling later finds every story where you left it. If you really want the
 stories gone, delete that folder yourself.
 
+**Upgrading is the same act:** run the new installer over the old one, or replace the portable
+`.exe`. Nothing has to be uninstalled first and no story moves. [Upgrading](upgrading.md) covers
+every channel, and what the app shows the first time a newer version starts.
+
 ### The portable build
 
 The Windows **portable** download is one `.exe` that installs nothing. It keeps `data` and
@@ -46,7 +50,8 @@ stories together and both travel.
 - **File** — Open data folder, Quit.
 - **Edit** — the usual undo, cut, copy, paste, select all.
 - **View** — reload, zoom in and out, full screen, developer tools.
-- **Help** — the website, where to report a problem, and the version you are running.
+- **Help** — the website, where to report a problem, and the exact build you are running
+  (the same line as **⋯ → About Lamplit**; see [Upgrading](upgrading.md)).
 
 Links that lead somewhere else — a provider's "get a key" page, for instance — open in your normal
 browser rather than taking the app's window away from you.

@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
     showTokenCounts: true,
   },
   activeStoryId: null,
+  acknowledgedVersion: null,
 };
 
 /** Ranges the parameters modal uses, kept next to the defaults they bound. */

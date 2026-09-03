@@ -15,6 +15,7 @@ Next to whatever you started, in a folder called `data`:
 ```
 data/
   settings.json              your connection, parameters and reading preferences
+  lastRun.json               which version ran here last — see Upgrading
   stories/
     <id>.json                one story: mode, persona, cast, world, lore
   chapters/
@@ -22,6 +23,10 @@ data/
 backups/
   data-2026-09-03.zip        one per day, taken when the server starts
 ```
+
+`lastRun.json` is the only file here the app writes for itself rather than for you: it is how a
+newer version knows it is newer, and it is written on every start. Deleting it costs nothing but
+one upgrade notice. Everything else is your writing.
 
 Running from the repo, that is the repo root. Running an unzipped build, it is beside `start.bat`.
 Either way, `--data D:\somewhere` or `LAMPLIT_DATA_DIR` moves it. The

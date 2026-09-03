@@ -60,6 +60,11 @@ export interface Settings {
   generation: GenerationParams;
   ui: UiSettings;
   activeStoryId: string | null;
+  /**
+   * The version whose upgrade notice has been seen. Written when the notice is
+   * dismissed, so the same one never appears twice.
+   */
+  acknowledgedVersion: string | null;
 }
 
 export interface TokenUsage {

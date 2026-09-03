@@ -1,6 +1,6 @@
 # Running it anywhere
 
-[← Documentation](README.md) · Previous: [The desktop app](desktop.md) · Next: [Development](development.md)
+[← Documentation](README.md) · Previous: [The desktop app](desktop.md) · Next: [Upgrading](upgrading.md)
 
 ---
 
@@ -104,6 +104,10 @@ And by environment variable:
 The folder is self-contained and writes nothing outside itself. Copy it to a USB stick, a NAS, a
 second machine; the stories go with it. Nothing is registered with the operating system and
 nothing is left behind if you delete it.
+
+The same fact is what makes an upgrade a two-step job here rather than one: the new zip is a new
+folder, and `data` is in the old one. [Upgrading](upgrading.md) has the two ways to carry it
+across.
 
 ## Building it yourself
 

@@ -27,6 +27,21 @@ installer of its own.
 - **The download page** marks the card for the computer you are reading it on,
   and keeps the zip one click away under *Advanced*.
 
+**Every build says which one it is.** **⋯ → About Lamplit** now shows the
+version, the CI run that built it, the commit it was built from and the date:
+the line to quote in a bug report, since a version number alone stops being
+enough once two builds have carried it. The desktop app's **Help** menu shows
+the same line, and `/api/health` returns every field of it.
+
+- **It notices an upgrade.** Start a newer Lamplit over stories written by an
+  older one and it says so, once, at the top of the page, with a link to what
+  changed. Dismiss it and it never comes back for that version. A fresh install
+  has nothing to compare against and stays quiet.
+- **[Upgrading](https://gaetangiraud.github.io/lamplit/upgrading.html)** is a
+  new page in the guide: how to get the new version on each channel, how to
+  carry your stories across when you run the zip, and where every way of
+  running it keeps them.
+
 ## 0.1.0 — the first release
 
 The first version anyone can install without a terminal.

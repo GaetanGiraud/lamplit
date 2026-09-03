@@ -13,7 +13,7 @@ const SEQ_HEADER = 'x-doc-seq';
  * nothing but the bytes. Anything the server understood about a document would
  * be a second place to change when the shape changes.
  */
-export function createApp({ dataDir, publicDir, version = '0.0.0' }) {
+export function createApp({ dataDir, publicDir, build = {}, previousVersion = null }) {
   const store = new DocumentStore(dataDir);
   const app = express();
 
@@ -21,8 +21,23 @@ export function createApp({ dataDir, publicDir, version = '0.0.0' }) {
   app.use(localhostCors);
   app.use('/api', express.json({ limit: '16mb' }));
 
+  /**
+   * Who is answering, and which build of it. The client reads this for the
+   * About sheet and for the notice it shows after an upgrade, so every field
+   * the build was stamped with is here rather than in a second endpoint.
+   */
   app.get('/api/health', (request, response) => {
-    response.json({ ok: true, name: 'lamplit', version, dataDir });
+    response.json({
+      ok: true,
+      name: 'lamplit',
+      version: build.version ?? '0.0.0',
+      commit: build.commit ?? '',
+      builtAt: build.builtAt ?? '',
+      build: build.build ?? 'local',
+      channel: build.channel ?? 'dev',
+      previousVersion,
+      dataDir,
+    });
   });
 
   app.get('/api/docs/:collection', async (request, response, next) => {

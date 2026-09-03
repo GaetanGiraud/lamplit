@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "start", "-w", "app", "--", "--port", "4200"],
       "port": 4200
+    },
+    {
+      "name": "lamplit-built",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/src/index.js", "--port", "4199", "--data", "build/verify-data/data"],
+      "port": 4199
     }
   ]
 }
