@@ -1,7 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JsonChatRequest, JsonChatResult, ModelClient } from '../core/model-client';
+import {
+  ChatStreamResult,
+  JsonChatRequest,
+  JsonChatResult,
+  ModelClient,
+} from '../core/model-client';
 import { ChapterStore } from './chapter-store';
+import { StoryStore } from './story-store';
 import { KEYS } from './documents';
 import { STORAGE_BACKEND, StorageBackend } from './storage';
 
@@ -31,6 +37,21 @@ class FakeClient {
   chatJson = <T>(request: JsonChatRequest): Promise<JsonChatResult<T>> => {
     this.requests.push(request);
     return Promise.resolve(this.answer as JsonChatResult<T>);
+  };
+
+  /** Sends one delta and then waits, the way a reply half-way through does. */
+  streamChat = (
+    _request: unknown,
+    onDelta: (delta: { content?: string }) => void,
+    signal: AbortSignal,
+  ): Promise<ChatStreamResult> => {
+    onDelta({ content: 'The lantern room, ' });
+    return new Promise((fulfil) => {
+      signal.addEventListener('abort', () =>
+        // Aborting resolves rather than throws, so the partial text is kept.
+        fulfil({ content: 'The lantern room, ', reasoning: '', aborted: true }),
+      );
+    });
   };
 }
 
@@ -164,6 +185,45 @@ describe('ChapterStore and the page palette', () => {
     client.answer = { value: { palette: 'nocturne' }, raw: '' };
     expect(await store().choosePalette(CHAPTER_ID, scene)).toBe('nocturne');
     expect(chapter().palette).toBe('nocturne');
+  });
+
+  it('marks a reply left half-written when the reader moves to another story', async () => {
+    seed();
+    // A second story, so there is somewhere to move to.
+    const OTHER = 'story-2';
+    storage.write(KEYS.story(OTHER), {
+      id: OTHER,
+      title: 'Another story',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      activeChapterId: 'chapter-2',
+      chapterCounter: 1,
+    });
+    storage.write(KEYS.chapter('chapter-2'), {
+      id: 'chapter-2',
+      storyId: OTHER,
+      number: 1,
+      title: '',
+      scene: 'Somewhere else entirely.',
+      status: 'writing',
+      summary: '',
+      messages: [],
+    });
+
+    const chapters = store();
+    const sending = chapters.send('I climb the stairs.');
+    expect(chapters.isStreaming()).toBe(true);
+
+    TestBed.inject(StoryStore).select(OTHER);
+    chapters.sync();
+    await sending;
+
+    // The chapter is not this store's any more, so the file is what can be read.
+    const written = storage.read<{ messages: { content: string; meta?: { aborted?: boolean } }[] }>(
+      KEYS.chapter(CHAPTER_ID),
+    );
+    const last = written!.messages[written!.messages.length - 1]!;
+    expect(last.content).toBe('The lantern room, ');
+    expect(last.meta?.aborted).toBe(true);
   });
 
   it('draws the open chapter on its own page, and the story on its own', () => {

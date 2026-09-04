@@ -588,10 +588,39 @@ export class ChapterStore {
     return this.messages().findIndex((m) => m.id === id);
   }
 
+  /**
+   * A turn still arriving when the reader leaves for another story.
+   *
+   * Aborting resolves rather than throws, so `runTurn` carries on — but by
+   * then this store holds another story's chapters, and everything it does
+   * next is aimed at a chapter that is no longer here: the last deltas, and
+   * the mark that says the reply stopped early. Both are done here instead,
+   * while the chapter is still in hand, and the chapter is written straight to
+   * storage because the effect that writes chapters will only ever see the
+   * story that replaced it.
+   */
+  private stopAndKeep(): void {
+    const id = this.streamingIdState();
+    const chapterId = this.streamingChapterId;
+    this.stop();
+    if (!id) return;
+
+    this.flush();
+    this.patchChapter(chapterId, (chapter) => ({
+      messages: chapter.messages.map((message) =>
+        message.id === id ? { ...message, meta: { ...message.meta, aborted: true } } : message,
+      ),
+    }));
+    const chapter = this.state().find((c) => c.id === chapterId);
+    if (!chapter) return;
+    this.saved.set(chapter.id, chapter);
+    this.storage.write(KEYS.chapter(chapter.id), chapter);
+  }
+
   /** Switching stories swaps the whole set; every story keeps one chapter. */
   private loadFor(storyId: string): void {
     this.loadedStoryId = storyId;
-    this.stop();
+    this.stopAndKeep();
     this.saved.clear();
     const chapters = readChapters(this.storage, storyId);
     for (const chapter of chapters) this.saved.set(chapter.id, chapter);
