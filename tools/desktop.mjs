@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { builderArgs, rootVersion } from './lib/desktop-build.mjs';
 
 /**
  * The desktop build, in three modes.
@@ -44,10 +45,13 @@ if (options.mode === 'run') {
   run('node', [join(ROOT, 'tools', 'package.mjs'), '--stage', STAGE_DIR, '--no-zip'], ROOT);
 
   if (options.mode === 'dist') {
-    step(options.publish ? 'building installers and publishing them' : 'building installers');
-    const args = ['electron-builder', '--config', 'electron-builder.yml'];
-    if (options.publish) args.push('--publish', 'always');
-    run('npx', args, ELECTRON_DIR);
+    const version = rootVersion(ROOT);
+    step(
+      options.publish
+        ? `building installers for ${version} and publishing them`
+        : `building installers for ${version}`,
+    );
+    run('npx', builderArgs({ version, publish: options.publish }), ELECTRON_DIR);
     step('done');
     console.log(`   installers  ${join(ROOT, 'build', 'desktop')}`);
   } else {
