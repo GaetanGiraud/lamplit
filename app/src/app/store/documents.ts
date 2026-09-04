@@ -46,6 +46,7 @@ export function newStory(title = DEFAULT_STORY_TITLE): Story {
       summary: { useDefault: true, prompt: '' },
       entries: [],
       scan: { ...DEFAULT_SCAN },
+      extractLore: false,
     },
     activeChapterId: '',
     chapterCounter: 0,
@@ -111,6 +112,7 @@ export function normaliseStory(stored: Partial<Story>): Story {
       summary: { ...base.world.summary, ...stored.world?.summary },
       entries: Array.isArray(stored.world?.entries) ? stored.world.entries : [],
       scan: { ...base.world.scan, ...stored.world?.scan },
+      extractLore: stored.world?.extractLore === true,
     },
   };
 }

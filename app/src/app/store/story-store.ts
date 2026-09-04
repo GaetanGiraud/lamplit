@@ -235,6 +235,27 @@ export class StoryStore {
     this.patch({ world: { ...world, entries } });
   }
 
+  /** Whether closing a chapter also asks what it established. */
+  setExtractLore(extractLore: boolean): void {
+    const world = this.story().world;
+    this.patch({ world: { ...world, extractLore } });
+  }
+
+  /**
+   * Files what the writer ticked in the close-chapter sheet: an entry whose id
+   * the world already holds is rewritten where it stands, and the rest are
+   * appended. One patch, so a chapter close is one write however many entries
+   * came out of it.
+   */
+  saveLore(entries: readonly LoreEntry[]): void {
+    if (!entries.length) return;
+    const world = this.story().world;
+    const changed = new Map(entries.map((entry) => [entry.id, entry]));
+    const rewritten = world.entries.map((entry) => changed.get(entry.id) ?? entry);
+    const added = entries.filter((entry) => !world.entries.some((e) => e.id === entry.id));
+    this.patch({ world: { ...world, entries: [...rewritten, ...added] } });
+  }
+
   removeLore(id: string): void {
     const world = this.story().world;
     this.patch({ world: { ...world, entries: world.entries.filter((e) => e.id !== id) } });

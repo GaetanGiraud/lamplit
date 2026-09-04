@@ -8,8 +8,19 @@
  *   "!error"  answer 500 before streaming
  *   "!401"    answer 401
  *   "!long"   stream a long passage
+ *   "!nolore" answer 500 to the lore request only, and stream as usual
  * Anything else gets a short canned scene with speech and an action in it,
  * suffixed with a counter so a regenerated answer is visibly different.
+ *
+ * A request that is not streamed is the lore extraction, and comes back as one
+ * JSON object rather than as prose. The model id decides how well this endpoint
+ * speaks JSON:
+ *   fake/no-json-schema   refuses `response_format` with a 400, the way an
+ *                         endpoint that has never heard of it does, and then
+ *                         answers with the object inside a ```json fence
+ * Anything else takes the schema and answers with a bare object. That id is
+ * deliberately not in the list above: a spec that wants it names it in the
+ * settings it seeds, and two specs count what `/models` returns.
  */
 import { createServer } from 'node:http';
 
@@ -78,6 +89,13 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    // Not streamed: the only request in the app shaped like that is the one
+    // asking what a chapter established, and it wants JSON back.
+    if (body?.stream === false) {
+      lore(response, body, prompt);
+      return;
+    }
+
     await stream(response, body, prompt);
     return;
   }
@@ -133,6 +151,70 @@ async function stream(response, body, prompt) {
   }
   response.write('data: [DONE]\n\n');
   response.end();
+}
+
+/**
+ * The lore extraction: one JSON object, and a chance to be an endpoint that
+ * cannot do schemas.
+ *
+ * What it proposes is read out of the chapter it was sent, so a test plants a
+ * town in the story and gets that town back rather than a fixture nobody can
+ * trace: `Ashport` becomes a place, and an entry the world already holds comes
+ * back as an update to it.
+ */
+function lore(response, body, prompt) {
+  const model = body?.model ?? 'fake/storyteller-large';
+  // Only this request fails, so a spec can watch a chapter close with the
+  // summary written and the entries not.
+  if (prompt.includes('!nolore')) {
+    json(response, 500, { error: { message: 'The upstream model is on fire.' } });
+    return;
+  }
+  if (model === 'fake/no-json-schema' && body?.response_format) {
+    json(response, 400, {
+      error: { message: "Unknown parameter: 'response_format'.", type: 'invalid_request_error' },
+    });
+    return;
+  }
+
+  const entries = [];
+  if (prompt.includes('Ashport')) {
+    entries.push({
+      title: 'Ashport',
+      category: 'place',
+      keys: ['ashport', 'the town'],
+      content: 'A town of nine hundred at the mouth of the estuary, an hour up the coast road.',
+      updates: '',
+    });
+  }
+  // Named in the list of what the world already holds, so it is an update.
+  if (prompt.includes('Old Tomas')) {
+    entries.push({
+      title: 'Old Tomas',
+      category: 'person',
+      keys: ['tomas', 'keeper'],
+      content: 'Kept the light before Mara’s father, and was last seen boarding the Ashport ferry.',
+      updates: 'Old Tomas',
+    });
+  }
+
+  const object = JSON.stringify({ entries });
+  const content = model === 'fake/no-json-schema' ? '```json\n' + object + '\n```' : object;
+
+  let promptTokens = 0;
+  for (const message of body?.messages ?? []) promptTokens += Math.ceil(message.content.length / 4);
+
+  json(response, 200, {
+    id: 'chatcmpl-fake-lore',
+    object: 'chat.completion',
+    model,
+    choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }],
+    usage: {
+      prompt_tokens: promptTokens,
+      completion_tokens: Math.ceil(content.length / 4),
+      total_tokens: promptTokens + Math.ceil(content.length / 4),
+    },
+  });
 }
 
 /** The passage this turn answers with, before it is cut into deltas. */

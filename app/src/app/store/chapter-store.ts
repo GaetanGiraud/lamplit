@@ -1,5 +1,6 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { CastChange, Chapter, ChapterMessage, Story } from '../core/models';
+import { CastChange, Chapter, ChapterMessage, Story, TokenUsage } from '../core/models';
+import { LORE_SCHEMA, LoreProposal, buildLorePrompt, readProposals } from '../core/lore-extraction';
 import { ModelClient } from '../core/model-client';
 import { ModelError, errorFromThrown } from '../core/model-errors';
 import {
@@ -307,7 +308,7 @@ export class ChapterStore {
   async summarise(
     onDelta: (text: string) => void,
     signal: AbortSignal,
-  ): Promise<{ text: string; error?: string }> {
+  ): Promise<{ text: string; usage?: TokenUsage; error?: string }> {
     const connection = this.settings.connection();
     if (!this.settings.isConnected()) {
       return { text: '', error: this.settings.connectionHint() };
@@ -327,9 +328,47 @@ export class ChapterStore {
         },
         signal,
       );
-      return { text: result.content };
+      return { text: result.content, usage: result.usage };
     } catch (e) {
       return { text: '', error: errorFromThrown(e).message };
+    }
+  }
+
+  /**
+   * Asks what this chapter established, as entries rather than as prose.
+   *
+   * A second request and a second bill, so it is made only when the story asked
+   * for it or the writer pressed the button. Nothing it returns is written
+   * anywhere: the review sheet ticks them, and the close applies the ticks.
+   */
+  async proposeLore(
+    signal: AbortSignal,
+  ): Promise<{ proposals: LoreProposal[]; usage?: TokenUsage; error?: string }> {
+    const connection = this.settings.connection();
+    if (!this.settings.isConnected()) {
+      return { proposals: [], error: this.settings.connectionHint() };
+    }
+    const story = this.stories.story();
+    try {
+      const answer = await this.client.chatJson<unknown>(
+        {
+          provider: connection.provider,
+          baseUrl: connection.baseUrl,
+          apiKey: connection.apiKey,
+          model: connection.model,
+          messages: buildLorePrompt(story, this.chapter()),
+          params: this.settings.generation(),
+          schema: { name: LORE_SCHEMA.name, schema: LORE_SCHEMA.schema as Record<string, unknown> },
+        },
+        signal,
+      );
+      if (!answer.value) {
+        // It answered, and not with anything that could be read as entries.
+        return { proposals: [], usage: answer.usage, error: 'The answer was not JSON.' };
+      }
+      return { proposals: readProposals(answer.value, story.world.entries), usage: answer.usage };
+    } catch (e) {
+      return { proposals: [], error: errorFromThrown(e).message };
     }
   }
 

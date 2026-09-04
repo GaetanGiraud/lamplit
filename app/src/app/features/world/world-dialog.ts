@@ -91,6 +91,19 @@ interface Group {
               }
             </mat-expansion-panel>
 
+            <mat-slide-toggle
+              class="extract"
+              [checked]="story().world.extractLore"
+              (change)="stories.setExtractLore($event.checked)"
+            >
+              When a chapter closes, propose lore entries from it
+            </mat-slide-toggle>
+            <p class="ms-hint extract-hint">
+              A second request after the summary, asking what the chapter established that is worth
+              keeping. Nothing is written without you ticking it. Off by default, because it is a
+              second request and a second bill; the review sheet has a button for it either way.
+            </p>
+
             @if (folded().length) {
               <section class="folded">
                 <h3>Folded in so far</h3>
@@ -326,6 +339,14 @@ interface Group {
       font-size: 0.92rem;
       line-height: 1.6;
       color: var(--ms-ink-soft);
+    }
+
+    .extract {
+      margin-top: 0.35rem;
+    }
+
+    .extract-hint {
+      margin: -0.35rem 0 0;
     }
 
     .folded p {

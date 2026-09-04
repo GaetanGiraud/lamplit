@@ -269,6 +269,12 @@ export interface StoryWorld {
   summary: { useDefault: boolean; prompt: string };
   entries: LoreEntry[];
   scan: ScanSettings;
+  /**
+   * Whether closing a chapter also asks the model what in it is worth
+   * remembering. Off unless the writer says otherwise: it is a second request,
+   * and a second bill, on a step that used to make one.
+   */
+  extractLore: boolean;
 }
 
 export interface StoryStyle {

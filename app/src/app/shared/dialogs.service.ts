@@ -155,8 +155,10 @@ export class DialogsService {
       autoFocus: 'dialog',
     });
     const summary = await firstValueFrom<string | undefined>(ref.afterClosed());
-    // Backing out of the review leaves the chapter open and starts nothing.
-    if (summary === undefined) return;
+    // Backing out of the review leaves the chapter open and starts nothing. Any
+    // empty answer is a back-out: the sheet will not confirm without a summary,
+    // and closing a chapter on nothing would replace the story so far with it.
+    if (!summary?.trim()) return;
 
     this.chapters.closeChapter(chapter.id, summary);
     await this.startChapter(chapter.scene);

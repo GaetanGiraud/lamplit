@@ -307,14 +307,7 @@ export function buildSummaryPrompt(story: Story, chapter: Chapter): OutboundMess
     `Chapter ${chapter.number}${title ? `, ${title}` : ''} has just finished.`,
   ];
   if (chapter.scene.trim()) parts.push(`The scene it opened on:\n${chapter.scene.trim()}`);
-  // A cast record has nothing to summarise; who was speaking does, so a line
-  // written by one character is attributed to them and not to the story. A
-  // direction is left out entirely — it shaped what happened, it is not part
-  // of what happened — which also drops a message that was nothing but one.
-  const transcript = chapter.messages
-    .filter((m) => m.kind !== 'cast' && m.content.trim() && !m.meta?.error)
-    .map((m) => `${speakerLabel(story, m)}: ${m.content.trim()}`)
-    .join('\n\n');
+  const transcript = chapterTranscript(story, chapter);
   parts.push(`What happened in it:\n${transcript || '(nothing was written in this chapter)'}`);
 
   return [
@@ -324,6 +317,22 @@ export function buildSummaryPrompt(story: Story, chapter: Chapter): OutboundMess
     },
     { role: 'user', content: `${parts.join('\n\n')}\n\n${summaryInstruction(story)}` },
   ];
+}
+
+/**
+ * The chapter as prose, for the requests that read it back rather than
+ * continue it — the summary, and the lore proposals.
+ *
+ * A cast record has nothing to read; who was speaking does, so a line written
+ * by one character is attributed to them and not to the story. A direction is
+ * left out entirely — it shaped what happened, it is not part of what
+ * happened — which also drops a message that was nothing but one.
+ */
+export function chapterTranscript(story: Story, chapter: Chapter): string {
+  return chapter.messages
+    .filter((m) => m.kind !== 'cast' && m.content.trim() && !m.meta?.error)
+    .map((m) => `${speakerLabel(story, m)}: ${m.content.trim()}`)
+    .join('\n\n');
 }
 
 /** Whose line this is: the reader, a named character, or the story itself. */

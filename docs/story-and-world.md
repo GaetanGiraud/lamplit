@@ -142,6 +142,13 @@ chapter** rewrites it for you, folding the chapter just finished into it. See
 replace it for this story if the default is not to your taste. **Folded in so far** underneath
 lists which chapters have been folded in.
 
+**When a chapter closes, propose lore entries from it** is the switch under that, off by default.
+On, closing a chapter makes a second request after the summary — the same chapter, read for what
+it *established* rather than for what happened — and the review sheet shows what came back as a
+checklist. Nothing is written without a tick, an update to an existing entry arrives unticked, and
+a failure is one muted line rather than a blocked close. See [Chapters](chapters.md) for what the
+sheet looks like; the button there does the same thing once, whether or not this switch is on.
+
 ## World → Lore
 
 ![A world of entries, one line each](images/lore-collapsed.png)

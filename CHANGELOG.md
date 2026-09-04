@@ -7,6 +7,27 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**Closing a chapter can propose the lore in it.** The summary keeps what the story needs to make
+sense; it cannot keep the name in passing, the town an hour up the coast, who owes whom. The model
+that has just read the chapter can pick those out, and **Propose lore** in the review sheet asks it
+to.
+
+- **A checklist, not a change.** Each proposal shows its title, its kind, its keys and what it
+  would say. New entries arrive ticked; an update arrives unticked and shows the entry's current
+  text under the proposed one, because it overwrites something you wrote. Closing files what is
+  ticked and nothing else, and Cancel files nothing at all.
+- **Off unless you ask.** It is a second request and a second bill, so the button is how you ask
+  for it. **World → Story so far** has a switch for running it on its own every time a chapter
+  closes.
+- **It works on endpoints that have never heard of JSON schemas.** The strict shape is asked for
+  first and dropped on a refusal, and the answer is read out of a fenced block or a sentence of
+  preamble either way.
+- **A failure is one muted line.** The summary is still there, the close still goes through.
+
+**Cancelling a chapter close no longer closes the chapter.** It closed it with an empty summary,
+which also replaced the story so far with nothing. Cancel now leaves the chapter, the story so far
+and the world exactly as they were.
+
 **You can say it as the author now.** *The storm arrives tonight. She should refuse.* Written into
 the story that is a hint the model may or may not take. Written as a **direction** it is an
 instruction it is told to follow, and told to follow without ever mentioning it.

@@ -74,6 +74,37 @@ because the next chapter is usually the same place a moment later.
 Nothing is thrown away. The closed chapter keeps every message and its own copy of the summary it
 produced.
 
+### Lore from the chapter
+
+The summary keeps what the story needs to make sense. It cannot keep everything — a name in
+passing, the town an hour up the coast, who owes whom — and that is what
+[lore entries](story-and-world.md) are for. The model that has just read the chapter can propose
+them.
+
+**Propose lore** in the review sheet asks for them, and reads the same chapter the summary read.
+What comes back is a checklist, not a change:
+
+![What the chapter established, as entries to tick](images/lore-proposals.png)
+
+- Each proposal shows its **title**, its **kind**, its **keys** as chips and what it would say.
+- **New entries arrive ticked**, because a new entry only adds and one you did not want is a
+  single deletion away.
+- **An update arrives unticked**, and shows the entry's current text under the proposed one. It
+  overwrites something you wrote, so it waits to be asked.
+- **Close the chapter** files what is ticked and nothing else. **Cancel** files nothing at all.
+
+A filed entry is enabled and not always-on, and it is a lore entry like any other from then on:
+edit it, key it differently, switch it off. An update keeps everything the request never asked
+about — its id, whether it is on, whether it is always on, its own scan settings.
+
+**Off by default.** It is a second request and a second bill on a step that used to make one, so
+the button is how you ask for it. **World → Story so far** has a switch —
+*When a chapter closes, propose lore entries from it* — that runs it on its own every time the
+sheet opens. Either way nothing is written without a tick.
+
+If the request fails, or the model answers with something that is not entries, the sheet says so
+in one muted line and the close goes ahead as it always did.
+
 ## New chapter
 
 **⋯ → New chapter** is the same act from the other end. If the chapter you are in has anything

@@ -141,6 +141,28 @@ const SUMMARY =
   'left behind, the woman says, was left for Mara and not for her. Mara has not asked for ' +
   'the key, and has not been told where it is.';
 
+/** What the stand-in proposes when a chapter is closed: one new, one update. */
+const PROPOSED = [
+  {
+    title: 'Nell',
+    category: 'person',
+    keys: ['nell', 'the old woman'],
+    content:
+      'Kept house for Tomas and then kept the light with him. Eighty-one, oilskin to the ankles, ' +
+      'and has been up the tower more often than anyone living.',
+    updates: '',
+  },
+  {
+    title: 'Old Tomas',
+    category: 'person',
+    keys: ['tomas', 'keeper'],
+    content:
+      'Kept the light for nineteen years before Mara’s father, and left the island in 1971. Nell ' +
+      'kept house for him, and speaks of him as somebody she knew well.',
+    updates: 'Old Tomas',
+  },
+];
+
 const LORE = [
   {
     id: 'lore-tomas',
@@ -399,6 +421,16 @@ async function theApp() {
   // Let the summary finish streaming into the review sheet.
   await page.waitForTimeout(3000);
   await shot(page, 'close-chapter', 'the rewritten story so far, before it lands');
+
+  // The same sheet, asked for what the chapter established: a new entry ticked
+  // and an update to an existing one waiting to be asked for. Pressed rather
+  // than switched on, because off is what a story starts as.
+  await page.getByRole('button', { name: 'Propose lore' }).click();
+  await page.getByRole('button', { name: 'Propose again' }).waitFor({ timeout: 20_000 });
+  await page.waitForTimeout(400);
+  await page.locator('mat-dialog-content').evaluate((el) => (el.scrollTop = el.scrollHeight));
+  await page.waitForTimeout(400);
+  await shot(page, 'lore-proposals', 'what the chapter established, as entries to tick');
   await escape(page);
 
   // The one time the backend is visible: when it stops answering.
@@ -703,6 +735,25 @@ function startModel(port) {
 
     const body = await readJson(request);
     const asked = [...(body.messages ?? [])].reverse().find((m) => m.role === 'user');
+
+    // Not streamed: the request asking what the chapter established, which
+    // wants entries back rather than prose. One new and one update, so the
+    // picture of the review sheet shows both states a row can be in.
+    if (body.stream === false) {
+      return response.writeHead(200, { 'Content-Type': 'application/json' }).end(
+        JSON.stringify({
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: JSON.stringify({ entries: PROPOSED }) },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 1063, completion_tokens: 84, total_tokens: 1147 },
+        }),
+      );
+    }
+
     const text = /Rewrite the story so far/.test(asked?.content ?? '') ? SUMMARY : REPLY;
 
     response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });

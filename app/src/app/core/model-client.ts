@@ -24,6 +24,20 @@ export interface ChatStreamResult {
 
 export type DeltaHandler = (delta: { content?: string; reasoning?: string }) => void;
 
+/** A request that must come back as one JSON object rather than as prose. */
+export interface JsonChatRequest extends ChatStreamRequest {
+  /** The shape asked for, when the endpoint will take one. */
+  schema: { name: string; schema: Record<string, unknown> };
+}
+
+export interface JsonChatResult<T> {
+  /** Null when nothing JSON-shaped could be found in the answer. */
+  value: T | null;
+  /** What actually came back, for an error message worth reading. */
+  raw: string;
+  usage?: TokenUsage;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ModelClient {
   /**
@@ -129,11 +143,47 @@ export class ModelClient {
     return result;
   }
 
+  /**
+   * One answer, not streamed, that has to be JSON.
+   *
+   * `response_format: json_schema` is asked for first and dropped on a 400 that
+   * names it — the same shape as the `stream_options` retry above, and for the
+   * same reason: half of what speaks chat-completions does not speak all of it,
+   * and there is no list of who does that would stay true. The instruction to
+   * answer with JSON and nothing else is in the prompt either way, so the
+   * fallback is a request that asks for the same thing less formally.
+   *
+   * Nothing here throws on a badly-shaped answer: `value` is null and `raw` is
+   * whatever came back, because the caller has something better to do with that
+   * than a stack trace.
+   */
+  async chatJson<T>(request: JsonChatRequest, signal?: AbortSignal): Promise<JsonChatResult<T>> {
+    const url = `${normaliseBaseUrl(request.baseUrl)}/chat/completions`;
+
+    let response = await this.post(url, request, false, signal, { schema: request.schema });
+    if (response.status === 400) {
+      const body = await safeText(response);
+      if (/response_format|json_schema/i.test(body)) {
+        // Without the schema, and still not streamed: the answer is a whole
+        // object or it is nothing, and there is no half of one worth watching.
+        response = await this.post(url, request, false, signal, {});
+      } else {
+        throw errorFromResponse(400, body);
+      }
+    }
+    if (!response.ok) throw errorFromResponse(response.status, await safeText(response));
+
+    const payload: unknown = await response.json().catch(() => null);
+    const answer = readCompletion(payload);
+    return { value: parseJsonObject<T>(answer.content), raw: answer.content, usage: answer.usage };
+  }
+
   private async post(
     url: string,
     request: ChatStreamRequest,
     withStreamOptions: boolean,
     signal?: AbortSignal,
+    json?: { schema?: JsonChatRequest['schema'] },
   ): Promise<Response> {
     try {
       return await fetch(url, {
@@ -143,7 +193,7 @@ export class ModelClient {
           ...(providerPreset(request.provider).headers ?? {}),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(buildBody(request, withStreamOptions)),
+        body: JSON.stringify(buildBody(request, withStreamOptions, json)),
         signal,
       });
     } catch (e) {
@@ -152,19 +202,35 @@ export class ModelClient {
   }
 }
 
-/** The whole request body, rebuilt from parameters every time. */
+/**
+ * The whole request body, rebuilt from parameters every time.
+ *
+ * `json` marks the other path: an answer that has to be one object, which is
+ * not streamed — there is nothing to watch arrive, and half of an object is no
+ * use to anybody. It stays not-streamed when the schema is dropped, because
+ * dropping the schema is a retry of the same request rather than a different
+ * kind of one.
+ */
 export function buildBody(
   request: ChatStreamRequest,
   withStreamOptions = true,
+  json?: { schema?: JsonChatRequest['schema'] },
 ): Record<string, unknown> {
   const p = request.params;
+  const streaming = !json;
   const body: Record<string, unknown> = {
     model: request.model,
     messages: request.messages,
-    stream: true,
+    stream: streaming,
     max_tokens: p.maxResponseTokens,
   };
-  if (withStreamOptions) body['stream_options'] = { include_usage: true };
+  if (streaming && withStreamOptions) body['stream_options'] = { include_usage: true };
+  if (json?.schema) {
+    body['response_format'] = {
+      type: 'json_schema',
+      json_schema: { name: json.schema.name, schema: json.schema.schema, strict: true },
+    };
+  }
 
   // Defined-only, so an endpoint never sees a parameter the user did not set.
   setIfNumber(body, 'temperature', p.temperature);
@@ -225,6 +291,56 @@ export function parseChunk(payload: string): ParsedChunk | null {
     };
   }
   return chunk;
+}
+
+/** One non-streamed chat completion: the text of it, and what it cost. */
+export function readCompletion(payload: unknown): { content: string; usage?: TokenUsage } {
+  const root = (payload ?? {}) as Record<string, any>;
+  const message = Array.isArray(root['choices']) ? root['choices'][0]?.message : undefined;
+  const content = typeof message?.content === 'string' ? message.content : '';
+  const usage = root['usage'];
+  return {
+    content,
+    usage:
+      usage && typeof usage === 'object'
+        ? {
+            promptTokens: numberOrUndefined(usage.prompt_tokens),
+            completionTokens: numberOrUndefined(usage.completion_tokens),
+            totalTokens: numberOrUndefined(usage.total_tokens),
+          }
+        : undefined,
+  };
+}
+
+/**
+ * The first JSON object in an answer that was supposed to be nothing but one.
+ *
+ * Models asked for JSON hand it back fenced, or with a sentence in front of it,
+ * or both, and an endpoint that enforced a schema hands back exactly what was
+ * asked for. All three arrive here, and only the third is common enough to be
+ * worth being strict about — so this tries the whole string, then the fenced
+ * block, then the widest `{…}` it can find, and gives up rather than guessing.
+ */
+export function parseJsonObject<T>(text: string): T | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  const candidates = [trimmed];
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(trimmed)?.[1];
+  if (fenced) candidates.push(fenced.trim());
+  const first = trimmed.indexOf('{');
+  const last = trimmed.lastIndexOf('}');
+  if (first >= 0 && last > first) candidates.push(trimmed.slice(first, last + 1));
+
+  for (const candidate of candidates) {
+    try {
+      const parsed: unknown = JSON.parse(candidate);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed as T;
+    } catch {
+      /* the next candidate, or nothing */
+    }
+  }
+  return null;
 }
 
 /** The `/models` call a provider's row asks for, query string and all. */
