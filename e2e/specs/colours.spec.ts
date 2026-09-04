@@ -21,8 +21,17 @@ function dots(page: Page): Locator {
   return page.locator('ms-character-swatch .dot');
 }
 
-/** The colour each swatch is actually drawn in, in order. */
-async function colours(swatches: Locator): Promise<string[]> {
+/**
+ * The colour each swatch is actually drawn in, in order.
+ *
+ * How many there should be is part of the question, because `evaluateAll` has
+ * no waiting in it: against a sheet that has not finished drawing it returns an
+ * empty array rather than retrying, and an empty array passes "all different"
+ * as easily as a full one does. Waiting for the count first is what makes the
+ * measurement mean anything.
+ */
+async function colours(swatches: Locator, expected: number): Promise<string[]> {
+  await expect(swatches).toHaveCount(expected);
   return swatches.evaluateAll((nodes) =>
     nodes.map((node) => getComputedStyle(node).backgroundColor),
   );
@@ -46,8 +55,7 @@ test('four characters get four colours, and nobody was asked', async ({ page, se
   await page.getByRole('button', { name: 'Story', exact: true }).click();
   for (let i = 0; i < 4; i++) await sheet.getByRole('button', { name: 'Add a character' }).click();
 
-  const seen = await colours(dots(sheet));
-  expect(seen).toHaveLength(4);
+  const seen = await colours(dots(sheet), 4);
   expect(new Set(seen).size).toBe(4);
 });
 
@@ -68,12 +76,11 @@ test('the eleventh character wraps round to the first colour', async ({ page, se
 
   const sheet = page.getByRole('dialog');
   await page.getByRole('button', { name: 'Story', exact: true }).click();
-  const ten = await colours(dots(sheet));
+  const ten = await colours(dots(sheet), 10);
   expect(new Set(ten).size).toBe(10);
 
   await sheet.getByRole('button', { name: 'Add a character' }).click();
-  const eleven = await colours(dots(sheet));
-  expect(eleven).toHaveLength(11);
+  const eleven = await colours(dots(sheet), 11);
   // Sharing with the first beats having none at all.
   expect(eleven[10]).toBe(eleven[0]);
 });
@@ -87,7 +94,7 @@ test('a story from before the palette opens coloured, and stays that way', async
   await page.goto(server.url);
 
   await openPanel(page);
-  const before = await colours(dots(page));
+  const before = await colours(dots(page), 4);
   expect(new Set(before).size).toBe(4);
 
   // Worked out from each character's place in the cast, so it is the same
@@ -101,7 +108,7 @@ test('a story from before the palette opens coloured, and stays that way', async
 
   await page.reload();
   await openPanel(page);
-  expect(await colours(dots(page))).toEqual(before);
+  expect(await colours(dots(page), 4)).toEqual(before);
 });
 
 test('changing a colour from the swatch redraws the row at once', async ({ page, server }) => {
