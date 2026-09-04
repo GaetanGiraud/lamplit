@@ -8,6 +8,8 @@ class FakeServer {
   readonly documents = new Map<string, unknown>();
   readonly requests: { method: string; url: string; seq: number; body: unknown }[] = [];
   failWith: string | null = null;
+  /** Takes the request and never answers: a server mid-restart, or a stalled disk. */
+  hang = false;
 
   readonly fetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
     if (this.failWith) throw new TypeError(this.failWith);
@@ -16,6 +18,7 @@ class FakeServer {
     const seq = Number((init.headers as Record<string, string> | undefined)?.['x-doc-seq'] ?? 0);
     const body: unknown = init.body ? JSON.parse(init.body as string) : null;
     this.requests.push({ method, url, seq, body });
+    if (this.hang) await new Promise(() => undefined);
 
     const list = /^\/docs\/(settings|stories|chapters)$/.exec(path);
     if (list) return this.json(this.of(list[1]));
@@ -189,6 +192,26 @@ describe('Persistence', () => {
     expect(server.requests.map((request) => request.method)).toEqual(['DELETE']);
     await settle();
     expect(server.documents.has('chapter:one')).toBe(false);
+  });
+
+  it('sends again from the unload when a write is still in the air', async () => {
+    await persistence.load();
+    persistence.listen();
+    server.requests.length = 0;
+    server.hang = true;
+
+    persistence.write('chapter:one', { id: 'one', turn: 1 });
+    // Long enough for the queue to have taken it and sent it, not long enough
+    // for anything to have come back: the server is not answering.
+    await vi.advanceTimersByTimeAsync(400);
+    expect(server.requests).toHaveLength(1);
+
+    window.dispatchEvent(new Event('beforeunload', { cancelable: true }));
+
+    expect(server.requests).toHaveLength(2);
+    expect(server.requests[1].body).toEqual({ id: 'one', turn: 1 });
+    // The later one wins wherever the two land: the server drops the older seq.
+    expect(server.requests[1].seq).toBeGreaterThan(server.requests[0].seq);
   });
 
   it('keeps the session going while the server is away, and catches up after', async () => {

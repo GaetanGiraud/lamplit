@@ -179,14 +179,15 @@ export class Persistence implements StorageBackend {
     try {
       while (this.pending.size) {
         const [key, queued] = this.pending.entries().next().value!;
-        this.pending.delete(key);
-        try {
-          await this.send(key, queued);
-        } catch (error) {
-          // Put it back, unless a store has already queued something newer.
-          if (!this.pending.has(key)) this.pending.set(key, queued);
-          throw error;
-        }
+        // Stays queued while it is in flight, so that a window closing in that
+        // moment still beacons it and the queue is never seen as empty when it
+        // is not. A failure therefore needs nothing done to it: it is already
+        // where the retry will find it.
+        await this.send(key, queued);
+        // Gone only if this is still the entry that was sent: `enqueue` writes
+        // a fresh object every time, so identity is the whole question, and
+        // anything queued during the flight has to go on its own account.
+        if (this.pending.get(key) === queued) this.pending.delete(key);
       }
     } catch (error) {
       failure = error;
