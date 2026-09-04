@@ -67,7 +67,7 @@ export interface SceneDialogData {
 
     <mat-dialog-actions>
       <span class="cost ms-hint">{{ words() }} words · {{ cost() }} tokens every request</span>
-      <button matButton mat-dialog-close>{{ data.opening ? 'Not yet' : 'Close' }}</button>
+      <button matButton [mat-dialog-close]="false">{{ data.opening ? 'Not yet' : 'Close' }}</button>
       <button matButton="filled" [disabled]="!valid()" (click)="confirm()">
         {{ data.opening ? 'Open the chapter' : 'Save the scene' }}
       </button>

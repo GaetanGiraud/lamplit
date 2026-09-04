@@ -30,7 +30,10 @@ export interface TextPromptData {
       </mat-form-field>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button matButton mat-dialog-close>Cancel</button>
+      <!-- Bound rather than bare: a mat-dialog-close with no value closes with
+           the empty string, which a caller asking "was this cancelled?" reads
+           as an answer. Backing out of this one has to be nothing at all. -->
+      <button matButton [mat-dialog-close]="undefined">Cancel</button>
       <button matButton="filled" (click)="confirm()">{{ data.confirm ?? 'Save' }}</button>
     </mat-dialog-actions>
   `,
@@ -78,7 +81,7 @@ export interface ConfirmData {
       <p>{{ data.message }}</p>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button matButton mat-dialog-close cdkFocusInitial>Cancel</button>
+      <button matButton [mat-dialog-close]="false" cdkFocusInitial>Cancel</button>
       <button matButton="filled" class="go" [class.danger]="data.danger" [mat-dialog-close]="true">
         {{ data.confirm ?? 'Delete' }}
       </button>

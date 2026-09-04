@@ -394,6 +394,41 @@ test.describe('chapters', () => {
     await expect(composer(page)).toBeEnabled();
   });
 
+  /**
+   * A bare `mat-dialog-close` closes with the empty string rather than with
+   * nothing, so a cancel used to arrive at the caller looking like an answer —
+   * and this one wrote it over the title. Both renames are here because the
+   * story's was correct only by luck, `if (title)` where the chapter's asked
+   * `!== undefined`.
+   */
+  test('cancelling a rename changes nothing, in either place', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE, chapterTitle: 'A hundred and nine steps' });
+    await page.goto(server.url);
+
+    await page.getByRole('button', { name: 'Chapters' }).click();
+    const list = page.getByRole('dialog');
+    await list.getByRole('button', { name: 'Chapter actions' }).click();
+    await page.getByRole('menuitem', { name: 'Rename' }).click();
+    await page.getByRole('textbox', { name: 'Chapter title' }).fill('Something else');
+    await page.getByRole('button', { name: 'Cancel' }).click();
+
+    await expect(list.locator('.title')).toHaveText('A hundred and nine steps');
+    await list.getByRole('button', { name: 'Done' }).click();
+
+    await page.getByRole('button', { name: /The Lighthouse/ }).click();
+    await page.getByRole('menuitem', { name: 'Rename…' }).click();
+    await page.getByRole('textbox', { name: 'Title' }).fill('Something else');
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.locator('ms-top-bar')).toContainText('The Lighthouse');
+
+    // And nothing reached the file either way.
+    const story = await server.document('stories', STORY_ID);
+    expect(story?.['title']).toBe('The Lighthouse');
+    const chapter = await server.document('chapters', CHAPTER_ID);
+    expect(chapter?.['title']).toBe('A hundred and nine steps');
+  });
+
   test('chapter numbers are never reused', async ({ page, server }) => {
     await seedConnectedSettings(server);
     await seedStory(server, { scene: SCENE });

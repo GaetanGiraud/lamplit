@@ -98,7 +98,7 @@ export interface NewStoryData extends StorySetup {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton mat-dialog-close>Cancel</button>
+      <button matButton [mat-dialog-close]="undefined">Cancel</button>
       <button matButton="filled" (click)="confirm()">{{ data.confirm }}</button>
     </mat-dialog-actions>
   `,
