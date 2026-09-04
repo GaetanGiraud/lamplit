@@ -25,7 +25,11 @@ export default defineConfig({
       command: `node fake-openai-server.mjs`,
       url: `http://localhost:${API_PORT}/v1/models`,
       env: { FAKE_API_PORT: String(API_PORT) },
-      reuseExistingServer: !process.env.CI,
+      // Never reused, in CI or here. It keeps a counter of its own, so a run
+      // that inherited one from an earlier run would not start where it
+      // thought — and, worse, an edit to the fake would silently not be what
+      // is under test until whoever made it noticed the old process.
+      reuseExistingServer: false,
       stdout: 'pipe',
     },
   ],

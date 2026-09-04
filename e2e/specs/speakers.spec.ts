@@ -31,11 +31,14 @@ async function inkOf(label: Locator): Promise<string> {
 let clock = 0;
 
 function said(role: 'user' | 'assistant', content: string, speaker?: { id: string; name: string }) {
+  const at = String(++clock).padStart(2, '0');
   return {
-    id: `m${++clock}`,
+    id: `m${clock}`,
     role,
     content,
-    createdAt: `2026-01-01T00:00:0${clock}.000Z`,
+    // Padded: from the tenth message on, `00:00:010` is not a time at all, and
+    // this counter runs across every test in the file.
+    createdAt: `2026-01-01T00:00:${at}.000Z`,
     ...(speaker ? { speakerId: speaker.id, speakerName: speaker.name } : {}),
   };
 }

@@ -566,8 +566,10 @@ test.describe('a new story', () => {
     await page.getByRole('menuitem', { name: 'New story…' }).click();
     const box = page.getByRole('dialog').locator('textarea');
     await box.waitFor();
-    // Let the dialog finish opening: it scales up, which moves the numbers.
-    await page.waitForTimeout(400);
+    // The dialog scales up as it opens, which moves the numbers this measures.
+    // Waiting for the animation to be over says that; a sleep says "probably
+    // by now", and is the one thing every flaky suite has in common.
+    await expect(page.locator('.mdc-dialog--opening')).toHaveCount(0);
 
     const state = () =>
       box.evaluate((el: HTMLTextAreaElement) => ({
