@@ -67,7 +67,13 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', focusWindow);
-  app.whenReady().then(start, fatal);
+  // `.catch` rather than a second argument: that one only answers for
+  // `whenReady` itself, and everything that can actually go wrong — a profile
+  // that cannot be written, a port that will not open, an app that will not
+  // load — happens inside `start`. Unanswered, it left a process with no
+  // window holding the single-instance lock, so relaunching did nothing
+  // either, and said nothing at all.
+  app.whenReady().then(start).catch(fatal);
 }
 
 /** @type {import('node:http').Server | null} */
@@ -311,6 +317,12 @@ const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
  */
 async function checkForUpdates() {
   if (!app.isPackaged) return;
+  // The portable build installs nothing and is not installed: it is one .exe
+  // on a stick, beside the stories. electron-updater does not know that and
+  // would download the installer and run it on quit, leaving an installed
+  // Lamplit with an empty profile while the stick stayed as it was. The pill
+  // from /api/updates still tells a portable reader there is a new version.
+  if (process.env['PORTABLE_EXECUTABLE_DIR']) return;
   try {
     const { autoUpdater } = await import('electron-updater');
     autoUpdater.autoDownload = true;
@@ -362,5 +374,10 @@ const SHUTDOWN_GRACE = 1500;
 
 function fatal(error) {
   console.error(`Lamplit could not start: ${error.stack ?? error.message}`);
+  // A packaged app has no console anyone is watching, and a launcher that
+  // appears to do nothing is the worst way to say something went wrong.
+  if (app.isPackaged) {
+    dialog.showErrorBox('Lamplit could not start', String(error.message ?? error));
+  }
   app.exit(1);
 }
