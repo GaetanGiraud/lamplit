@@ -327,9 +327,9 @@ const PANEL_PUSH_WIDTH = 1100;
       background: var(--ms-surface);
     }
 
-    /* Over the page rather than beside it. The composer keeps a z-index of its
-       own and stays above the scrim, so the chapter can still be written into
-       with the panel open. */
+    /* Over the page rather than beside it, with the scrim between: at this
+       width the panel is the thing being used, and the page under it — the
+       composer at the end of it included — waits until the scrim is clicked. */
     :host(.overlay) .panel {
       position: absolute;
       inset-block: 0;

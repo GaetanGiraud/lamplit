@@ -10,6 +10,14 @@ The page is the app. Everything else opens over it and gets out of the way again
 
 ## The page
 
+**The composer is the end of the page, not a shelf under it.** The story, the chapter's two
+buttons and the box you write the next line in are all in one scroll: reach the box and you have
+reached the end of the story so far. Scroll up to read back and it goes away with everything else,
+so a chapter is text from the top of the window to the bottom of it — which matters most where the
+screen is smallest and where the model writes faster than you read. There is a third of a screen
+of quiet under the box, so the last line of the story is read above it rather than against the
+bottom edge.
+
 Your lines sit in a quiet block with a rule down the side. The model's answers are set as prose,
 in a serif, at a measure that is comfortable to read rather than as wide as your monitor.
 
@@ -62,7 +70,15 @@ chapter cannot be written into — instead you get the reason and the button tha
 it — a half-written passage is still a passage, and you can edit it or carry on from it.
 
 Scroll up to read back and a small **↓** appears in the margin, in the same column as the message
-actions: one click and you are at the end again. Streaming never drags you back on its own.
+actions: one click and you are at the end of the page again, box included. Streaming never drags
+you back on its own — but while you are at the end, it keeps you there, so an answer arriving is
+read without touching anything.
+
+**Start typing and the box comes to you.** A letter pressed while nothing is focused — not a
+field, not a dialog, not a button — focuses the composer, brings the end of the page into view and
+takes the letter, so finishing a chapter half a page up and writing the next line is one keystroke
+rather than a scroll and a click. Space is left alone: it pages the story down, which is what a
+reader wants it for.
 
 ![An answer arriving, with Stop up](images/streaming.png)
 

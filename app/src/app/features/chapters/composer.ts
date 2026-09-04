@@ -5,6 +5,7 @@ import {
   afterNextRender,
   computed,
   inject,
+  output,
   signal,
   viewChild,
 } from '@angular/core';
@@ -18,9 +19,20 @@ import { TOKEN_ESTIMATOR, formatTokens } from '../../core/tokens';
 import { DialogsService } from '../../shared/dialogs.service';
 import { TextValue } from '../../shared/text-value';
 
+/**
+ * The end of the page: what happens next, written where the reading stopped.
+ *
+ * It is in the page's scroller rather than docked under it, so it is on screen
+ * for anyone who has read to the end and out of the way of anyone who has not.
+ * Which is why it also listens for a key pressed with nothing focused: a writer
+ * who finished reading half a page up should not have to go and find the box.
+ */
 @Component({
   selector: 'ms-composer',
   imports: [MatButtonModule, MatTooltipModule, TextFieldModule, TextValue],
+  host: {
+    '(document:keydown)': 'onDocumentKey($event)',
+  },
   template: `
     <div class="dock">
       <div class="column">
@@ -122,15 +134,11 @@ import { TextValue } from '../../shared/text-value';
     </div>
   `,
   styles: `
-    /* Above the chapter panel's scrim, so the panel covering the page at a
-       narrow width never takes the box away from whoever is writing in it. */
+    /* Part of the page now, not a shelf over it: no rule, no tint and nothing
+       blurred behind it, because there is nothing behind it. The box draws its
+       own border and that is the whole of the furniture. */
     .dock {
-      position: relative;
-      z-index: 2;
-      border-top: 1px solid var(--ms-border);
-      background: color-mix(in srgb, var(--ms-surface) 88%, transparent);
-      backdrop-filter: blur(10px);
-      padding: 0.7rem 0 0.6rem;
+      padding: 0.2rem 0 0;
     }
 
     .column {
@@ -269,10 +277,16 @@ export class Composer {
   protected readonly settings = inject(SettingsStore);
   protected readonly dialogs = inject(DialogsService);
 
-  private readonly input = viewChild.required<ElementRef<HTMLTextAreaElement>>('input');
+  // Not `required`: a chapter with no scene, no connection or a closed status
+  // has the reason and the way out of it where the box would be, and the
+  // document-wide key listener runs on those pages too.
+  private readonly input = viewChild<ElementRef<HTMLTextAreaElement>>('input');
   private readonly directionInput = viewChild<ElementRef<HTMLTextAreaElement>>('directionInput');
-  private readonly autosize = viewChild.required(CdkTextareaAutosize);
+  private readonly autosize = viewChild(CdkTextareaAutosize);
   private readonly injector = inject(Injector);
+
+  /** The page is asked to bring its end into view; only it knows where that is. */
+  readonly startedTyping = output<void>();
 
   private readonly estimator = inject(TOKEN_ESTIMATOR);
 
@@ -368,6 +382,38 @@ export class Composer {
     else this.direction.set('');
   }
 
+  /**
+   * A letter pressed with nothing focused goes into the composer.
+   *
+   * "Nothing focused" is `document.body` and only that, which is what makes
+   * this safe rather than clever: a dialog, a menu, another field or a button
+   * all hold focus themselves, so none of them is interrupted, and Space on a
+   * focused button still presses it. Space is left alone even here — it pages
+   * the story down, and a reader uses it far more often than a writer would
+   * open a line with one.
+   *
+   * The character is put in by hand rather than left to the browser to deliver
+   * after the focus moves: this way it goes through the same input path as any
+   * other keystroke, so `[AUTHOR]` still works and there is nothing to be
+   * fragile about.
+   */
+  protected onDocumentKey(event: KeyboardEvent): void {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key.length !== 1 || event.key === ' ') return;
+    if (document.activeElement && document.activeElement !== document.body) return;
+
+    const field = this.input()?.nativeElement;
+    if (!field) return;
+    event.preventDefault();
+
+    const typed = this.draft() + event.key;
+    this.draft.set(typed);
+    this.setInput(typed);
+    field.focus();
+    field.setSelectionRange(typed.length, typed.length);
+    this.startedTyping.emit();
+  }
+
   protected onKey(event: KeyboardEvent): void {
     // Shift+Enter is a newline; Ctrl/Cmd+Enter belongs to the global
     // regenerate shortcut, so neither one sends.
@@ -391,8 +437,10 @@ export class Composer {
 
   /** The DOM node and the box's height, which the signal alone does not move. */
   private setInput(value: string): void {
-    this.input().nativeElement.value = value;
-    this.autosize().resizeToFitContent(true);
+    const field = this.input()?.nativeElement;
+    if (!field) return;
+    field.value = value;
+    this.autosize()?.resizeToFitContent(true);
   }
 
   private focusDirection(): void {

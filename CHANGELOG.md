@@ -7,6 +7,21 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**The composer is the end of the page now, not a dock under it.** The story, the chapter's two
+buttons and the box you write in are one scroll: reach the box and you have reached the end of the
+story so far.
+
+- **Scroll up and the page is text, edge to edge.** The box goes away with everything else, which
+  is a quarter of a laptop screen and most of a phone given back to the thing you are actually
+  doing. **↓** in the margin brings the end back, box included.
+- **Reading at the model's pace is unchanged.** While you are at the end of the page, an answer
+  arriving keeps you there and the box stays on screen the whole time.
+- **Start typing and the box comes to you.** A letter pressed while nothing is focused focuses the
+  composer, brings the end of the page into view and takes the letter. Space is left alone — it
+  pages the story down.
+- **A third of a screen of quiet under the box**, so the last line of the story is read above it
+  rather than against the bottom edge.
+
 **The page can change with the scene.** A chapter set in a snowbound monastery and one set in a
 jazz club at two in the morning were read on the same cream paper. **Preferences → Colours** now
 opens on a **page palette** row — the page Lamplit ships and ten others: Frost, Hearth, Nocturne,
