@@ -139,6 +139,12 @@ export interface MessageMeta {
   completionTokens?: number;
   finishReason?: string;
   aborted?: boolean;
+  /**
+   * Set when the reply ended early with words already on the page: the
+   * provider errored mid-stream, or the connection went. The message is kept
+   * and the footer says this, because the reader watched the text arrive.
+   */
+  interrupted?: string;
   /** Set when the turn failed; the bubble renders as an error with a retry. */
   error?: string;
 }

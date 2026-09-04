@@ -583,6 +583,7 @@ export class MessageItem {
       parts.push(`${prompt}${formatTokens(meta.completionTokens)} out`);
     }
     if (meta.aborted) parts.push('stopped');
+    else if (meta.interrupted) parts.push(meta.interrupted);
     else if (meta.finishReason === 'length') parts.push('cut off at the reply limit');
     if (message.editedAt) parts.push('edited');
     return parts.join('  ·  ');

@@ -20,6 +20,12 @@ export interface ChatStreamResult {
   usage?: TokenUsage;
   finishReason?: string;
   aborted: boolean;
+  /**
+   * The reply ended early and not because anyone asked it to: the provider
+   * sent an error mid-stream, or the connection went. Whatever had arrived is
+   * in `content`, which is the point of saying this rather than throwing.
+   */
+  interrupted?: ModelError;
 }
 
 export type DeltaHandler = (delta: { content?: string; reasoning?: string }) => void;
@@ -138,8 +144,12 @@ export class ModelClient {
       }
     } catch (e) {
       const error = errorFromThrown(e);
-      if (error.kind !== 'aborted') throw error;
-      result.aborted = true;
+      // Text the reader has already watched arrive is not something to replace
+      // with an error card: a reply cut short is kept, and the footer says it
+      // was cut short. Nothing at all is a failed turn, with a Try again.
+      if (error.kind === 'aborted') result.aborted = true;
+      else if (result.content || result.reasoning) result.interrupted = dropped(error);
+      else throw error;
     }
     if (signal?.aborted) result.aborted = true;
     return result;
@@ -202,6 +212,21 @@ export class ModelClient {
       throw errorFromThrown(e);
     }
   }
+}
+
+/**
+ * A failure that arrived mid-reply, said as what it is. `errorFromThrown`
+ * cannot know that the endpoint was answering a moment ago, so its "check the
+ * base URL and CORS" is about a connection that was demonstrably working.
+ */
+function dropped(error: ModelError): ModelError {
+  if (error.kind !== 'network') return error;
+  return new ModelError(
+    'network',
+    'The connection dropped part-way through the reply.',
+    error.status,
+    error.detail,
+  );
 }
 
 /**

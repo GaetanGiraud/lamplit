@@ -402,7 +402,7 @@ export class ChapterStore {
         },
         signal,
       );
-      return { text: result.content, usage: result.usage };
+      return { text: result.content, usage: result.usage, error: result.interrupted?.message };
     } catch (e) {
       return { text: '', error: errorFromThrown(e).message };
     }
@@ -507,6 +507,7 @@ export class ChapterStore {
           completionTokens: result.usage?.completionTokens ?? this.estimator.count(result.content),
           finishReason: result.finishReason,
           aborted: result.aborted || undefined,
+          interrupted: result.interrupted?.message,
         },
       });
     } catch (e) {

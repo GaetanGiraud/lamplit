@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readSseData } from './sse';
-import { buildBody, normaliseBaseUrl, parseChunk } from './model-client';
+import { ModelClient, buildBody, normaliseBaseUrl, parseChunk } from './model-client';
 import { errorFromResponse } from './model-errors';
 import { formatTokens, heuristicEstimator } from './tokens';
 import { renderMarkdown, renderStoryHtml } from './formatting';
@@ -47,6 +47,69 @@ describe('readSseData', () => {
       'one\ntwo',
       '[DONE]',
     ]);
+  });
+});
+
+describe('streamChat', () => {
+  const request = {
+    baseUrl: 'https://endpoint.invalid/v1',
+    apiKey: '',
+    model: 'm',
+    messages: [{ role: 'user' as const, content: 'Say something.' }],
+    params: { maxResponseTokens: 100, stop: [] } as unknown as GenerationParams,
+  };
+
+  /** The endpoint answering with this body, and this content type. */
+  function answers(body: ReadableStream<Uint8Array> | string, type = 'text/event-stream'): void {
+    vi.stubGlobal('fetch', () =>
+      Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': type } })),
+    );
+  }
+
+  const event = (payload: unknown) => `data: ${JSON.stringify(payload)}\n\n`;
+  const said = (content: string) => event({ choices: [{ delta: { content } }] });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('keeps what arrived when the provider errors half way through it', async () => {
+    answers(
+      streamOf(said('The lantern room, '), said('and then'), event({ error: { message: 'boom' } })),
+    );
+    const seen: string[] = [];
+
+    const result = await new ModelClient().streamChat(request, (delta) => {
+      if (delta.content) seen.push(delta.content);
+    });
+
+    // Resolved, not thrown: the reader watched these words arrive.
+    expect(result.content).toBe('The lantern room, and then');
+    expect(seen).toHaveLength(2);
+    expect(result.interrupted?.message).toContain('boom');
+    expect(result.aborted).toBe(false);
+  });
+
+  it('throws when it fails with nothing to show for it', async () => {
+    answers(streamOf(event({ error: { message: 'boom' } })));
+    await expect(new ModelClient().streamChat(request, () => {})).rejects.toThrow(/boom/);
+  });
+
+  it('says the connection dropped, rather than doubting a URL that was working', async () => {
+    // Pulled rather than queued: `error()` throws away whatever is still in the
+    // queue, and the point here is a connection that goes after the words came.
+    let pulls = 0;
+    answers(
+      new ReadableStream({
+        pull(controller) {
+          if (pulls++ === 0) controller.enqueue(new TextEncoder().encode(said('Half a ')));
+          else controller.error(new TypeError('network error'));
+        },
+      }),
+    );
+
+    const result = await new ModelClient().streamChat(request, () => {});
+
+    expect(result.content).toBe('Half a ');
+    expect(result.interrupted?.message).toBe('The connection dropped part-way through the reply.');
   });
 });
 
