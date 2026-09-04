@@ -176,6 +176,13 @@ describe('token estimates', () => {
     expect(formatTokens(3200)).toBe('3.2k');
     expect(formatTokens(16384)).toBe('16k');
   });
+
+  it('rounds before it chooses the shape, so there is no 10.0k or 1000k', () => {
+    expect(formatTokens(999)).toBe('999');
+    expect(formatTokens(9999)).toBe('10k');
+    expect(formatTokens(999_999)).toBe('1.0M');
+    expect(formatTokens(2_000_000)).toBe('2.0M');
+  });
 });
 
 describe('renderStoryHtml', () => {

@@ -34,8 +34,17 @@ export const TOKEN_ESTIMATOR = new InjectionToken<TokenEstimator>('TokenEstimato
   factory: () => heuristicEstimator,
 });
 
-/** "3.2k" / "812" — for the pills and message footers. */
+/**
+ * "3.2k" / "812" — for the pills and message footers.
+ *
+ * Rounded before the shape is chosen, not after: 9,999 rounds to ten thousand
+ * and is written `10k`, where deciding on the raw number first wrote `10.0k`,
+ * and a million was `1000k`.
+ */
 export function formatTokens(n: number): string {
   if (n < 1000) return String(n);
-  return `${(n / 1000).toFixed(n < 10000 ? 1 : 0)}k`;
+  const thousands = Math.round(n / 100) / 10;
+  if (thousands < 10) return `${thousands.toFixed(1)}k`;
+  const rounded = Math.round(n / 1000);
+  return rounded < 1000 ? `${rounded}k` : `${(Math.round(n / 100_000) / 10).toFixed(1)}M`;
 }
