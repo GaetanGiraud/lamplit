@@ -372,6 +372,21 @@ async function theApp() {
   await page.reload();
   await page.waitForTimeout(800);
 
+  // The author's voice, caught in the composer with the two halves apart: the
+  // tag has already been taken out of the prose and what follows it is in the
+  // author's own field, so the split is readable before anything is sent.
+  const box = page.locator('ms-composer textarea').first();
+  await box.fill('I take the key off the hook.\n[AUTHOR] Nell refuses to follow her up.');
+  await page.waitForTimeout(500);
+  await shot(page, 'author', 'a line of the story, and a direction the model must follow');
+
+  // And where it stays once it is sent: a note under the prose, never in it.
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await stop.waitFor({ timeout: 20_000 });
+  await stop.waitFor({ state: 'hidden', timeout: 20_000 });
+  await page.waitForTimeout(500);
+  await shot(page, 'author-note', 'the direction as the page keeps it: a note, not a line');
+
   // The other story: role-play, cast one character at a time, so the page has
   // names on it. The demo story is a narrator's and never has any, which is
   // what makes it the wrong story for this one picture.

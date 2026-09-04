@@ -16,9 +16,16 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChapterMessage } from '../../core/models';
 import { renderStoryHtml } from '../../core/formatting';
+import { withDirection } from '../../core/prompt-builder';
 import { SpeakerLabel } from '../../core/speakers';
 import { formatTokens } from '../../core/tokens';
 import { TextValue } from '../../shared/text-value';
+
+/** Both halves of a message, as an edit leaves them. */
+export interface MessageEdit {
+  content: string;
+  direction: string;
+}
 
 /**
  * One turn. The assistant's text is set as prose across the reading column;
@@ -62,6 +69,24 @@ import { TextValue } from '../../shared/text-value';
             (input)="draft.set(text($event))"
             (keydown)="onEditorKey($event)"
           ></textarea>
+
+          <!-- The author's half, edited as its own field: the whole point of
+               keeping the two apart is that neither can eat the other. -->
+          @if (message().direction) {
+            <label class="direction-edit">
+              <span class="tag">author</span>
+              <textarea
+                cdkTextareaAutosize
+                cdkAutosizeMinRows="2"
+                cdkAutosizeMaxRows="10"
+                aria-label="The direction from the author"
+                [msText]="draftDirection()"
+                (input)="draftDirection.set(text($event))"
+                (keydown)="onEditorKey($event)"
+              ></textarea>
+            </label>
+          }
+
           <div class="editor-actions">
             <span class="ms-hint">Ctrl+Enter saves, Escape cancels.</span>
             <button matButton (click)="cancelEdit()">Cancel</button>
@@ -76,7 +101,16 @@ import { TextValue } from '../../shared/text-value';
             <button matButton (click)="remove.emit()">Dismiss</button>
           </div>
         } @else {
-          <div class="story-prose" [innerHTML]="html()"></div>
+          @if (message().content) {
+            <div class="story-prose" [innerHTML]="html()"></div>
+          }
+
+          <!-- The author speaking, not the persona: a note about the story
+               rather than a line of it, so it is never set as prose. -->
+          @if (message().direction; as direction) {
+            <p class="direction"><span class="tag">author</span>{{ direction }}</p>
+          }
+
           @if (streaming() && !message().content) {
             <p class="waiting">
               <span class="dot"></span><span class="dot"></span><span class="dot"></span>
@@ -253,6 +287,45 @@ import { TextValue } from '../../shared/text-value';
       height: 6px;
       border-radius: 50%;
       background: currentColor;
+    }
+
+    /* Indented under the prose it belongs to, in the interface font: a note
+       in the author's hand, and nothing a reader could mistake for the text. */
+    .direction {
+      margin: 0.55rem 0 0;
+      padding-left: 0.85rem;
+      border-left: 2px solid color-mix(in srgb, var(--ms-muted) 45%, transparent);
+      font-family: var(--ms-sans);
+      font-size: 0.85rem;
+      font-style: italic;
+      line-height: 1.5;
+      color: var(--ms-muted);
+    }
+
+    .tag {
+      display: inline-block;
+      margin-right: 0.45rem;
+      font-size: 0.7rem;
+      font-style: normal;
+      font-variant-caps: all-small-caps;
+      letter-spacing: 0.06em;
+      color: color-mix(in srgb, var(--ms-muted) 80%, var(--ms-ink));
+    }
+
+    .direction-edit {
+      display: block;
+    }
+
+    .direction-edit .tag {
+      display: block;
+      margin: 0 0 0.2rem;
+    }
+
+    .direction-edit textarea {
+      min-height: 3rem;
+      font-family: var(--ms-sans);
+      font-size: 0.9rem;
+      font-style: italic;
     }
 
     .meta {
@@ -484,7 +557,7 @@ export class MessageItem {
   /** Whose turn this is, when the page has a name for it. */
   readonly speaker = input<SpeakerLabel | null>(null);
 
-  readonly edited = output<string>();
+  readonly edited = output<MessageEdit>();
   readonly remove = output<void>();
   readonly regenerate = output<void>();
   readonly replay = output<void>();
@@ -494,6 +567,7 @@ export class MessageItem {
 
   protected readonly editing = signal(false);
   protected readonly draft = signal('');
+  protected readonly draftDirection = signal('');
   protected readonly copied = signal(false);
 
   protected readonly isUser = computed(() => this.message().role === 'user');
@@ -543,6 +617,7 @@ export class MessageItem {
 
   protected startEdit(): void {
     this.draft.set(this.message().content);
+    this.draftDirection.set(this.message().direction ?? '');
     this.editing.set(true);
   }
 
@@ -552,8 +627,14 @@ export class MessageItem {
 
   protected saveEdit(): void {
     const content = this.draft().trim();
+    const direction = this.draftDirection().trim();
     this.editing.set(false);
-    if (content && content !== this.message().content) this.edited.emit(content);
+    // Either half may be emptied, but not both: a message with nothing left in
+    // it is a deletion, and there is a menu item that says so.
+    if (!content && !direction) return;
+    const message = this.message();
+    if (content === message.content && direction === (message.direction ?? '')) return;
+    this.edited.emit({ content, direction });
   }
 
   protected onEditorKey(event: KeyboardEvent): void {
@@ -570,7 +651,11 @@ export class MessageItem {
 
   protected async copy(): Promise<void> {
     try {
-      await navigator.clipboard.writeText(this.message().content);
+      // What was sent, direction and all: a message whose only content is a
+      // direction would otherwise copy nothing at all.
+      await navigator.clipboard.writeText(
+        withDirection(this.message().content, this.message().direction),
+      );
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 1200);
     } catch {

@@ -66,6 +66,37 @@ actions: one click and you are at the end again. Streaming never drags you back 
 
 ![An answer arriving, with Stop up](images/streaming.png)
 
+### Saying it as the author
+
+Sometimes what you want to say is not your character's. *The storm arrives tonight. She should
+refuse.* Written into the story it is a hint the model may or may not take; written as a
+**direction** it is an instruction the model is told to follow.
+
+![A line of the story, and a direction the model must follow](images/author.png)
+
+Two ways to write one, and they end in the same place:
+
+- **The Author button** beside **Send** opens a field under the box, and the cursor goes into it.
+- **`[AUTHOR]` at the start of a line** takes that line and everything after it out of the prose
+  and into that field as you type. The tag is removed. It is a shorthand for the button, not a
+  syntax: the split happens in front of you, so what leaves the composer is always what you can
+  see in it.
+
+A message can be prose, a direction, or both — *"Mara pushes the door open."* with *"The room is
+empty, and it should not be."* underneath it. Send with either half filled.
+
+![The direction as the page keeps it: a note, not a line](images/author-note.png)
+
+In the page it is a note under your prose — the interface font, italic, indented, labelled
+**author** — and never set as story text, because it is not any. **Edit** opens both halves in
+their own fields, and either one can be emptied. Closing the field with the button throws away
+whatever is in it, rather than sending it quietly.
+
+What the model is told, and where the direction sits in the request, is
+[The prompt → Author](the-prompt.md). The short version: it is sent with your message, marked
+`[Author: …]`, it stays in the chapter for the turns that follow, and it is left out of the
+summary when the chapter closes. It shaped the story; it is not in it.
+
 ### When a chapter outgrows the budget
 
 If the chapter has grown past what fits in one request, a note appears under the composer — *3

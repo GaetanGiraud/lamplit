@@ -7,6 +7,21 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**You can say it as the author now.** *The storm arrives tonight. She should refuse.* Written into
+the story that is a hint the model may or may not take. Written as a **direction** it is an
+instruction it is told to follow, and told to follow without ever mentioning it.
+
+- **Two ways to write one.** The **Author** button beside Send opens a field under the box, or type
+  `[AUTHOR]` at the start of a line and everything after it moves into that field as you type. A
+  message can be prose, a direction, or both, and either half on its own is worth sending.
+- **It is never part of the story.** In the page it is a note under your prose — italic, indented,
+  labelled *author* — and it is left out of the summary when the chapter closes and out of the
+  keyword scan that fires lore. It shaped what happened; it is not what happened.
+- **It stays in the chapter**, so *the storm arrives tonight* is still holding three messages later.
+- **The model is told how to read it**, in a block that sits last of all, after the style rules,
+  because it overrides them. That block cannot be edited, cannot be dragged anywhere else, and
+  there is no setting that turns it off.
+
 **The page says who is speaking.** A story cast one character at a time now puts a small name above
 each passage — the character who wrote it, in their own colour, with a dot to match — and your own
 lines carry your persona's name in a quieter one. A run of turns by the same speaker is named once,

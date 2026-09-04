@@ -147,8 +147,15 @@ describe('buildPrompt: the order of the blocks', () => {
 
   const ids = (s: Story) => build({ story: s }).blocks.map((b) => b.id);
 
+  /**
+   * The shipped order without the author's block, which is the one block whose
+   * presence a chapter decides rather than a story: nothing here carries a
+   * direction, so it is not in any of these. `directions.spec` holds that end.
+   */
+  const SHIPPED = DEFAULT_BLOCK_ORDER.filter((id) => id !== 'author');
+
   it('ships in the order the app was built with', () => {
-    expect(ids(full())).toEqual([...DEFAULT_BLOCK_ORDER]);
+    expect(ids(full())).toEqual(SHIPPED);
     expect(isDefaultOrder(full())).toBe(true);
   });
 
@@ -167,7 +174,7 @@ describe('buildPrompt: the order of the blocks', () => {
     // A list naming a pinned block is a list this build cannot honour, so it
     // is not honoured at all — and the ends could not have moved anyway.
     const meddling = full(['style', 'scene', 'persona', 'mode'] as BlockId[]);
-    expect(ids(meddling)).toEqual([...DEFAULT_BLOCK_ORDER]);
+    expect(ids(meddling)).toEqual(SHIPPED);
     expect(ids(meddling)[0]).toBe('mode');
     expect(ids(meddling).at(-1)).toBe('style');
   });

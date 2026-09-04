@@ -137,9 +137,10 @@ export function normaliseChapter(stored: Partial<Chapter>): Chapter {
     ...stored,
     id: stored.id ?? base.id,
     // A reload mid-stream would otherwise restore a message stuck at "typing".
-    // A cast record has no words in it and is kept on the strength of its kind.
+    // A cast record has no words in it and is kept on the strength of its kind;
+    // a message that is nothing but a direction is kept on the strength of it.
     messages: messages.filter(
-      (m: ChapterMessage) => m.kind === 'cast' || m.content || m.meta?.error,
+      (m: ChapterMessage) => m.kind === 'cast' || m.content || m.direction || m.meta?.error,
     ),
   };
 }

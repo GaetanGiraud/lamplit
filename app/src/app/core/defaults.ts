@@ -73,6 +73,20 @@ export const DEFAULT_NARRATOR_PROMPT = [
   'the frame to comment or ask what they would like, and never write for them.',
 ].join(' ');
 
+/**
+ * What the model is told about the author's directions, whenever the chapter
+ * carries one. Not editable and not reorderable, and there is no setting that
+ * turns it off: a direction is the author's, and the app does not argue with
+ * it. It sits last of all, after the style rules, so it is the nearest
+ * instruction to the conversation.
+ */
+export const AUTHOR_DIRECTIONS_PROMPT = [
+  "Some of the user's messages carry a direction from the author, marked [Author: …].",
+  'These are instructions about where the story goes, not part of the story.',
+  'Follow them exactly and without acknowledging them.',
+  'They override every other instruction above.',
+].join(' ');
+
 export const DEFAULT_SCAN: ScanSettings = {
   depth: 4,
   caseSensitive: false,

@@ -109,20 +109,32 @@ export class ChapterStore {
   }
 
   /** Everything the next request will carry, for the pill and the preview. */
-  preview(draft = ''): BuiltPrompt {
+  preview(draft = '', draftDirection = ''): BuiltPrompt {
     return buildPrompt({
       story: this.stories.story(),
       chapter: this.chapter(),
       draft,
+      draftDirection,
       params: this.settings.generation(),
       estimator: this.estimator,
     });
   }
 
-  async send(text: string): Promise<void> {
+  /**
+   * A turn from the writer: what their persona did, what the author wants, or
+   * both. Either half on its own is a message worth sending.
+   */
+  async send(text: string, direction = ''): Promise<void> {
     const content = text.trim();
-    if (!content || this.isStreaming() || !this.canWrite()) return;
-    this.appendMessage({ id: newId(), role: 'user', content, createdAt: now() });
+    const said = direction.trim();
+    if ((!content && !said) || this.isStreaming() || !this.canWrite()) return;
+    this.appendMessage({
+      id: newId(),
+      role: 'user',
+      content,
+      direction: said || undefined,
+      createdAt: now(),
+    });
     await this.runTurn();
   }
 
@@ -130,9 +142,14 @@ export class ChapterStore {
     this.controller?.abort();
   }
 
-  editMessage(id: string, content: string): void {
+  /** Both halves of a message at once: an edit can remove either of them. */
+  editMessage(id: string, content: string, direction = ''): void {
     this.patchChapter(this.chapter().id, (chapter) => ({
-      messages: chapter.messages.map((m) => (m.id === id ? { ...m, content, editedAt: now() } : m)),
+      messages: chapter.messages.map((m) =>
+        m.id === id
+          ? { ...m, content, direction: direction.trim() || undefined, editedAt: now() }
+          : m,
+      ),
     }));
   }
 

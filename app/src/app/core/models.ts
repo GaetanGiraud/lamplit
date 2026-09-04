@@ -180,6 +180,14 @@ export interface ChapterMessage {
    * leaves the page saying what it said at the time.
    */
   speakerName?: string;
+  /**
+   * The author's words about this turn rather than the persona's words in it —
+   * "the storm arrives tonight", "she should refuse". Kept apart from
+   * `content` because that is what lets it be drawn as a note, left out of the
+   * summary and sent to the model as an instruction. A message may have prose,
+   * a direction, or both.
+   */
+  direction?: string;
   /** Cast records only. */
   cast?: CastChange;
 }
@@ -193,7 +201,7 @@ export interface ChapterMessage {
  * Persisted in `Story.promptOrder`, so a name is part of the file format: a
  * stored order naming something this build does not know is simply not used.
  */
-export type BlockId = 'mode' | 'persona' | 'story-so-far' | 'lore' | 'scene' | 'style';
+export type BlockId = 'mode' | 'persona' | 'story-so-far' | 'lore' | 'scene' | 'style' | 'author';
 
 export type StoryMode = 'narrator' | 'roleplay';
 

@@ -133,15 +133,18 @@ to wait for a chapter that mentions it.
 | 7.1 | Paste **P12**, **Enter**. | The answer knows who Tomas is to Mara (from the story so far and the lore), without being told in the line. Compare its `in` count to the preview total from 6.5. | |
 | 7.2 | Paste **P13**, **Enter**. | Mara's promise is now in the record. The narrator does not have Mara take it back or qualify it — that is her line, not the model's. | |
 | 7.3 | Paste **P14**, **Enter**. | Night falls in the cottage. The answer sets up a next morning without writing it. | |
-| 7.4 | Paste **P15**, **Enter**. | A last turn that mentions the lantern room. The lore entry fires on this line for the *next* request, not this one — check the pill after sending if you like; it is not required. | |
-| 7.5 | Score the chapter as a whole against the [prose rubric](#prose-rubric). | Eight answers, one voice. | |
+| 7.4 | Paste **P15**. Then, on a new line in the same box, type `[AUTHOR] ` and paste **P15a**. | As you type the tag it disappears, P15a moves into the **author** field under the box, and the **Author** button lights up. The box still holds P15 and nothing else. | |
+| 7.5 | **Enter**. | Your line appears with the direction under it as a note — italic, indented, labelled *author* — and not as part of the prose. The answer does what P15a asked without ever mentioning being asked: the door is unlocked and Mara can tell, and nothing in the reply reads as an acknowledgement. The lore entry fires on this line for the *next* request, not this one. | |
+| 7.6 | Click the **context** pill. | A seventh block, **Author**, sits after the style rules — *"Some of the user's messages carry a direction…"* — with a reason where a drag handle would be. In **This chapter**, your last message goes out as P15, a blank line, then `[Author: …]`. | |
+| 7.7 | Open the chapter file. | The last user message has `content` (P15) and `direction` (P15a) as **two separate fields**. The direction is nowhere inside `content`. | |
+| 7.8 | Score the chapter as a whole against the [prose rubric](#prose-rubric). | Eight answers, one voice. | |
 
 ## 8 · Close the chapter
 
 | # | Do | Expected | Result |
 |---|---|---|---|
 | 8.1 | Press **Close chapter** in the toolbar above the composer. | A sheet opens and a summary streams into an editable box. Below it: **Write it again**, **What was asked for**, **Cancel**, **Close the chapter**. | |
-| 8.2 | Read the summary. Check it against the [summary rubric](#summary-rubric). | Names (Mara, Tomas), the cut hand, the promise not to leave, the missing keeper, the logbook, the cottage — all present. Past tense, continuous prose, not a bullet list, under 300 words. It *rewrites* P9 to include the chapter rather than pasting the chapter after P9. | |
+| 8.2 | Read the summary. Check it against the [summary rubric](#summary-rubric). | Names (Mara, Tomas), the cut hand, the promise not to leave, the missing keeper, the logbook, the cottage — all present. Past tense, continuous prose, not a bullet list, under 300 words. It *rewrites* P9 to include the chapter rather than pasting the chapter after P9. **P15a is not in it**, in any words: a direction shaped the chapter, it is not part of it. | |
 | 8.3 | **What was asked for**. | The fold-in instruction, read-only, with the default shown and **Write my own**. Close it without changing anything. | |
 | 8.4 | Edit one word in the summary — change *scarf* to *sleeve*, say. **Close the chapter**. | The sheet closes. The **scene sheet for Chapter 2** opens immediately, **pre-filled with P4**. The top bar reads *Chapter 2*. | |
 | 8.5 | Open `data/stories/<id>.json`. | `world.storySoFar` is the edited summary and **only** the summary — P9 is gone as a separate text, folded in. | |
@@ -282,6 +285,7 @@ Copy exactly. Curly quotes and dashes are fine either way.
 | **P13** | Composer, C1·6 | `I stop at the water's edge and say out loud, to nobody, that I am not leaving this island until I have found him.` |
 | **P14** | Composer, C1·7 | `I go back to the cottage, light the stove, and sit up with the logbook until it is too dark to read.` |
 | **P15** | Composer, C1·8 | `Before I sleep I look up at the tower and try to remember whether the lantern room door locks from the inside.` |
+| **P15a** | Composer, the author field on C1·8 | `The door is unlocked, and it has not been unlocked since Tomas left.` |
 | **P16** | Scene sheet, chapter 2 (replace the pre-filled text) | `The lantern room, an hour after dawn.` |
 | **P17** | Composer, C2·1 | `I climb the last of the stairs, favouring my good hand, and push the door open.` |
 | **P18** | Composer, C2·2 | `I look for anything Tomas might have left for me.` |

@@ -166,8 +166,13 @@ export function assistantMessages(page: Page): Locator {
   return page.locator('article[data-role="assistant"]');
 }
 
+/**
+ * The box the story is written in. Not every textarea in the composer: the
+ * author's field is one too, and it is open whenever a direction is being
+ * written.
+ */
 export function composer(page: Page): Locator {
-  return page.locator('ms-composer textarea');
+  return page.locator('ms-composer .field > textarea');
 }
 
 /**

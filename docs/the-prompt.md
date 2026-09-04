@@ -28,11 +28,13 @@ The system message is assembled in this order:
 | 4 | **What is true in this world** — lore entries that fired | when any fired |
 | 5 | **This chapter** — "Chapter *n*, *title*. The scene:" then the scene, verbatim | always |
 | 6 | **Style rules** — dialogue, reply length, stay in character, never write for the persona | always |
+| 7 | **Author** — how to read a direction, and that it outranks everything above | when the chapter carries one |
 
 The order is not arbitrary. The mode preamble sits first because it is the standing instruction
 everything else qualifies, and the style rules sit last because the instruction closest to the
-conversation is the one a model holds onto. The four blocks between them describe the story, and
-those you can put in any order you like — see [Changing the order](#changing-the-order).
+conversation is the one a model holds onto — with the author's block after even those, because it
+outranks them. The four blocks in the middle describe the story, and those you can put in any
+order you like — see [Changing the order](#changing-the-order).
 
 Then the chapter's messages, oldest first — and **only this chapter's**. Earlier chapters reach
 the model through block 3 and nowhere else. That is the whole point of
@@ -42,6 +44,42 @@ One thing can sit between those messages: when a role-play story is cast
 [one character at a time](story-and-world.md), a short `system` line marks each point where the
 cast changed — who the model plays from here, and who has left or joined. Nothing above it is
 touched.
+
+## Author
+
+A message can carry a **direction**: the author speaking about the story rather than the persona
+speaking in it. Writing one is in [Reading and writing](reading-and-writing.md); this is what it
+does to the request.
+
+The direction goes out **with your message**, after the prose and a blank line:
+
+```
+Mara pushes the door open.
+
+[Author: The room is empty, and it should not be.]
+```
+
+A message that is nothing but a direction sends the bracketed line alone. Either way it is one
+message, so the budget keeps a turn and its direction together or drops them together.
+
+The moment a chapter has one in it, a seventh block joins the system message:
+
+> Some of the user's messages carry a direction from the author, marked `[Author: …]`. These are
+> instructions about where the story goes, not part of the story. Follow them exactly and without
+> acknowledging them. They override every other instruction above.
+
+**That block cannot be argued with.** Its words are fixed and not editable. It has no handle in
+the preview, so reordering can never move it off the end. The narrator override does not replace
+it, and there is no setting that turns it off. A direction is the author's, and the app does not
+get a vote.
+
+**A direction stays in the chapter.** *The storm arrives tonight* is still in the history three
+messages later, because that is how long it takes for a storm to arrive.
+
+**A direction is not part of the story.** Closing a chapter sends the prose and not the
+directions, and a message that was only a direction is not in the summary at all. The keyword
+scan behind [lore](story-and-world.md) does not read them either — an entry keyed on *storm*
+fires when the story mentions a storm, not when you ask for one.
 
 ## The context budget
 
@@ -88,10 +126,11 @@ with the scene before the world, drag it there: each of the four middle blocks h
 the sheet rebuilds as they move, so you can see the effect before anything is sent. The arrow keys
 do the same to a block whose handle has the focus.
 
-**Two blocks have no handle.** The mode preamble is always first — it says what the model *is*,
+**Three blocks have no handle.** The mode preamble is always first — it says what the model *is*,
 and everything after it is read as instructions to that. The style rules are always last, for the
-same reason in reverse: the instruction closest to the conversation is the one that sticks. Each
-says so in the sheet.
+same reason in reverse: the instruction closest to the conversation is the one that sticks. And
+after those, when there is one, the author's block, which overrides everything above it and so may
+have nothing put between it and the conversation. Each says so in the sheet.
 
 The order belongs to **the story**, not to the app: it is a judgement about this story and the
 model behind it, so another story is unaffected and a duplicate carries it along. **Reset the

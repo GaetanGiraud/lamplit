@@ -101,12 +101,12 @@ export class DialogsService {
     this.dialog.open(ChaptersDialog, { width: '40rem', maxWidth: '95vw', autoFocus: 'dialog' });
   }
 
-  async openPromptPreview(draft = ''): Promise<void> {
+  async openPromptPreview(draft = '', direction = ''): Promise<void> {
     const { PromptPreviewDialog } = await import('../features/chapters/prompt-preview-dialog');
     this.dialog.open(PromptPreviewDialog, {
       width: '46rem',
       maxWidth: '95vw',
-      data: { draft },
+      data: { draft, direction },
       autoFocus: 'dialog',
     });
   }

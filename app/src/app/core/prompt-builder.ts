@@ -1,4 +1,5 @@
 import {
+  AUTHOR_DIRECTIONS_PROMPT,
   DEFAULT_NARRATOR_PROMPT,
   DEFAULT_SUMMARY_INSTRUCTION,
   REPLY_LENGTH_HINTS,
@@ -22,17 +23,18 @@ export type { BlockId };
 // ---------------------------------------------------------------------------
 
 /**
- * Two blocks are fixed and four are not.
+ * Three blocks are fixed and four are not.
  *
  * The mode preamble opens because it says what the model *is*, and everything
  * after it is read as instructions to that. The style rules close because the
- * instruction nearest the conversation is the one a model holds onto. What sits
- * between them all describes the story, and which of those a given model weighs
- * most is a matter of taste — so it is the writer's, per story.
+ * instruction nearest the conversation is the one a model holds onto, and the
+ * author's directions close after even those, because they outrank them. What
+ * sits between them all describes the story, and which of those a given model
+ * weighs most is a matter of taste — so it is the writer's, per story.
  */
 export const PINNED_FIRST: readonly BlockId[] = ['mode'];
 export const MOVABLE_BLOCKS: readonly BlockId[] = ['persona', 'story-so-far', 'lore', 'scene'];
-export const PINNED_LAST: readonly BlockId[] = ['style'];
+export const PINNED_LAST: readonly BlockId[] = ['style', 'author'];
 
 export const DEFAULT_BLOCK_ORDER: readonly BlockId[] = [
   ...PINNED_FIRST,
@@ -44,6 +46,9 @@ export const DEFAULT_BLOCK_ORDER: readonly BlockId[] = [
 export const PIN_REASONS: Record<string, string> = {
   mode: 'Always first: it says what the model is, and the rest is read as instructions to that.',
   style: 'Always last: the instruction closest to the conversation is the one that sticks.',
+  author:
+    'Only when the chapter carries a direction, and never anywhere but here: a direction ' +
+    'overrides everything above it, so nothing may be put between it and the conversation.',
 };
 
 export function isPinned(id: BlockId): boolean {
@@ -101,6 +106,8 @@ export interface PromptInput {
   chapter: Chapter;
   /** The message about to be sent; counted, and appended as the last turn. */
   draft?: string;
+  /** The direction about to be sent with it, if the composer has one open. */
+  draftDirection?: string;
   /** History to use instead of the chapter's own, for regenerate and replay. */
   messages?: readonly ChapterMessage[];
   params: GenerationParams;
@@ -138,14 +145,25 @@ export function buildPrompt(input: PromptInput): BuiltPrompt {
   const { story, chapter, params, estimator } = input;
   const history = input.messages ?? chapter.messages;
   const draft = (input.draft ?? '').trim();
+  const draftDirection = (input.draftDirection ?? '').trim();
 
+  // The block is there when the chapter carries a direction, and the moment
+  // the composer has one open: the preview has to show the request that is
+  // about to go out rather than the one that would have gone a message ago.
+  const directions = !!draftDirection || history.some((m) => m.direction?.trim() && !m.meta?.error);
+
+  // Lore is scanned over the story's own words. A direction is about the story
+  // rather than in it, so it fires nothing.
   const lore = activeLore(story, chapter, history, draft);
-  const blocks = systemBlocks(story, chapter, lore, estimator);
+  const blocks = systemBlocks(story, chapter, lore, directions, estimator);
   const system = blocks.map((b) => b.content).join('\n\n');
   const systemMessage: OutboundMessage[] = system ? [{ role: 'system', content: system }] : [];
 
   const systemTokens = estimator.countMessages(systemMessage);
-  const draftMessage: OutboundMessage[] = draft ? [{ role: 'user', content: draft }] : [];
+  const draftContent = withDirection(draft, draftDirection);
+  const draftMessage: OutboundMessage[] = draftContent
+    ? [{ role: 'user', content: draftContent }]
+    : [];
   const draftTokens = estimator.countMessages(draftMessage);
 
   const reserve = params.maxResponseTokens;
@@ -159,7 +177,7 @@ export function buildPrompt(input: PromptInput): BuiltPrompt {
   for (let i = usable.length - 1; i >= 0; i--) {
     const { message, note } = usable[i];
     const cost = estimator.countMessages([message]);
-    if (historyTokens + cost > budget && (kept.length || draft)) break;
+    if (historyTokens + cost > budget && (kept.length || draftContent)) break;
     kept.unshift(message);
     historyTokens += cost;
     if (!note) sent++;
@@ -204,13 +222,24 @@ function outboundHistory(
       if (note) out.push({ message: { role: 'system', content: note }, note: true });
       continue;
     }
-    if (!message.content.trim() || message.meta?.error) continue;
-    out.push({
-      message: { role: message.role, content: message.content },
-      note: false,
-    });
+    const content = withDirection(message.content, message.direction);
+    if (!content || message.meta?.error) continue;
+    out.push({ message: { role: message.role, content }, note: false });
   }
   return out;
+}
+
+/**
+ * How a direction reaches the model: the prose, a blank line, and the
+ * direction in brackets — or the bracketed line alone, when the author said
+ * nothing as their persona. One outbound message either way, so the budget
+ * drops a turn and its direction together or keeps them together.
+ */
+export function withDirection(content: string, direction: string | undefined): string {
+  const prose = content.trim();
+  const said = direction?.trim();
+  if (!said) return prose;
+  return prose ? `${prose}\n\n[Author: ${said}]` : `[Author: ${said}]`;
 }
 
 /**
@@ -279,7 +308,9 @@ export function buildSummaryPrompt(story: Story, chapter: Chapter): OutboundMess
   ];
   if (chapter.scene.trim()) parts.push(`The scene it opened on:\n${chapter.scene.trim()}`);
   // A cast record has nothing to summarise; who was speaking does, so a line
-  // written by one character is attributed to them and not to the story.
+  // written by one character is attributed to them and not to the story. A
+  // direction is left out entirely — it shaped what happened, it is not part
+  // of what happened — which also drops a message that was nothing but one.
   const transcript = chapter.messages
     .filter((m) => m.kind !== 'cast' && m.content.trim() && !m.meta?.error)
     .map((m) => `${speakerLabel(story, m)}: ${m.content.trim()}`)
@@ -324,6 +355,7 @@ function systemBlocks(
   story: Story,
   chapter: Chapter,
   lore: readonly LoreHit[],
+  directions: boolean,
   estimator: TokenEstimator,
 ): PromptBlock[] {
   const made: Record<BlockId, { label: string; content: string }> = {
@@ -336,6 +368,10 @@ function systemBlocks(
     lore: { label: 'World', content: loreBlock(lore) },
     scene: { label: 'This chapter', content: sceneBlock(chapter) },
     style: { label: 'Style', content: styleBlock(story) },
+    // Fixed words, and the only block whose presence is decided by the
+    // chapter rather than by the story: a chapter with no direction in it
+    // sends nothing about directions.
+    author: { label: 'Author', content: directions ? AUTHOR_DIRECTIONS_PROMPT : '' },
   };
   // A block with nothing in it is not a block: an empty persona should not
   // cost a blank line in the system message, nor a row in the preview.

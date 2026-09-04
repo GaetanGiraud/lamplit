@@ -13,11 +13,14 @@ import {
   PIN_REASONS,
   isDefaultOrder,
   movableOrder,
+  withDirection,
 } from '../../core/prompt-builder';
 import { formatTokens } from '../../core/tokens';
 
 export interface PromptPreviewData {
   draft: string;
+  /** The direction the composer has open, if any; sent with the draft. */
+  direction: string;
 }
 
 /**
@@ -145,13 +148,16 @@ export interface PromptPreviewData {
         }
       </section>
 
-      @if (data.draft.trim()) {
+      @if (nextMessage()) {
         <section class="block">
           <header>
             <span class="name">Your next message</span>
             <span class="tokens">{{ format(prompt().tokens.draft) }}</span>
           </header>
-          <pre>{{ data.draft }}</pre>
+          <!-- As it will go out, direction and all, rather than as it is typed:
+               the point of the sheet is that nothing about the request is a
+               surprise. -->
+          <pre>{{ nextMessage() }}</pre>
         </section>
       }
     </mat-dialog-content>
@@ -318,7 +324,9 @@ export class PromptPreviewDialog {
   private readonly chapters = inject(ChapterStore);
   private readonly stories = inject(StoryStore);
 
-  protected readonly prompt = computed(() => this.chapters.preview(this.data.draft));
+  protected readonly prompt = computed(() =>
+    this.chapters.preview(this.data.draft, this.data.direction),
+  );
 
   protected readonly reasons = PIN_REASONS;
 
@@ -341,10 +349,14 @@ export class PromptPreviewDialog {
     () => this.stories.story().world.entries.filter((e) => e.enabled && !e.content.trim()).length,
   );
 
+  protected readonly nextMessage = computed(() =>
+    withDirection(this.data.draft, this.data.direction),
+  );
+
   protected readonly sent = computed(
     () =>
       this.prompt().messages.filter((m) => m.role !== 'system').length -
-      (this.data.draft.trim() ? 1 : 0),
+      (this.nextMessage() ? 1 : 0),
   );
 
   protected readonly totals = computed(() => {
