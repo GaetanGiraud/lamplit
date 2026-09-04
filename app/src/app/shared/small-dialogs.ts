@@ -58,9 +58,14 @@ export class TextPromptDialog {
     return (event.target as HTMLInputElement).value;
   }
 
+  /**
+   * Save closes with what is in the box, empty or not: for a chapter, cleared
+   * is a title given back to the scene's first line, which the scene sheet
+   * offers in as many words. Cancel and Escape close with nothing, which is
+   * what "undefined" is kept for — the two are different answers.
+   */
   protected confirm(): void {
-    const value = this.draft().trim();
-    this.ref.close(value || undefined);
+    this.ref.close(this.draft().trim());
   }
 }
 

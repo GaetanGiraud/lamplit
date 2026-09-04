@@ -429,6 +429,29 @@ test.describe('chapters', () => {
     expect(chapter?.['title']).toBe('A hundred and nine steps');
   });
 
+  test('a chapter title can be given back, and the scene names it again', async ({
+    page,
+    server,
+  }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE, chapterTitle: 'A hundred and nine steps' });
+    await page.goto(server.url);
+
+    await page.getByRole('button', { name: 'Chapters' }).click();
+    const list = page.getByRole('dialog');
+    await list.getByRole('button', { name: 'Chapter actions' }).click();
+    await page.getByRole('menuitem', { name: 'Rename' }).click();
+    await page.getByRole('textbox', { name: 'Chapter title' }).fill('');
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Emptied on purpose, which the scene sheet offers in as many words: the
+    // chapter goes by its scene again rather than keeping the old name.
+    await expect(list.locator('.title')).toHaveText(SCENE);
+    await expect
+      .poll(async () => (await server.document('chapters', CHAPTER_ID))?.['title'])
+      .toBe('');
+  });
+
   test('chapter numbers are never reused', async ({ page, server }) => {
     await seedConnectedSettings(server);
     await seedStory(server, { scene: SCENE });
