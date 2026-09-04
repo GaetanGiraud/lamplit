@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -100,6 +100,27 @@ describe('DocumentStore', () => {
     ]);
     const files = await readdir(join(store.dataDir, 'chapters'));
     assert.deepEqual(files.sort(), ['a.json', 'b.json']);
+  });
+
+  it('leaves no temporary file behind when the rename itself fails', async () => {
+    const store = await freshStore();
+    // A folder wearing the document's name: nothing can be renamed over it.
+    await mkdir(store.pathOf('stories', 'one'));
+    await assert.rejects(store.write('stories', 'one', { id: 'one' }));
+    assert.deepEqual(await readdir(join(store.dataDir, 'stories')), ['one.json']);
+  });
+
+  it('lists the documents it can read and skips the one it cannot', async () => {
+    const store = await freshStore();
+    await store.write('stories', 'good', { id: 'good' });
+    await mkdir(store.pathOf('stories', 'bad'));
+    const warn = console.warn;
+    console.warn = () => {};
+    try {
+      assert.deepEqual(await store.list('stories'), [{ id: 'good' }]);
+    } finally {
+      console.warn = warn;
+    }
   });
 
   it('writes readable JSON, which is the point of files on disk', async () => {

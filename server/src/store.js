@@ -76,7 +76,14 @@ export class DocumentStore {
     const documents = [];
     for (const file of files) {
       if (!file.endsWith('.json')) continue;
-      const document = await this.read(collection, file.slice(0, -'.json'.length));
+      const id = file.slice(0, -'.json'.length);
+      // One entry that cannot be read — a folder wearing the name, a file held
+      // open, a permission — costs that entry, not the collection. The listing
+      // is what the app starts from; a 500 here is a no-server screen.
+      const document = await this.read(collection, id).catch((error) => {
+        console.warn(`[lamplit] skipping ${collection}/${file}: ${error.message}`);
+        return null;
+      });
       if (document !== null) documents.push(document);
     }
     return documents;
@@ -111,7 +118,15 @@ export class DocumentStore {
     return this.#enqueue(collection, id, seq, async (path) => {
       const temporary = `${path}.${randomUUID().slice(0, 8)}.tmp`;
       await writeFile(temporary, `${JSON.stringify(document, null, 2)}\n`, 'utf8');
-      await rename(temporary, path);
+      try {
+        await rename(temporary, path);
+      } catch (error) {
+        // Windows refuses the rename while something holds the target open;
+        // the write has failed either way, and the failure should not also
+        // leave a stray file for the backup to pick up.
+        await rm(temporary, { force: true }).catch(() => {});
+        throw error;
+      }
     });
   }
 
