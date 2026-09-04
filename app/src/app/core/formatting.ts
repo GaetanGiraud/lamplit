@@ -101,7 +101,30 @@ const PURIFY_CONFIG = {
  */
 export function renderMarkdown(source: string): string {
   if (!source) return '';
-  return DOMPurify.sanitize(markedPlain.parse(source, { async: false }), PURIFY_CONFIG);
+  return DOMPurify.sanitize(toHtml(markedPlain, source), PURIFY_CONFIG);
+}
+
+/**
+ * The parse, and what to do when there is no parsing it.
+ *
+ * marked walks the source recursively, so prose nested deeply enough — a
+ * thousand levels of `> - `, which a model that has started repeating itself
+ * will eventually write — leaves it as a `RangeError` rather than as HTML.
+ * This runs inside a `computed` read during change detection, so the throw
+ * would take the view down and not just the paragraph. An unparseable answer
+ * is shown as the text it is instead: still readable, still copyable, still
+ * the words the model sent.
+ */
+function toHtml(parser: Marked, source: string): string {
+  try {
+    return parser.parse(source, { async: false });
+  } catch {
+    return `<p>${escapeText(source)}</p>`;
+  }
+}
+
+function escapeText(value: string): string {
+  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
 /**
@@ -111,7 +134,7 @@ export function renderMarkdown(source: string): string {
  */
 export function renderStoryHtml(source: string, options: RenderOptions): string {
   if (!source) return '';
-  const clean = DOMPurify.sanitize(marked.parse(source, { async: false }), PURIFY_CONFIG);
+  const clean = DOMPurify.sanitize(toHtml(marked, source), PURIFY_CONFIG);
 
   const host = document.createElement('div');
   host.innerHTML = clean;

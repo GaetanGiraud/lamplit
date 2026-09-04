@@ -232,6 +232,16 @@ describe('renderStoryHtml', () => {
   it('renders nothing for nothing', () => {
     expect(renderStoryHtml('', plain)).toBe('');
   });
+
+  it('shows prose it cannot parse as prose, rather than throwing into the view', () => {
+    // A thousand levels of nesting is a RangeError out of marked's recursion,
+    // and this is read during change detection: a throw here is a blank page.
+    const runaway = `${'> - '.repeat(2000)}the lantern room`;
+    let html = '';
+    expect(() => (html = renderStoryHtml(runaway, plain))).not.toThrow();
+    expect(html).toContain('the lantern room');
+    expect(renderMarkdown(runaway)).toContain('the lantern room');
+  });
 });
 
 describe('renderMarkdown', () => {
