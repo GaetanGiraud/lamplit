@@ -19,6 +19,8 @@ import { fileURLToPath } from 'node:url';
  * published rather than after.
  */
 
+import { notesProblem } from './lib/changelog.mjs';
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = join(ROOT, 'CHANGELOG.md');
 const PAGE = join(ROOT, 'docs', 'releases.md');
@@ -36,12 +38,21 @@ notes: **⋯ → About Lamplit → Release notes**, and the top bar says so when
 `;
 
 const checking = process.argv.includes('--check');
+/** `--version 0.1.1`: the tag being built, which the top section has to name. */
+const tagged = argumentAfter('--version');
 
 const changelog = normalise(await readFile(SOURCE, 'utf8'));
 const page = `${HEADER}\n${released(changelog)}`;
 const current = await readFile(PAGE, 'utf8').then(normalise, () => null);
 
-if (!checking) {
+if (tagged) {
+  const problem = notesProblem(changelog, tagged);
+  if (problem) {
+    console.error(`\ncheck:notes — ${problem}\n`);
+    process.exit(1);
+  }
+  console.log(`check:notes — CHANGELOG.md’s top section is ${tagged}.`);
+} else if (!checking) {
   await writeFile(PAGE, page, 'utf8');
   console.log(`notes — docs/releases.md, ${count(page)} version(s) from CHANGELOG.md`);
 } else if (current !== page) {
@@ -71,6 +82,11 @@ function released(source) {
 
 function count(page) {
   return (page.match(/^## /gm) ?? []).length;
+}
+
+function argumentAfter(flag) {
+  const at = process.argv.indexOf(flag);
+  return at === -1 ? '' : (process.argv[at + 1] ?? '').replace(/^v/, '');
 }
 
 /** This repository is edited on Windows; the page it writes is not CRLF. */
