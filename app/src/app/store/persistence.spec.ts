@@ -166,6 +166,18 @@ describe('Persistence', () => {
     expect(new Set(seqs).size).toBe(3);
   });
 
+  it('says it is saving from the moment there is something to save', async () => {
+    await persistence.load();
+    expect(persistence.status()).toBe('saved');
+
+    persistence.write('chapter:one', { id: 'one', turn: 1 });
+    // Still in the debounce: nothing has been sent, and nothing is on disk.
+    expect(persistence.status()).toBe('saving');
+
+    await settle();
+    expect(persistence.status()).toBe('saved');
+  });
+
   it('deletes on the server what the store deletes here', async () => {
     server.documents.set('chapter:one', { id: 'one' });
     await persistence.load();

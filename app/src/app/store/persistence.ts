@@ -160,6 +160,9 @@ export class Persistence implements StorageBackend {
     const ref = refOf(key);
     if (!ref) return;
     this.pending.set(key, { ref, kind });
+    // Queued is not saved. "Offline" is the truer word while that lasts, and
+    // it has its own way back to "saved" once the queue drains.
+    if (this.statusState() !== 'offline') this.statusState.set('saving');
     this.schedule(DEBOUNCE);
   }
 
@@ -204,8 +207,10 @@ export class Persistence implements StorageBackend {
     }
     this.retryDelay = 0;
     this.errorState.set('');
-    this.statusState.set('saved');
+    // Only with nothing left is every document on disk what is on screen,
+    // which is what "saved" is written on the indicator to mean.
     if (this.pending.size) this.schedule(DEBOUNCE);
+    else this.statusState.set('saved');
   }
 
   private send(key: string, queued: Queued): Promise<void> {
