@@ -47,6 +47,12 @@ const PROFILE =
   process.env['PORTABLE_EXECUTABLE_DIR'] ??
   app.getPath('userData');
 if (PROFILE !== app.getPath('userData')) app.setPath('userData', resolve(PROFILE));
+// Moving `userData` moves Chromium's own caches with it — fifteen folders of
+// them, next to the two that hold the writing. On a stick that is churn on the
+// stick; anywhere it is a profile nobody can read at a glance. They go into a
+// folder of their own, still inside the profile, so a portable copy is still
+// self-contained.
+app.setPath('sessionData', join(app.getPath('userData'), 'browser'));
 
 const DATA_DIR = join(app.getPath('userData'), 'data');
 const BACKUPS_DIR = join(app.getPath('userData'), 'backups');

@@ -78,6 +78,17 @@ test('opens on the connection sheet, as a fresh install does', async () => {
   });
 });
 
+test('keeps the browser’s own files out of the way of the writing', async () => {
+  // Moving the profile moves Chromium's caches with it. On a stick — the
+  // portable build's whole point — that is fifteen folders of churn beside
+  // `data`, which docs/desktop.md says holds the stories and the backups.
+  const sessionData = await app.evaluate(({ app: electronApp }) =>
+    electronApp.getPath('sessionData'),
+  );
+  expect(sessionData).toBe(join(userData, 'browser'));
+  expect(existsSync(join(userData, 'Cache'))).toBe(false);
+});
+
 test('writes its documents into the profile, not beside the app', async () => {
   const dialog = window.getByRole('dialog');
   await dialog.getByLabel('API key').fill('a-key-typed-in-the-desktop-app');
