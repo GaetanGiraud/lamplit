@@ -147,25 +147,30 @@ function toRelease(raw) {
 
 /**
  * Numeric, segment by segment: 0.10.0 is newer than 0.9.9, and 0.1.0 is not.
- * Anything after the numbers is ignored, so `0.2.0-2` is 0.2.0 — a pre-release
- * has already been filtered out before this ever sees it.
+ * A pre-release is filtered out of the list before this sees it, but the
+ * *running* version can be one, and then `0.2.0-beta.1` has to read as a beta
+ * of 0.2.0 — below the release, not a fourth segment above it.
  */
 export function isNewer(candidate, than) {
-  const left = segments(candidate);
-  const right = segments(than);
-  for (let i = 0; i < Math.max(left.length, right.length); i++) {
-    const a = left[i] ?? 0;
-    const b = right[i] ?? 0;
+  const left = parse(candidate);
+  const right = parse(than);
+  for (let i = 0; i < Math.max(left.numbers.length, right.numbers.length); i++) {
+    const a = left.numbers[i] ?? 0;
+    const b = right.numbers[i] ?? 0;
     if (a !== b) return a > b;
   }
-  return false;
+  // The same numbers: the release outranks its own pre-release, and two
+  // pre-releases are left alone rather than guessed at.
+  return !left.pre && right.pre;
 }
 
-function segments(version) {
-  return String(version)
-    .split('.')
-    .map((part) => Number.parseInt(part, 10))
-    .map((part) => (Number.isFinite(part) ? part : 0));
+/** The dotted numbers at the front, and whether anything hyphenated follows. */
+function parse(version) {
+  const match = /^v?(\d+(?:\.\d+)*)(-\S+)?/.exec(String(version).trim());
+  return {
+    numbers: match ? match[1].split('.').map((part) => Number.parseInt(part, 10)) : [],
+    pre: Boolean(match?.[2]),
+  };
 }
 
 export { RELEASES_URL };

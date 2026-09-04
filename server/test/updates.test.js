@@ -50,6 +50,15 @@ describe('isNewer', () => {
     assert.equal(isNewer('0.1.0', '0.2.0'), false);
     assert.equal(isNewer('1.0.0', '0.99.99'), true);
   });
+
+  it('reads a pre-release as the version it is a pre-release of', () => {
+    // The release is newer than its own beta, and the beta is not newer than it.
+    assert.equal(isNewer('0.2.0', '0.2.0-beta.1'), true);
+    assert.equal(isNewer('0.2.0-beta.1', '0.2.0'), false);
+    assert.equal(isNewer('0.2.0-beta.1', '0.1.0'), true);
+    assert.equal(isNewer('v0.2.0', '0.1.0'), true);
+    assert.equal(isNewer('nonsense', '0.0.1'), false);
+  });
 });
 
 describe('the update check', () => {

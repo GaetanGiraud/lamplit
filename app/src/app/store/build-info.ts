@@ -84,21 +84,27 @@ export class BuildInfoStore {
   }
 }
 
-/** Numeric, segment by segment: 0.10.0 is newer than 0.9.9, and 0.1.0 is not. */
+/**
+ * Numeric, segment by segment: 0.10.0 is newer than 0.9.9, and 0.1.0 is not.
+ * `0.2.0-beta.1` reads as a beta of 0.2.0 — below the release, not a fourth
+ * segment above it. The same rule as `server/src/updates.js`.
+ */
 export function isNewer(candidate: string, than: string): boolean {
-  const left = segments(candidate);
-  const right = segments(than);
-  for (let i = 0; i < Math.max(left.length, right.length); i++) {
-    const a = left[i] ?? 0;
-    const b = right[i] ?? 0;
+  const left = parse(candidate);
+  const right = parse(than);
+  for (let i = 0; i < Math.max(left.numbers.length, right.numbers.length); i++) {
+    const a = left.numbers[i] ?? 0;
+    const b = right.numbers[i] ?? 0;
     if (a !== b) return a > b;
   }
-  return false;
+  return !left.pre && right.pre;
 }
 
-function segments(version: string): number[] {
-  return version
-    .split('.')
-    .map((part) => Number.parseInt(part, 10))
-    .map((part) => (Number.isFinite(part) ? part : 0));
+/** The dotted numbers at the front, and whether anything hyphenated follows. */
+function parse(version: string): { numbers: number[]; pre: boolean } {
+  const match = /^v?(\d+(?:\.\d+)*)(-\S+)?/.exec(version.trim());
+  return {
+    numbers: match?.[1] ? match[1].split('.').map((part) => Number.parseInt(part, 10)) : [],
+    pre: Boolean(match?.[2]),
+  };
 }
