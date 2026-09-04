@@ -74,10 +74,13 @@ async function main() {
 
   step('starting it the way anyone else would');
   console.log(`   ${app}`);
-  server = spawn(join(app, WINDOWS ? 'start.bat' : 'start.sh'), [], {
+  // cmd.exe splits its command line on spaces, and the temporary folder this
+  // unpacked into may well contain one, so the script is named as an argument
+  // to be run rather than as the command line itself.
+  const script = join(app, WINDOWS ? 'start.bat' : 'start.sh');
+  server = spawn(WINDOWS ? 'cmd.exe' : script, WINDOWS ? ['/c', script] : [], {
     cwd: app,
     stdio: 'inherit',
-    shell: WINDOWS,
     env: { ...process.env, LAMPLIT_PORT: String(port), LAMPLIT_OPEN: '1' },
   });
   server.on('exit', (code) => stop(code ?? 0));

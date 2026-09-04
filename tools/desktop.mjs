@@ -42,7 +42,17 @@ if (options.mode === 'run') {
   run('npx', ['electron', '.'], ELECTRON_DIR);
 } else {
   step(`staging into ${STAGE_DIR}`);
-  run('node', [join(ROOT, 'tools', 'package.mjs'), '--stage', STAGE_DIR, '--no-zip'], ROOT);
+  // `process.execPath` and no shell: cmd.exe would split the path to node.exe,
+  // and the path to this repository, on any space either of them contains.
+  // `tools/dev.mjs` says the same thing where it starts the server.
+  run(
+    process.execPath,
+    [join(ROOT, 'tools', 'package.mjs'), '--stage', STAGE_DIR, '--no-zip'],
+    ROOT,
+    {
+      shell: false,
+    },
+  );
 
   if (options.mode === 'dist') {
     const version = rootVersion(ROOT);
@@ -72,12 +82,16 @@ function parseArguments(argv) {
   return parsed;
 }
 
-/** `shell` on Windows: npm and npx are .cmd there, which Node will not spawn. */
-function run(command, args, cwd) {
+/**
+ * `shell` on Windows: npm and npx are .cmd there, which Node will not spawn.
+ * Only they need it — a shell splits every argument on its spaces, so anything
+ * carrying a path says `shell: false` and is spawned directly.
+ */
+function run(command, args, cwd, { shell = process.platform === 'win32' } = {}) {
   const result = spawnSync(command, args, {
     cwd,
     stdio: 'inherit',
-    shell: process.platform === 'win32',
+    shell,
   });
   if (result.error) fail(`${command}: ${result.error.message}`);
   if (result.status !== 0) fail(`${command} ${args.join(' ')} failed`);
