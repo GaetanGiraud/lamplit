@@ -124,7 +124,7 @@ export interface MessageEdit {
         </footer>
 
         <mat-menu #actions="matMenu">
-          <button mat-menu-item (click)="startEdit()">Edit</button>
+          <button mat-menu-item [disabled]="streaming()" (click)="startEdit()">Edit</button>
           @if (isUser()) {
             <button mat-menu-item [disabled]="busy()" (click)="replay.emit()">
               Replay from here
@@ -144,6 +144,7 @@ export interface MessageEdit {
           <button
             class="act"
             type="button"
+            [disabled]="streaming()"
             (click)="startEdit()"
             matTooltip="Edit this message"
             matTooltipPosition="left"
@@ -593,7 +594,15 @@ export class MessageItem {
     return (event.target as HTMLTextAreaElement).value;
   }
 
+  /**
+   * Not while the words are still arriving: the next delta is appended to
+   * whatever the message says, and the finished answer is written over the
+   * whole of it — so an edit made now is thrown away twice over, having
+   * looked as though it was taken. The reply is a moment from being finished,
+   * and then it can be edited like any other.
+   */
   protected startEdit(): void {
+    if (this.streaming()) return;
     this.draft.set(this.message().content);
     this.draftDirection.set(this.message().direction ?? '');
     this.editing.set(true);

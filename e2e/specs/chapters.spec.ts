@@ -87,6 +87,23 @@ test.describe('writing a chapter', () => {
     await expect(answer.locator('footer')).toContainText('stopped');
   });
 
+  test('an answer still arriving cannot be edited out from under itself', async ({ page }) => {
+    await send(page, '!slow tell me slowly');
+
+    const answer = assistantMessages(page).first();
+    await expect(answer).toContainText('knight', { timeout: 15_000 });
+
+    // Editing now would be taken, appended to by the next delta, and then
+    // written over by the finished answer: the writer's words twice discarded.
+    await answer.hover();
+    await expect(answer.getByRole('button', { name: 'Edit' })).toBeDisabled();
+
+    await page.getByRole('button', { name: 'Stop' }).click();
+    await waitForTurn(page);
+    // Finished, and an ordinary message again.
+    await expect(answer.getByRole('button', { name: 'Edit' })).toBeEnabled();
+  });
+
   test('editing a user message and replaying re-asks from there', async ({ page, server }) => {
     await send(page, 'First attempt.');
     await waitForTurn(page);
