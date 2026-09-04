@@ -192,9 +192,22 @@ away underneath.
 
 ### Colours
 
-![The colours a theme is built from](images/preferences-colours.png)
+![The ten pages a story can be read on](images/preferences-colours.png)
 
-Every colour the two themes differ on is here, one swatch each, and changing one redraws the page
+At the top is the **page palette**: eleven swatches, the page as Lamplit ships it and ten pages to
+read a story on — Frost, Hearth, Nocturne, Tide, Dusk, Verdant, Ember, Pallor, Gilt and Bloom. One
+click sets every swatch below, in both themes at once, so a palette is a preset for this panel and
+nothing more. Each was built rather than picked: a hue per role, walked towards its own ink until
+the text, the dialogue, the accent and the errors all clear WCAG AA against all three of that
+theme's papers, so none of them is a worse page to read on than the one Lamplit opens with. Change
+a colour afterwards and yours wins — the row says **custom** while any of them is set, and
+**Reset** puts them back to the palette underneath. When the open chapter has a page of its own,
+the row says so and edits that chapter's instead of the story's; see
+[Story and world](story-and-world.md).
+
+![Every colour the theme is built from](images/preferences-swatches.png)
+
+Under it, every colour the two themes differ on, one swatch each, and changing one redraws the page
 as you drag. Nothing has been added to the palette that was not already in it: **Page**, **Paper**,
 **Raised paper**, **Rules**, **Text**, **Your own lines**, **Action**, **Muted text**, **Accent**,
 **Dialogue** and **Errors** are the names the stylesheet itself uses, and each says what moves
@@ -204,8 +217,9 @@ when it moves.
   switch to light in **Reading** and you are editing the light ones. Neither touches the other.
 - **Reading font** — the serif it ships with, a sans-serif, or a monospace, all from fonts your
   computer already has. It sets the story itself; the app around it stays as it is.
-- **Reset the … colours** puts one theme back to exactly what Lamplit ships, and asks first. It
-  clears only what you changed, so a colour you never touched cannot drift.
+- **Reset the … colours** puts one theme back to whatever is underneath — the palette you picked,
+  or what Lamplit ships — and asks first. It clears only what you changed, so a colour you never
+  touched cannot drift.
 - **A contrast warning**, not a block. If your text and your paper fall below the 4.5:1 that WCAG
   AA asks of body text, it says so and lets you carry on.
 

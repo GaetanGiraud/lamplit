@@ -5,9 +5,11 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { ChapterStore } from '../../store/chapter-store';
+import { StoryStore } from '../../store/story-store';
 import { TOKEN_ESTIMATOR, formatTokens } from '../../core/tokens';
 import { countWords } from '../../shared/editor-field';
 import { firstLine } from '../../core/prompt-builder';
+import { buildPalettePrompt, paletteLabel } from '../../core/page-palettes';
 import { TextValue } from '../../shared/text-value';
 
 export interface SceneDialogData {
@@ -66,7 +68,12 @@ export interface SceneDialogData {
     </mat-dialog-content>
 
     <mat-dialog-actions>
-      <span class="cost ms-hint">{{ words() }} words · {{ cost() }} tokens every request</span>
+      <span class="cost ms-hint">
+        {{ words() }} words · {{ cost() }} tokens every request
+        @if (pageCost()) {
+          · {{ pageCost() }}
+        }
+      </span>
       <button matButton [mat-dialog-close]="false">{{ data.opening ? 'Not yet' : 'Close' }}</button>
       <button matButton="filled" [disabled]="!valid()" (click)="confirm()">
         {{ data.opening ? 'Open the chapter' : 'Save the scene' }}
@@ -125,6 +132,7 @@ export class SceneDialog {
   protected readonly data = inject<SceneDialogData>(MAT_DIALOG_DATA);
   private readonly ref = inject(MatDialogRef<SceneDialog, boolean>);
   private readonly chapters = inject(ChapterStore);
+  private readonly stories = inject(StoryStore);
   private readonly estimator = inject(TOKEN_ESTIMATOR);
 
   protected readonly chapter = computed(
@@ -143,6 +151,24 @@ export class SceneDialog {
   protected readonly cost = computed(() =>
     formatTokens(this.estimator.count(`Chapter 0, ${this.title()}. The scene:\n${this.scene()}`)),
   );
+
+  /**
+   * The other request this sheet makes, when the story lets the model choose
+   * the page from the scene: what it cost last time, or what it is about to
+   * cost. It is asked once per scene rather than once per turn, which is why it
+   * is said in the same breath as the number that *is* once per turn.
+   */
+  protected readonly pageCost = computed(() => {
+    if (!this.stories.story().autoTheme) return '';
+    const chapter = this.chapter();
+    // The recorded cost belongs to the scene it read. Edit a word and it is an
+    // estimate again, because the request is going to be made again.
+    if (chapter.paletteTokens && chapter.scene.trim() === this.scene().trim()) {
+      return `${paletteLabel(chapter.palette)} cost ${formatTokens(chapter.paletteTokens)}`;
+    }
+    const asking = this.estimator.countMessages(buildPalettePrompt(this.scene()));
+    return `about ${formatTokens(asking)} to choose the page`;
+  });
 
   constructor() {
     // Escape and backdrop save a draft; they just do not open the chapter.

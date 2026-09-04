@@ -89,6 +89,18 @@ Two settings, and both of them become a sentence in the style rules the model is
 - **Ask for each spoken line on its own paragraph.**
 - **Reply length** — short, medium or long.
 
+Then one that is not sent at all. **Let the model choose the page colours from each chapter's
+scene** is off unless you switch it on, and a chapter set in a snowbound monastery and one set in a
+jazz club at two in the morning stop being read on the same cream paper. When it is on, confirming
+the scene sheet sends one short request — the scene, and the ten palettes as a name, a line about
+each and the moods it is for — and the model answers with a single name. The chapter is read on
+that page from then on, keeps it when you come back to it, and switching chapters switches pages.
+It never sees a colour, only the moods, and its answer can only be one of the ten. A failure of any
+kind changes nothing. It is a request of its own and so a bill of its own, made once per scene and
+never during a turn; what it cost is in the scene sheet's footer beside what the scene costs every
+turn. Whatever it picks, the palette row in **Preferences → Colours** is where you overrule it —
+see [Reading and writing](reading-and-writing.md).
+
 > This is the half of "style" that is a *request to the model*. The half that is about how the
 > text is drawn on your screen — text size, theme, whether quoted lines are visually broken out —
 > lives in **Preferences → Reading** and changes nothing about the prompt. See

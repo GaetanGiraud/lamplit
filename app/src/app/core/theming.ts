@@ -1,4 +1,5 @@
 import { ColourKey, ReadingFont, ThemeName, UiSettings } from './models';
+import { PagePalette } from './page-palettes';
 
 /**
  * The reading palette, and the one place the page is told about it.
@@ -70,14 +71,23 @@ export const READING_FAMILY = '--ms-reading-family';
  * Called from an effect, so it runs on every settings change and has to undo as
  * readily as it does: a colour that is no longer overridden must leave nothing
  * behind, or the shipped one never comes back.
+ *
+ * `palette` is the page the story or the chapter asked for, and it sits between
+ * the stylesheet and the colours set by hand — a preset is exactly that, and a
+ * swatch the reader dragged themselves beats one a table chose for them.
  */
-export function applyUi(root: HTMLElement, ui: UiSettings): void {
+export function applyUi(
+  root: HTMLElement,
+  ui: UiSettings,
+  palette: PagePalette | null = null,
+): void {
   // The whole palette hangs off `color-scheme`, so this one line is the theme.
   root.style.colorScheme = ui.theme;
 
+  const preset = palette?.[ui.theme];
   const overrides = ui.colours[ui.theme] ?? {};
   for (const { key } of THEME_COLOURS) {
-    const colour = overrides[key];
+    const colour = overrides[key] || preset?.[key];
     if (colour) root.style.setProperty(propertyOf(key), colour);
     else root.style.removeProperty(propertyOf(key));
   }

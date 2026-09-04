@@ -33,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
     fontSize: 18,
     showTokenCounts: true,
     colours: {},
+    palette: '',
     font: 'serif',
     developerMode: false,
     checkForUpdates: true,

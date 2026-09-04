@@ -76,9 +76,11 @@ export class Workspace {
     // Everything under Preferences that the page can see — the theme, the
     // customised colours of that theme, the face the story is set in — is
     // written onto <html> from here, so a change in the dialog is on the page
-    // before the dialog has finished handling the event.
+    // before the dialog has finished handling the event. The palette under
+    // those colours comes from the open chapter, so switching chapters switches
+    // pages by the same route.
     effect(() => {
-      applyUi(document.documentElement, this.settings.ui());
+      applyUi(document.documentElement, this.settings.ui(), this.chapters.palette());
     });
 
     // What a fresh install is asked, in the order it is asked.

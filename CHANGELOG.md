@@ -7,6 +7,27 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**The page can change with the scene.** A chapter set in a snowbound monastery and one set in a
+jazz club at two in the morning were read on the same cream paper. **Preferences → Colours** now
+opens on a **page palette** row — the page Lamplit ships and ten others: Frost, Hearth, Nocturne,
+Tide, Dusk, Verdant, Ember, Pallor, Gilt, Bloom. One click sets every swatch under it, in both
+themes.
+
+- **A preset, and nothing more.** A palette writes the same colours the panel has always edited, so
+  changing one afterwards still works and still wins; the row says *custom* while it does, and
+  **Reset** puts you back to the palette rather than all the way out of it.
+- **Every one of them is a page you can read on.** Each was built rather than picked — a hue per
+  role, walked towards its own ink until the text, the dialogue, the accent and the errors all
+  clear WCAG AA against all three of that theme's papers.
+- **Or let the model pick.** **Story → Style** has a switch, off unless you turn it on: confirming
+  a chapter's scene sends the scene and the ten palettes as moods — never as colours — and the
+  answer is one name. The chapter is read on that page from then on and keeps it when you come back
+  to it, so switching chapters switches pages. It is a request of its own, made once per scene and
+  never during a turn, and what it cost is in the scene sheet's footer. It works on endpoints that
+  have never heard of a JSON schema, and anything that goes wrong changes nothing.
+- **And the last word is yours.** When the open chapter has a page of its own, the palette row says
+  so and edits that one.
+
 **Closing a chapter can propose the lore in it.** The summary keeps what the story needs to make
 sense; it cannot keep the name in passing, the town an hour up the coast, who owes whom. The model
 that has just read the chapter can pick those out, and **Propose lore** in the review sheet asks it

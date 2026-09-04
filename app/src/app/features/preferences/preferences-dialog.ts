@@ -15,6 +15,8 @@ import {
   shippedColour,
 } from '../../core/theming';
 import { characterColour, characterColourLabel } from '../../core/character-colours';
+import { PAGE_PALETTES, paletteLabel } from '../../core/page-palettes';
+import { ChapterStore } from '../../store/chapter-store';
 import { SettingsStore } from '../../store/settings-store';
 import { StoryStore } from '../../store/story-store';
 import { UpdatesStore } from '../../store/updates-store';
@@ -87,6 +89,45 @@ import { DialogsService } from '../../shared/dialogs.service';
             <mat-panel-title>Colours</mat-panel-title>
             <mat-panel-description>{{ coloursSummary() }}</mat-panel-description>
           </mat-expansion-panel-header>
+
+          <div class="row-head">
+            <span class="row-name">Page palette</span>
+            @if (customised()) {
+              <span class="tag">custom</span>
+            }
+          </div>
+          <p class="ms-hint palette-lead">
+            @if (editingChapter()) {
+              <strong>Chapter {{ chapters.chapter().number }} has a page of its own.</strong> This
+              row is editing that one and not the story's. The chapter keeps it when you come back
+              to it; set it back to the page it ships with and the story's own is underneath.
+            } @else {
+              A preset for the swatches below: one click sets every one of them, in both themes.
+              Change a colour afterwards and yours wins — that is what <em>custom</em> means, and
+              Reset is the way out of it.
+            }
+          </p>
+
+          <div class="palettes">
+            @for (option of paletteOptions(); track option.name) {
+              <button
+                type="button"
+                class="palette"
+                [class.on]="option.name === currentPalette()"
+                [title]="option.title"
+                (click)="choosePalette(option.name)"
+              >
+                <span class="preview" [style.background]="option.page">
+                  <span class="sheet" [style.background]="option.surface">
+                    <span class="line" [style.background]="option.ink"></span>
+                    <span class="line short" [style.background]="option.speech"></span>
+                  </span>
+                  <span class="dot" [style.background]="option.accent"></span>
+                </span>
+                <span class="palette-label">{{ option.label }}</span>
+              </button>
+            }
+          </div>
 
           <mat-form-field appearance="outline" class="font" subscriptSizing="dynamic">
             <mat-label>Reading font</mat-label>
@@ -273,6 +314,116 @@ import { DialogsService } from '../../shared/dialogs.service';
       }
     }
 
+    .row-head {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin: 0.9rem 0 0.35rem;
+    }
+
+    .row-name {
+      font-size: 0.9rem;
+      color: var(--ms-ink);
+    }
+
+    /* Said rather than implied: a preset with your own colours over it is not
+       that preset any more, and Reset is the only way back to one. */
+    .tag {
+      padding: 0.05rem 0.4rem;
+      border: 1px solid color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
+      border-radius: 999px;
+      color: var(--ms-muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.02em;
+    }
+
+    .palette-lead {
+      margin: 0 0 0.7rem;
+
+      strong {
+        color: var(--ms-ink);
+        font-weight: 600;
+      }
+    }
+
+    .palettes {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(5.2rem, 1fr));
+      gap: 0.5rem;
+    }
+
+    .palette {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.3rem;
+      padding: 0.3rem;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: none;
+      color: var(--ms-muted);
+      font: inherit;
+      font-size: 0.75rem;
+      text-align: center;
+      cursor: pointer;
+
+      &:hover {
+        background: color-mix(in srgb, var(--ms-ink) 5%, transparent);
+      }
+
+      &.on {
+        border-color: color-mix(in srgb, var(--ms-accent) 60%, transparent);
+        color: var(--ms-ink);
+      }
+    }
+
+    /* A page in miniature: the tint behind, a sheet on it, two lines of story
+       and the accent. Enough to tell ten of them apart at a glance. */
+    .preview {
+      position: relative;
+      display: block;
+      height: 2.9rem;
+      padding: 0.4rem 0.35rem;
+      border: 1px solid var(--ms-border);
+      border-radius: 7px;
+      overflow: hidden;
+    }
+
+    .sheet {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.25rem;
+      height: 100%;
+      padding: 0 0.3rem;
+      border-radius: 4px;
+    }
+
+    .line {
+      height: 2px;
+      border-radius: 1px;
+      opacity: 0.85;
+    }
+
+    .line.short {
+      width: 60%;
+    }
+
+    .dot {
+      position: absolute;
+      right: 0.3rem;
+      bottom: 0.3rem;
+      width: 0.42rem;
+      height: 0.42rem;
+      border-radius: 50%;
+    }
+
+    .palette-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .swatches {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
@@ -368,6 +519,7 @@ import { DialogsService } from '../../shared/dialogs.service';
 export class PreferencesDialog {
   protected readonly settings = inject(SettingsStore);
   protected readonly stories = inject(StoryStore);
+  protected readonly chapters = inject(ChapterStore);
   private readonly updates = inject(UpdatesStore);
   private readonly dialogs = inject(DialogsService);
 
@@ -387,6 +539,50 @@ export class PreferencesDialog {
       ),
     ),
   );
+
+  /**
+   * Whose page the row edits. A chapter with a palette of its own is the page
+   * on screen, so a click here that quietly changed the story's instead would
+   * look like it had done nothing at all.
+   */
+  protected readonly editingChapter = computed(() => !!this.chapters.chapter()?.palette);
+
+  protected readonly currentPalette = computed(
+    () => this.chapters.chapter()?.palette || this.ui().palette,
+  );
+
+  /** The presets, with the page as it ships in front of them. */
+  protected readonly paletteOptions = computed(() => {
+    const theme = this.ui().theme;
+    const shipped = (key: ColourKey) => this.shipped.get(`${theme}/${key}`) || '#000000';
+    return [
+      {
+        name: '',
+        label: 'As it ships',
+        title: 'The page Lamplit opens with.',
+        page: shipped('page'),
+        surface: shipped('surface'),
+        ink: shipped('ink'),
+        speech: shipped('speech'),
+        accent: shipped('accent'),
+      },
+      ...PAGE_PALETTES.map((palette) => ({
+        name: palette.name,
+        label: palette.label,
+        title: `${palette.description} ${palette.tags.join(', ')}.`,
+        page: palette[theme].page,
+        surface: palette[theme].surface,
+        ink: palette[theme].ink,
+        speech: palette[theme].speech,
+        accent: palette[theme].accent,
+      })),
+    ];
+  });
+
+  protected choosePalette(name: string): void {
+    if (this.editingChapter()) this.chapters.setPalette(this.chapters.chapter().id, name);
+    else this.settings.setPalette(name);
+  }
 
   /** Each colour as the page draws it now: the override, or the shipped one. */
   /** The open story's cast, each with the colour the input should show. */
@@ -421,6 +617,7 @@ export class PreferencesDialog {
     }));
   });
 
+  /** A colour set by hand: the state the palette row calls `custom`. */
   protected readonly customised = computed(() => this.swatches().some((s) => s.custom));
 
   protected readonly advancedSummary = computed(() => {
@@ -437,8 +634,9 @@ export class PreferencesDialog {
   protected readonly coloursSummary = computed(() => {
     const changed = this.swatches().filter((s) => s.custom).length;
     const font = READING_FONTS.find((f) => f.key === this.ui().font)?.label.toLowerCase();
-    if (!changed) return font === 'serif' ? 'as it ships' : `${font}`;
-    return `${changed} changed in ${this.ui().theme}`;
+    if (changed) return `${changed} changed in ${this.ui().theme}`;
+    if (this.currentPalette()) return paletteLabel(this.currentPalette()).toLowerCase();
+    return font === 'serif' ? 'as it ships' : `${font}`;
   });
 
   /**
@@ -480,7 +678,7 @@ export class PreferencesDialog {
     const theme = this.ui().theme;
     const ok = await this.dialogs.confirm({
       title: `Put the ${theme} colours back?`,
-      message: `Every colour you have changed in the ${theme} theme returns to the one Lamplit ships. The other theme keeps yours.`,
+      message: `Every colour you have changed in the ${theme} theme returns to the one underneath — the palette you picked, or what Lamplit ships. The other theme keeps yours.`,
       confirm: 'Reset',
     });
     if (ok) this.settings.resetColours(theme);

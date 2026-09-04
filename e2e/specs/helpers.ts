@@ -92,6 +92,10 @@ export interface SeedStory {
   /** The opening chapter's scene. Empty means the composer stays shut. */
   scene?: string;
   chapterTitle?: string;
+  /** Whether opening a chapter asks the model to choose the page it is read on. */
+  autoTheme?: boolean;
+  /** A page the chapter already has, as a chapter reread later would have. */
+  palette?: string;
 }
 
 /** Seeds one story with one chapter, the state most specs want to start from. */
@@ -119,6 +123,7 @@ export async function seedStory(server: PersistenceServer, options: SeedStory = 
     },
     activeChapterId: CHAPTER_ID,
     chapterCounter: 1,
+    autoTheme: options.autoTheme ?? false,
   };
   const chapter = {
     id: CHAPTER_ID,
@@ -131,6 +136,7 @@ export async function seedStory(server: PersistenceServer, options: SeedStory = 
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     messages: [],
+    ...(options.palette ? { palette: options.palette } : {}),
   };
   await server.seed({
     [`story:${STORY_ID}`]: story,

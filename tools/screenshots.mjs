@@ -359,11 +359,16 @@ async function theApp() {
   await page.getByRole('button', { name: 'Reading' }).first().click();
   await page.getByRole('button', { name: 'Colours' }).first().click();
   await page.waitForTimeout(600);
-  await shot(
-    page,
-    'preferences-colours',
-    'every colour the theme is built from, and the reading font',
-  );
+  await shot(page, 'preferences-colours', 'the ten pages a story can be read on');
+  // The section is taller than the sheet now that the palette row is at the
+  // top of it, and the swatches are what the second half of the guide's
+  // Colours section is about — so they get a frame of their own.
+  await page
+    .getByRole('dialog')
+    .locator('mat-dialog-content')
+    .evaluate((node) => node.scrollTo(0, node.scrollHeight));
+  await page.waitForTimeout(400);
+  await shot(page, 'preferences-swatches', 'every colour the theme is built from');
   await page.getByRole('button', { name: 'Colours' }).first().click();
   await page.getByRole('button', { name: 'Advanced' }).first().click();
   await page.waitForTimeout(500);

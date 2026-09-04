@@ -50,6 +50,7 @@ export function newStory(title = DEFAULT_STORY_TITLE): Story {
     },
     activeChapterId: '',
     chapterCounter: 0,
+    autoTheme: false,
   };
 }
 

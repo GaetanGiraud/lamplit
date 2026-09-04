@@ -12,9 +12,9 @@
  * Anything else gets a short canned scene with speech and an action in it,
  * suffixed with a counter so a regenerated answer is visibly different.
  *
- * A request that is not streamed is the lore extraction, and comes back as one
- * JSON object rather than as prose. The model id decides how well this endpoint
- * speaks JSON:
+ * A request that is not streamed is the lore extraction or the page palette,
+ * and comes back as one JSON object rather than as prose. The model id decides
+ * how well this endpoint speaks JSON:
  *   fake/no-json-schema   refuses `response_format` with a 400, the way an
  *                         endpoint that has never heard of it does, and then
  *                         answers with the object inside a ```json fence
@@ -89,10 +89,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    // Not streamed: the only request in the app shaped like that is the one
-    // asking what a chapter established, and it wants JSON back.
+    // Not streamed: the two requests in the app shaped like that both want
+    // JSON back. The catalogue of palettes is only in one of them.
     if (body?.stream === false) {
-      lore(response, body, prompt);
+      if (prompt.includes('The palettes:')) palette(response, body, prompt);
+      else lore(response, body, prompt);
       return;
     }
 
@@ -154,6 +155,63 @@ async function stream(response, body, prompt) {
 }
 
 /**
+ * The page palette: one name out of the list the request carried.
+ *
+ * Read out of the scene the way the lore is read out of the chapter, by looking
+ * for a word the spec planted — a scene with snow in it is cold, and the spec
+ * that seeded that scene can say which page it expects. Anything else is
+ * `pallor`, so a spec that planted nothing gets a page and not a failure.
+ */
+function palette(response, body, prompt) {
+  if (noSchema(response, body)) return;
+  const scene = prompt.split('The palettes:')[0];
+  const name = /snow|winter|cold|frost/i.test(scene)
+    ? 'frost'
+    : /neon|midnight|jazz|city/i.test(scene)
+      ? 'nocturne'
+      : 'pallor';
+  answer(response, body, JSON.stringify({ palette: name }));
+}
+
+/**
+ * The 400 an endpoint that has never heard of `response_format` answers with.
+ * True of one model id only, so the specs that want that path name it.
+ */
+function noSchema(response, body) {
+  if ((body?.model ?? '') !== 'fake/no-json-schema' || !body?.response_format) return false;
+  json(response, 400, {
+    error: { message: "Unknown parameter: 'response_format'.", type: 'invalid_request_error' },
+  });
+  return true;
+}
+
+/**
+ * One completion that is not a stream. The endpoint that could not take the
+ * schema fences its object and puts a sentence in front of it, which is what
+ * the fallback path has to read and what a real one of those does.
+ */
+function answer(response, body, object) {
+  const model = body?.model ?? 'fake/storyteller-large';
+  const content = model === 'fake/no-json-schema' ? '```json\n' + object + '\n```' : object;
+
+  let promptTokens = 0;
+  for (const message of body?.messages ?? []) promptTokens += Math.ceil(message.content.length / 4);
+  const completionTokens = Math.ceil(content.length / 4);
+
+  json(response, 200, {
+    id: 'chatcmpl-fake-json',
+    object: 'chat.completion',
+    model,
+    choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }],
+    usage: {
+      prompt_tokens: promptTokens,
+      completion_tokens: completionTokens,
+      total_tokens: promptTokens + completionTokens,
+    },
+  });
+}
+
+/**
  * The lore extraction: one JSON object, and a chance to be an endpoint that
  * cannot do schemas.
  *
@@ -163,19 +221,13 @@ async function stream(response, body, prompt) {
  * back as an update to it.
  */
 function lore(response, body, prompt) {
-  const model = body?.model ?? 'fake/storyteller-large';
   // Only this request fails, so a spec can watch a chapter close with the
   // summary written and the entries not.
   if (prompt.includes('!nolore')) {
     json(response, 500, { error: { message: 'The upstream model is on fire.' } });
     return;
   }
-  if (model === 'fake/no-json-schema' && body?.response_format) {
-    json(response, 400, {
-      error: { message: "Unknown parameter: 'response_format'.", type: 'invalid_request_error' },
-    });
-    return;
-  }
+  if (noSchema(response, body)) return;
 
   const entries = [];
   if (prompt.includes('Ashport')) {
@@ -198,23 +250,7 @@ function lore(response, body, prompt) {
     });
   }
 
-  const object = JSON.stringify({ entries });
-  const content = model === 'fake/no-json-schema' ? '```json\n' + object + '\n```' : object;
-
-  let promptTokens = 0;
-  for (const message of body?.messages ?? []) promptTokens += Math.ceil(message.content.length / 4);
-
-  json(response, 200, {
-    id: 'chatcmpl-fake-lore',
-    object: 'chat.completion',
-    model,
-    choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }],
-    usage: {
-      prompt_tokens: promptTokens,
-      completion_tokens: Math.ceil(content.length / 4),
-      total_tokens: promptTokens + Math.ceil(content.length / 4),
-    },
-  });
+  answer(response, body, JSON.stringify({ entries }));
 }
 
 /** The passage this turn answers with, before it is cut into deltas. */

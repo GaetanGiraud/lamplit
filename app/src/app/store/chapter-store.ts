@@ -2,6 +2,13 @@ import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { CastChange, Chapter, ChapterMessage, Story, TokenUsage } from '../core/models';
 import { LORE_SCHEMA, LoreProposal, buildLorePrompt, readProposals } from '../core/lore-extraction';
 import { ModelClient } from '../core/model-client';
+import {
+  PagePalette,
+  buildPalettePrompt,
+  pagePalette,
+  paletteSchema,
+  readPaletteName,
+} from '../core/page-palettes';
 import { ModelError, errorFromThrown } from '../core/model-errors';
 import {
   BuiltPrompt,
@@ -62,6 +69,15 @@ export class ChapterStore {
   });
 
   readonly messages = computed(() => this.chapter()?.messages ?? []);
+
+  /**
+   * The page everything is drawn on: the open chapter's own, or the one chosen
+   * under Preferences, or none at all — which is the theme as it ships.
+   * `Workspace` hands it to `applyUi`, so switching chapters switches pages.
+   */
+  readonly palette = computed<PagePalette | null>(() =>
+    pagePalette(this.chapter()?.palette || this.settings.ui().palette),
+  );
 
   /** What the chapter reads as: the records of the cast changing are not it. */
   readonly written = computed(() => this.messages().filter((m) => m.kind !== 'cast'));
@@ -301,6 +317,64 @@ export class ChapterStore {
       this.createChapter();
     } else if (this.stories.story().activeChapterId === id) {
       this.stories.setActiveChapter(remaining[remaining.length - 1].id);
+    }
+  }
+
+  /** The chapter's own page, chosen by hand; empty gives it back to the story. */
+  setPalette(id: string, name: string): void {
+    this.patchChapter(id, () => ({ palette: name || undefined }));
+  }
+
+  /**
+   * Which page this chapter's scene wants, asked of the model.
+   *
+   * One short request, made when the scene sheet is confirmed and only when the
+   * story asked for it. Nothing waits for it: the answer lands a moment later
+   * and the page changes under the chapter that is already open.
+   *
+   * A scene that has not changed is not asked about twice — re-opening the
+   * sheet to fix a typo in the title is not a new chapter — and a failure of
+   * any kind changes nothing and is one line in the console. There is no
+   * message to put an error in, and a page that stayed as it was is not a fault
+   * worth a dialog.
+   */
+  async choosePalette(id: string, previousScene?: string): Promise<string> {
+    const story = this.stories.story();
+    const chapter = this.state().find((c) => c.id === id);
+    const scene = chapter?.scene.trim() ?? '';
+    if (!story.autoTheme || !chapter || !scene) return '';
+    if (chapter.palette && scene === previousScene?.trim()) return '';
+    if (!this.settings.isConnected()) return '';
+
+    const connection = this.settings.connection();
+    const messages = buildPalettePrompt(scene);
+    try {
+      const answer = await this.client.chatJson<unknown>({
+        provider: connection.provider,
+        baseUrl: connection.baseUrl,
+        apiKey: connection.apiKey,
+        model: connection.model,
+        messages,
+        params: this.settings.generation(),
+        schema: paletteSchema(),
+      });
+      const name = readPaletteName(answer.value, answer.raw);
+      if (!name) {
+        console.warn('The page palette answer named no palette:', answer.raw.slice(0, 200));
+        return '';
+      }
+      this.patchChapter(id, () => ({
+        palette: name,
+        // What it cost, for the scene sheet's footer. Estimated when the
+        // endpoint says nothing, which is the same fallback a turn makes.
+        paletteTokens:
+          answer.usage?.totalTokens ??
+          this.estimator.countMessages(messages) + this.estimator.count(answer.raw),
+      }));
+      return name;
+    } catch (e) {
+      console.warn('The page palette could not be chosen:', errorFromThrown(e).message);
+      return '';
     }
   }
 

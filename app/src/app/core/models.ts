@@ -88,6 +88,12 @@ export interface UiSettings {
   showTokenCounts: boolean;
   /** Per theme, so the dark palette and the light one are edited separately. */
   colours: { [T in ThemeName]?: ThemeColours };
+  /**
+   * A name from the page palettes, under the colours you set by hand. Empty is
+   * the page as the stylesheet ships it, which is what every settings file
+   * written before there were palettes says.
+   */
+  palette: string;
   font: ReadingFont;
   /**
    * Shows what the app is doing rather than what the story says: the context
@@ -306,6 +312,12 @@ export interface Story {
    * to — see `blockOrder` in `prompt-builder.ts`.
    */
   promptOrder?: BlockId[];
+  /**
+   * Whether opening a chapter asks the model which page palette its scene wants.
+   * Off unless the writer says otherwise: it is a request of its own, however
+   * small, on a step that used to make none.
+   */
+  autoTheme: boolean;
 }
 
 /**
@@ -324,6 +336,14 @@ export interface Chapter {
   createdAt: string;
   updatedAt: string;
   messages: ChapterMessage[];
+  /**
+   * A name from the page palettes: the page this chapter is read on, whoever
+   * chose it. Absent is the story's own page, which is every chapter written
+   * before there were palettes.
+   */
+  palette?: string;
+  /** What the request that chose it cost, for the scene sheet's footer. */
+  paletteTokens?: number;
 }
 
 /** What actually goes over the wire to the endpoint. */

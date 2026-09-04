@@ -96,7 +96,19 @@ export class SettingsStore {
     });
   }
 
-  /** Every colour this theme overrides, gone. The other theme is untouched. */
+  /**
+   * The page a story is read on when no chapter has one of its own. Passing
+   * nothing is the page as it ships, which is what the row's first swatch does.
+   */
+  setPalette(name: string): void {
+    this.patchUi({ palette: name });
+  }
+
+  /**
+   * Every colour this theme overrides, gone. The other theme is untouched, and
+   * so is the palette underneath: this is the way back to a clean preset, and
+   * the row's own first swatch is the way out of presets altogether.
+   */
   resetColours(theme: ThemeName): void {
     this.state.update((s) => {
       const colours = { ...s.ui.colours };
@@ -125,9 +137,9 @@ export class SettingsStore {
     return {
       connection: { ...DEFAULT_SETTINGS.connection, ...stored.connection },
       generation: { ...DEFAULT_SETTINGS.generation, ...stored.generation },
-      // `colours` and `font` arrived after 0.1.0, so a settings file written by
-      // it has neither and takes both from the defaults — an empty override set
-      // and the serif, which is the theme exactly as it shipped. The chapter
+      // `colours`, `palette` and `font` arrived after 0.1.0, so a file written by
+      // it has none of them and takes all three from the defaults — no preset, no
+      // overrides and the serif, which is the theme exactly as it shipped. The chapter
       // panel is later still: a file that predates it opens with the panel a
       // thin edge and nothing folded away inside it.
       ui: { ...DEFAULT_SETTINGS.ui, ...stored.ui },
