@@ -250,6 +250,25 @@ describe('serving the built app', () => {
     await api.close();
   });
 
+  it('never lets the browser keep index.html, which is what names the bundles', async () => {
+    const api = await serve({ withApp: true });
+    for (const path of ['/', '/index.html', '/some/deep/link']) {
+      const response = await api.call(path);
+      assert.match(response.headers.get('cache-control'), /no-cache/, path);
+    }
+    // The bundles themselves are named by their content and can be kept.
+    assert.match((await api.call('/main.js')).headers.get('cache-control'), /max-age=3600/);
+    await api.close();
+  });
+
+  it('answers 404 for a file that is not there, rather than handing over the app', async () => {
+    const api = await serve({ withApp: true });
+    const response = await api.call('/main-OLDHASH.js');
+    assert.equal(response.status, 404);
+    assert.doesNotMatch(await response.text(), /<title>app<\/title>/);
+    await api.close();
+  });
+
   it('says so plainly when there is no build to serve', async () => {
     const api = await serve();
     const response = await api.call('/');
