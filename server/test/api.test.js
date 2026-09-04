@@ -231,6 +231,28 @@ describe('/api/docs', () => {
     await api.close();
   });
 
+  it('refuses an empty body and a list, and leaves the document as it was', async () => {
+    const api = await serve();
+    await api.put('/api/docs/stories/abc', { id: 'abc', title: 'kept' }, 1);
+
+    const empty = await api.call('/api/docs/stories/abc', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', 'x-doc-seq': '2' },
+      body: '',
+    });
+    assert.equal(empty.status, 400);
+    assert.deepEqual(await empty.json(), { ok: false, error: 'body must be a JSON document' });
+
+    const list = await api.put('/api/docs/stories/abc', [1, 2, 3], 3);
+    assert.equal(list.status, 400);
+
+    assert.deepEqual(await (await api.call('/api/docs/stories/abc')).json(), {
+      id: 'abc',
+      title: 'kept',
+    });
+    await api.close();
+  });
+
   it('answers an unknown API path with JSON, never with the app', async () => {
     const api = await serve({ withApp: true });
     const response = await api.call('/api/nothing-here');

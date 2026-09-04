@@ -29,7 +29,18 @@ export function createApp({
   app.disable('x-powered-by');
   app.use(localhostCors);
   app.use('/api', sameMachineOnly(hosts));
-  app.use('/api', express.json({ limit: '16mb' }));
+  // An empty body parses as `{}`, which would then be written over a document
+  // as if somebody had meant it; nobody sends nothing on purpose.
+  app.use(
+    '/api',
+    express.json({
+      limit: '16mb',
+      verify: (request, response, body) => {
+        if (!body.length)
+          throw Object.assign(new Error('body must be a JSON document'), { status: 400 });
+      },
+    }),
+  );
 
   /**
    * Who is answering, and which build of it. The client reads this for the
@@ -90,7 +101,7 @@ export function createApp({
   app.put('/api/docs/:collection/:id', async (request, response, next) => {
     const { collection, id } = request.params;
     if (!isCollection(collection) || !isId(collection, id)) return notFound(response);
-    if (request.body === undefined || request.body === null || typeof request.body !== 'object') {
+    if (!isDocument(request.body)) {
       return response.status(400).json({ ok: false, error: 'body must be a JSON document' });
     }
     try {
@@ -164,6 +175,11 @@ export { COLLECTIONS };
 function seqOf(request) {
   const raw = Number(request.get(SEQ_HEADER));
   return Number.isFinite(raw) ? raw : undefined;
+}
+
+/** One JSON object: not a string, not a number, not a list, not nothing. */
+function isDocument(body) {
+  return body !== null && typeof body === 'object' && !Array.isArray(body);
 }
 
 function notFound(response, error = 'not found') {
