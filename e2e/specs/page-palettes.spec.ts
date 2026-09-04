@@ -6,6 +6,8 @@ import {
   openPreferences,
   seedConnectedSettings,
   seedStory,
+  send,
+  waitForTurn,
 } from './helpers';
 import type { PersistenceServer } from './persistence-server';
 
@@ -57,7 +59,13 @@ test('off: opening a chapter asks nothing and the page does not move', async ({ 
   const before = await pageColour(page);
   await writeScene(page, WINTER);
 
-  await expect.poll(() => requests.length).toBe(0);
+  // Something slower than the palette question, so that "it was not asked" is
+  // an answer and not merely a question that has not arrived yet: the palette
+  // is asked the moment the sheet closes, and a turn takes a whole round trip.
+  await send(page, 'I climb the stairs.');
+  await waitForTurn(page);
+
+  expect(requests.filter((body) => body['stream'] === false)).toEqual([]);
   expect(await pageColour(page)).toBe(before);
 });
 

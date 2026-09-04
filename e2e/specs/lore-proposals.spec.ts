@@ -67,7 +67,13 @@ test('off: closing a chapter makes exactly one request', async ({ page, server }
   const written = bodies.length;
 
   await openReview(page);
+  // Waiting for the summary to *finish* rather than to start: the lore request
+  // is made after it resolves, so a check made while it is still streaming
+  // asks the question before the answer could exist either way.
+  await expect(review(page).getByRole('button', { name: 'Write it again' })).toBeVisible();
+
   // The summary, and nothing else: no second request, and nothing proposed.
+  expect(bodies.filter((body) => body['stream'] === false)).toEqual([]);
   expect(bodies.length).toBe(written + 1);
   await expect(proposals(page)).toHaveCount(0);
   await expect(review(page).getByRole('button', { name: 'Propose lore' })).toBeVisible();
