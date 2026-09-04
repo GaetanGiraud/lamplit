@@ -88,9 +88,41 @@ describe('streamChat', () => {
     expect(result.aborted).toBe(false);
   });
 
+  it('takes a whole completion from an endpoint that would not stream', async () => {
+    answers(
+      JSON.stringify({
+        choices: [{ message: { content: 'The lantern room.' } }],
+        usage: { completion_tokens: 4 },
+      }),
+      'application/json',
+    );
+    const seen: string[] = [];
+
+    const result = await new ModelClient().streamChat(request, (delta) => {
+      if (delta.content) seen.push(delta.content);
+    });
+
+    expect(result.content).toBe('The lantern room.');
+    expect(seen).toEqual(['The lantern room.']);
+    expect(result.usage?.completionTokens).toBe(4);
+  });
+
+  it('says so when a 200 carries no events at all', async () => {
+    answers(streamOf(''));
+    await expect(
+      new ModelClient().streamChat(request, () => {
+        /* nothing to watch: this one is about how it ends */
+      }),
+    ).rejects.toThrow(/without sending anything/);
+  });
+
   it('throws when it fails with nothing to show for it', async () => {
     answers(streamOf(event({ error: { message: 'boom' } })));
-    await expect(new ModelClient().streamChat(request, () => {})).rejects.toThrow(/boom/);
+    await expect(
+      new ModelClient().streamChat(request, () => {
+        /* nothing to watch: this one is about how it ends */
+      }),
+    ).rejects.toThrow(/boom/);
   });
 
   it('says the connection dropped, rather than doubting a URL that was working', async () => {
@@ -106,7 +138,9 @@ describe('streamChat', () => {
       }),
     );
 
-    const result = await new ModelClient().streamChat(request, () => {});
+    const result = await new ModelClient().streamChat(request, () => {
+      /* nothing to watch: this one is about how it ends */
+    });
 
     expect(result.content).toBe('Half a ');
     expect(result.interrupted?.message).toBe('The connection dropped part-way through the reply.');

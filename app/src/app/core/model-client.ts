@@ -124,9 +124,19 @@ export class ModelClient {
     if (!response.ok) throw errorFromResponse(response.status, await safeText(response));
     if (!response.body) throw new ModelError('unknown', 'The endpoint returned an empty stream.');
 
+    // An endpoint that does not stream answers the same request with the whole
+    // completion as one JSON object, and says so in its content type. Read as
+    // SSE that has no `data:` lines in it at all, which is an empty reply
+    // filed as if the model had said nothing.
+    if (/^application\/json\b/i.test(response.headers.get('content-type') ?? '')) {
+      return this.whole(response, onDelta);
+    }
+
     const result: ChatStreamResult = { content: '', reasoning: '', aborted: false };
+    let saw = false;
     try {
       for await (const payload of readSseData(response.body)) {
+        saw = true;
         if (payload === '[DONE]') break;
         const chunk = parseChunk(payload);
         if (!chunk) continue;
@@ -152,7 +162,23 @@ export class ModelClient {
       else throw error;
     }
     if (signal?.aborted) result.aborted = true;
+    // Not one event, and nobody stopped it: something answered 200 and said
+    // nothing, which is worth a sentence rather than an empty message.
+    if (!saw && !result.aborted) {
+      throw new ModelError('unknown', 'The endpoint answered without sending anything.');
+    }
     return result;
+  }
+
+  /** A completion that arrived whole, handed on as if it had streamed. */
+  private async whole(response: Response, onDelta: DeltaHandler): Promise<ChatStreamResult> {
+    const payload: unknown = await response.json().catch(() => null);
+    const answer = readCompletion(payload);
+    if (!answer.content) {
+      throw new ModelError('bad-request', 'The endpoint answered, but with no text in it.');
+    }
+    onDelta({ content: answer.content });
+    return { content: answer.content, reasoning: '', usage: answer.usage, aborted: false };
   }
 
   /**
