@@ -4,6 +4,7 @@ import {
   REPLY_LENGTH_HINTS,
 } from './defaults';
 import {
+  BlockId,
   Chapter,
   ChapterMessage,
   GenerationParams,
@@ -13,7 +14,71 @@ import {
 } from './models';
 import { TokenEstimator } from './tokens';
 
-export type BlockId = 'mode' | 'persona' | 'story-so-far' | 'lore' | 'scene' | 'style';
+export type { BlockId };
+
+// ---------------------------------------------------------------------------
+// The order of the system prompt
+// ---------------------------------------------------------------------------
+
+/**
+ * Two blocks are fixed and four are not.
+ *
+ * The mode preamble opens because it says what the model *is*, and everything
+ * after it is read as instructions to that. The style rules close because the
+ * instruction nearest the conversation is the one a model holds onto. What sits
+ * between them all describes the story, and which of those a given model weighs
+ * most is a matter of taste — so it is the writer's, per story.
+ */
+export const PINNED_FIRST: readonly BlockId[] = ['mode'];
+export const MOVABLE_BLOCKS: readonly BlockId[] = ['persona', 'story-so-far', 'lore', 'scene'];
+export const PINNED_LAST: readonly BlockId[] = ['style'];
+
+export const DEFAULT_BLOCK_ORDER: readonly BlockId[] = [
+  ...PINNED_FIRST,
+  ...MOVABLE_BLOCKS,
+  ...PINNED_LAST,
+];
+
+/** Why a block has no handle, in the preview's own words. */
+export const PIN_REASONS: Record<string, string> = {
+  mode: 'Always first: it says what the model is, and the rest is read as instructions to that.',
+  style: 'Always last: the instruction closest to the conversation is the one that sticks.',
+};
+
+export function isPinned(id: BlockId): boolean {
+  return PINNED_FIRST.includes(id) || PINNED_LAST.includes(id);
+}
+
+/**
+ * The movable blocks in this story's order.
+ *
+ * A stored list is used only when it names every movable block exactly once.
+ * Anything else — a block a later version added, one this build has dropped, a
+ * name from nowhere, a duplicate — means the document and this build disagree
+ * about what the prompt is made of, and there is no safe way to guess which
+ * half is right. The shipped order is the answer that is always a valid one.
+ */
+export function movableOrder(story: Pick<Story, 'promptOrder'>): BlockId[] {
+  const stored = story.promptOrder;
+  if (!Array.isArray(stored) || stored.length !== MOVABLE_BLOCKS.length) {
+    return [...MOVABLE_BLOCKS];
+  }
+  const named = new Set(stored);
+  if (named.size !== stored.length) return [...MOVABLE_BLOCKS];
+  if (!MOVABLE_BLOCKS.every((id) => named.has(id))) return [...MOVABLE_BLOCKS];
+  return [...stored];
+}
+
+/** The whole order, pinned ends included, as the builder assembles it. */
+export function blockOrder(story: Pick<Story, 'promptOrder'>): BlockId[] {
+  return [...PINNED_FIRST, ...movableOrder(story), ...PINNED_LAST];
+}
+
+/** True when this story sends the blocks in the order the app ships with. */
+export function isDefaultOrder(story: Pick<Story, 'promptOrder'>): boolean {
+  const order = movableOrder(story);
+  return MOVABLE_BLOCKS.every((id, i) => order[i] === id);
+}
 
 export interface PromptBlock {
   id: BlockId;
@@ -162,19 +227,21 @@ function systemBlocks(
   lore: readonly LoreHit[],
   estimator: TokenEstimator,
 ): PromptBlock[] {
-  const blocks: { id: BlockId; label: string; content: string }[] = [
-    {
-      id: 'mode',
+  const made: Record<BlockId, { label: string; content: string }> = {
+    mode: {
       label: story.mode === 'narrator' ? 'Narrator' : 'Role-play',
       content: modeBlock(story),
     },
-    { id: 'persona', label: 'Persona', content: personaBlock(story) },
-    { id: 'story-so-far', label: 'The story so far', content: storySoFarBlock(story) },
-    { id: 'lore', label: 'World', content: loreBlock(lore) },
-    { id: 'scene', label: 'This chapter', content: sceneBlock(chapter) },
-    { id: 'style', label: 'Style', content: styleBlock(story) },
-  ];
-  return blocks
+    persona: { label: 'Persona', content: personaBlock(story) },
+    'story-so-far': { label: 'The story so far', content: storySoFarBlock(story) },
+    lore: { label: 'World', content: loreBlock(lore) },
+    scene: { label: 'This chapter', content: sceneBlock(chapter) },
+    style: { label: 'Style', content: styleBlock(story) },
+  };
+  // A block with nothing in it is not a block: an empty persona should not
+  // cost a blank line in the system message, nor a row in the preview.
+  return blockOrder(story)
+    .map((id) => ({ id, ...made[id] }))
     .filter((block) => block.content.trim())
     .map((block) => ({ ...block, tokens: estimator.count(block.content) }));
 }

@@ -1,6 +1,6 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { DEFAULT_STORY_TITLE } from '../core/defaults';
-import { Character, LoreCategory, LoreEntry, Story } from '../core/models';
+import { BlockId, Character, LoreCategory, LoreEntry, Story } from '../core/models';
 import { SettingsStore } from './settings-store';
 import { STORAGE_BACKEND } from './storage';
 import {
@@ -199,6 +199,28 @@ export class StoryStore {
   removeLore(id: string): void {
     const world = this.story().world;
     this.patch({ world: { ...world, entries: world.entries.filter((e) => e.id !== id) } });
+  }
+
+  // -- the shape of the prompt ----------------------------------------------
+
+  /**
+   * The order this story's movable blocks are assembled in. Stored per story
+   * because it is a judgement about the story and the model behind it, not a
+   * preference about the app.
+   */
+  setPromptOrder(order: BlockId[], id = this.story().id): void {
+    this.patch({ promptOrder: [...order] }, id);
+  }
+
+  /** Back to the shipped order, with nothing left in the document to say so. */
+  resetPromptOrder(id = this.story().id): void {
+    this.state.update((stories) =>
+      stories.map((story) => {
+        if (story.id !== id) return story;
+        const { promptOrder: _shipped, ...rest } = story;
+        return { ...rest, updatedAt: now() };
+      }),
+    );
   }
 
   // -- chapters (the story's side of them) -----------------------------------

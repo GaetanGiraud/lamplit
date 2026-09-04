@@ -1,8 +1,19 @@
 import { Component, computed, inject } from '@angular/core';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { ChapterStore } from '../../store/chapter-store';
 import { StoryStore } from '../../store/story-store';
+import { BlockId } from '../../core/models';
+import {
+  MOVABLE_BLOCKS,
+  PINNED_FIRST,
+  PINNED_LAST,
+  PIN_REASONS,
+  isDefaultOrder,
+  movableOrder,
+} from '../../core/prompt-builder';
 import { formatTokens } from '../../core/tokens';
 
 export interface PromptPreviewData {
@@ -13,10 +24,16 @@ export interface PromptPreviewData {
  * The whole prompt, block by block, with what each one costs and which lore
  * fired on which key. One click from the composer, and it replaces most of
  * what a prompt manager is for.
+ *
+ * The four blocks in the middle can be dragged into a different order, and the
+ * sheet rebuilds as they move — the point of reordering is to see what it does,
+ * and a preview that only agreed with you after you closed it would be no help.
+ * There is no check for developer mode here: this sheet is only reachable
+ * through the pill that mode puts back, so being open is the check.
  */
 @Component({
   selector: 'ms-prompt-preview-dialog',
-  imports: [MatButtonModule, MatDialogModule],
+  imports: [DragDropModule, MatButtonModule, MatDialogModule, MatTooltipModule],
   template: `
     <h2 mat-dialog-title class="ms-dialog-title">What the model sees</h2>
 
@@ -26,13 +43,50 @@ export interface PromptPreviewData {
         {{ totals() }}
       </p>
 
-      @for (block of prompt().blocks; track block.id) {
-        <section class="block">
+      @for (block of leading(); track block.id) {
+        <section class="block pinned">
           <header>
+            <span class="pin" aria-hidden="true">•</span>
             <span class="name">{{ block.label }}</span>
             <span class="tokens">{{ format(block.tokens) }}</span>
           </header>
           <pre>{{ block.content }}</pre>
+          <p class="why">{{ reasons[block.id] }}</p>
+        </section>
+      }
+
+      <div cdkDropList (cdkDropListDropped)="drop($event)">
+        @for (block of movable(); track block.id) {
+          <section class="block movable" cdkDrag cdkDragBoundary="mat-dialog-content">
+            <header>
+              <button
+                class="handle"
+                type="button"
+                cdkDragHandle
+                [attr.aria-label]="handleLabel(block.label)"
+                matTooltip="Drag, or use the arrow keys"
+                (keydown)="onHandleKey($event, block.id)"
+              >
+                ⠿
+              </button>
+              <span class="name">{{ block.label }}</span>
+              <span class="tokens">{{ format(block.tokens) }}</span>
+            </header>
+            <pre>{{ block.content }}</pre>
+            <div class="ghost" *cdkDragPlaceholder></div>
+          </section>
+        }
+      </div>
+
+      @for (block of trailing(); track block.id) {
+        <section class="block pinned">
+          <header>
+            <span class="pin" aria-hidden="true">•</span>
+            <span class="name">{{ block.label }}</span>
+            <span class="tokens">{{ format(block.tokens) }}</span>
+          </header>
+          <pre>{{ block.content }}</pre>
+          <p class="why">{{ reasons[block.id] }}</p>
         </section>
       }
 
@@ -93,6 +147,9 @@ export interface PromptPreviewData {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
+      @if (!isDefault()) {
+        <button matButton class="reset" (click)="resetOrder()">Reset the order</button>
+      }
       <button matButton (click)="copy()">Copy it all</button>
       <button matButton="filled" mat-dialog-close>Done</button>
     </mat-dialog-actions>
@@ -159,6 +216,82 @@ export interface PromptPreviewData {
     .warn {
       color: var(--ms-danger);
     }
+
+    /* -- reordering ------------------------------------------------------- */
+
+    .handle {
+      flex: none;
+      margin: -0.15rem 0 -0.15rem -0.15rem;
+      padding: 0 0.15rem;
+      border: 0;
+      background: none;
+      color: var(--ms-muted);
+      font-size: 0.95rem;
+      line-height: 1;
+      cursor: grab;
+    }
+
+    .handle:hover,
+    .handle:focus-visible {
+      color: var(--ms-accent);
+    }
+
+    /* Where a handle would be on a block that has none, so the labels of the
+       pinned blocks and the movable ones still start on the same line. */
+    .pin {
+      flex: none;
+      width: 1.25rem;
+      color: color-mix(in srgb, var(--ms-muted) 55%, transparent);
+      font-size: 0.95rem;
+      line-height: 1;
+      text-align: center;
+    }
+
+    header .name {
+      flex: 1;
+    }
+
+    .why {
+      margin: 0;
+      padding: 0.4rem 0.75rem 0.55rem;
+      border-top: 1px dashed color-mix(in srgb, var(--ms-border) 80%, transparent);
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: var(--ms-muted);
+    }
+
+    .movable header {
+      background: color-mix(in srgb, var(--ms-accent) 12%, transparent);
+    }
+
+    /* The dragged copy is a clone of the element, so it carries this
+       component's own attribute with it and these rules still reach it. */
+    .block.cdk-drag-preview {
+      border-radius: 10px;
+      box-shadow: 0 12px 32px light-dark(rgb(0 0 0 / 22%), rgb(0 0 0 / 55%));
+      overflow: hidden;
+    }
+
+    .block.cdk-drag-placeholder {
+      opacity: 0;
+    }
+
+    /* The gap the block will land in, so a drag has somewhere to aim. */
+    .ghost {
+      height: 100%;
+      border: 1px dashed color-mix(in srgb, var(--ms-accent) 55%, transparent);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--ms-accent) 5%, transparent);
+    }
+
+    .cdk-drop-list-dragging .block:not(.cdk-drag-placeholder) {
+      transition: transform 180ms cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    .reset {
+      margin-right: auto;
+      color: var(--ms-accent);
+    }
   `,
 })
 export class PromptPreviewDialog {
@@ -167,6 +300,22 @@ export class PromptPreviewDialog {
   private readonly stories = inject(StoryStore);
 
   protected readonly prompt = computed(() => this.chapters.preview(this.data.draft));
+
+  protected readonly reasons = PIN_REASONS;
+
+  // The builder has already put the blocks in this story's order, so filtering
+  // keeps it — and each of the three groups needs different chrome around it.
+  protected readonly leading = computed(() =>
+    this.prompt().blocks.filter((b) => PINNED_FIRST.includes(b.id)),
+  );
+  protected readonly movable = computed(() =>
+    this.prompt().blocks.filter((b) => MOVABLE_BLOCKS.includes(b.id)),
+  );
+  protected readonly trailing = computed(() =>
+    this.prompt().blocks.filter((b) => PINNED_LAST.includes(b.id)),
+  );
+
+  protected readonly isDefault = computed(() => isDefaultOrder(this.stories.story()));
 
   /** An entry with nothing written in it can never join a prompt: say so. */
   protected readonly unwritten = computed(
@@ -183,6 +332,48 @@ export class PromptPreviewDialog {
     const { total, budget, reserve } = this.prompt().tokens;
     return `${formatTokens(total)} of ${formatTokens(budget)} tokens, with ${formatTokens(reserve)} held back for the reply.`;
   });
+
+  protected handleLabel(label: string): string {
+    return `Move the ${label} block. Drag it, or use the arrow keys.`;
+  }
+
+  protected drop(event: CdkDragDrop<unknown>): void {
+    const shown = this.movable().map((b) => b.id);
+    moveItemInArray(shown, event.previousIndex, event.currentIndex);
+    this.writeOrder(shown);
+  }
+
+  /** The same move, for anyone not using a mouse. */
+  protected onHandleKey(event: KeyboardEvent, id: BlockId): void {
+    const step = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
+    if (!step) return;
+    event.preventDefault();
+
+    const shown = this.movable().map((b) => b.id);
+    const from = shown.indexOf(id);
+    const to = from + step;
+    if (from < 0 || to < 0 || to >= shown.length) return;
+    moveItemInArray(shown, from, to);
+    this.writeOrder(shown);
+  }
+
+  /**
+   * A block with nothing in it is not drawn, so the order on screen is only
+   * part of the story's own. The blocks that were shown are written back into
+   * the slots they occupied, which leaves the invisible ones exactly where they
+   * were — an empty persona should not jump about because the world moved.
+   */
+  private writeOrder(shown: BlockId[]): void {
+    const order = movableOrder(this.stories.story());
+    const slots = order.map((id, i) => [id, i] as const).filter(([id]) => shown.includes(id));
+    const next = [...order];
+    slots.forEach(([, slot], i) => (next[slot] = shown[i]));
+    this.stories.setPromptOrder(next);
+  }
+
+  protected resetOrder(): void {
+    this.stories.resetPromptOrder();
+  }
 
   protected format(tokens: number): string {
     return `${formatTokens(tokens)} tokens`;

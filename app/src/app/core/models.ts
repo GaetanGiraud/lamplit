@@ -134,6 +134,13 @@ export interface ChapterMessage {
 // A story and its world
 // ---------------------------------------------------------------------------
 
+/**
+ * The system prompt's blocks, in the order `prompt-builder.ts` assembles them.
+ * Persisted in `Story.promptOrder`, so a name is part of the file format: a
+ * stored order naming something this build does not know is simply not used.
+ */
+export type BlockId = 'mode' | 'persona' | 'story-so-far' | 'lore' | 'scene' | 'style';
+
 export type StoryMode = 'narrator' | 'roleplay';
 export type ReplyLength = 'short' | 'medium' | 'long';
 export type LoreCategory = 'fact' | 'person' | 'place' | 'other';
@@ -200,6 +207,12 @@ export interface Story {
   activeChapterId: string;
   /** Only ever increases: chapter 3 stays chapter 3 after a deletion. */
   chapterCounter: number;
+  /**
+   * The order this story puts its *movable* blocks in. Absent is the shipped
+   * order, which is also what a list this build cannot make sense of falls back
+   * to — see `blockOrder` in `prompt-builder.ts`.
+   */
+  promptOrder?: BlockId[];
 }
 
 /**

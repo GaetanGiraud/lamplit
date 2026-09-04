@@ -7,6 +7,23 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**The prompt's blocks can be put in a different order.** In **What the model
+sees**, the persona, the story so far, the world and this chapter each have a
+handle: drag one and the sheet rebuilds as it moves, so you can see what the
+change does before anything is sent. The arrow keys move a block whose handle
+has the focus.
+
+- **Two blocks stay where they are.** The mode preamble is always first — it
+  says what the model is, and the rest is read as instructions to that — and
+  the style rules are always last, because the instruction closest to the
+  conversation is the one that sticks. Each says so in the sheet.
+- **The order belongs to the story**, not to the app: another story is
+  unaffected, and a duplicate carries it along. **Reset the order** appears
+  once you have moved something.
+- Only a changed order is written down, so a story written by an older Lamplit
+  opens in the shipped order — and so does one whose stored order names a block
+  this version does not have, rather than the app guessing at what was meant.
+
 **Developer mode, for the half of the app that is about the app.** The context
 pill under the composer and **What the model sees** behind it are now off
 unless you ask for them: **Preferences → Advanced → Developer mode**. A fresh

@@ -66,6 +66,10 @@ export async function seedDeveloperMode(server: PersistenceServer): Promise<void
 export async function openPromptPreview(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^context/ }).click();
   await expect(page.getByRole('heading', { name: 'What the model sees' })).toBeVisible();
+  // The sheet grows into place, and anything measured or scrolled while it is
+  // still growing is measured against geometry that is about to change — which
+  // is how a click lands on the wrong element and a scroll ends up at the foot.
+  await expect(page.locator('.mdc-dialog--opening')).toHaveCount(0);
 }
 
 export interface SeedStory {

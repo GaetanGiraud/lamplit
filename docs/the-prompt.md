@@ -29,9 +29,10 @@ The system message is assembled in this order:
 | 5 | **This chapter** — "Chapter *n*, *title*. The scene:" then the scene, verbatim | always |
 | 6 | **Style rules** — dialogue, reply length, stay in character, never write for the persona | always |
 
-The order is not arbitrary. The scene sits **last**, closest to the conversation, because it is
-the immediate setting and should be the freshest thing the model read. The mode preamble sits
-first because it is the standing instruction everything else qualifies.
+The order is not arbitrary. The mode preamble sits first because it is the standing instruction
+everything else qualifies, and the style rules sit last because the instruction closest to the
+conversation is the one a model holds onto. The four blocks between them describe the story, and
+those you can put in any order you like — see [Changing the order](#changing-the-order).
 
 Then the chapter's messages, oldest first — and **only this chapter's**. Earlier chapters reach
 the model through block 3 and nowhere else. That is the whole point of
@@ -74,6 +75,26 @@ another tool to compare, or into a bug report.
 If you have typed something in the composer, the preview includes it. The pill is live: it
 updates as you type, so you can see a long message pushing you toward the budget before you send
 it.
+
+## Changing the order
+
+Models differ in what they weigh. If you have read the preview and think this one would do better
+with the scene before the world, drag it there: each of the four middle blocks has a handle, and
+the sheet rebuilds as they move, so you can see the effect before anything is sent. The arrow keys
+do the same to a block whose handle has the focus.
+
+**Two blocks have no handle.** The mode preamble is always first — it says what the model *is*,
+and everything after it is read as instructions to that. The style rules are always last, for the
+same reason in reverse: the instruction closest to the conversation is the one that sticks. Each
+says so in the sheet.
+
+The order belongs to **the story**, not to the app: it is a judgement about this story and the
+model behind it, so another story is unaffected and a duplicate carries it along. **Reset the
+order** appears once you have changed something, and puts it back to the order Lamplit ships with.
+
+> Only a changed order is written down, and only an order this version can make sense of is used.
+> A story written before this feature existed opens in the shipped order, and a `promptOrder` that
+> names a block this build does not have falls back to it rather than guessing.
 
 ## The summary request
 

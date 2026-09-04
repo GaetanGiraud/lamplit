@@ -4,12 +4,15 @@ import {
   DEFAULT_NARRATOR_PROMPT,
   DEFAULT_SUMMARY_INSTRUCTION,
 } from './defaults';
-import { Chapter, ChapterMessage, LoreEntry, Story } from './models';
+import { BlockId, Chapter, ChapterMessage, LoreEntry, Story } from './models';
 import {
+  DEFAULT_BLOCK_ORDER,
   buildPrompt,
   buildSummaryPrompt,
   chapterTitle,
   firstLine,
+  isDefaultOrder,
+  movableOrder,
   summaryInstruction,
 } from './prompt-builder';
 import { heuristicEstimator } from './tokens';
@@ -123,6 +126,88 @@ describe('buildPrompt: the system message', () => {
     });
     expect(built.messages[0].content).toContain('Write it as a police report.');
     expect(built.messages[0].content).not.toContain(DEFAULT_NARRATOR_PROMPT);
+  });
+});
+
+describe('buildPrompt: the order of the blocks', () => {
+  /** Every block filled, so that all six of them are in the system message. */
+  function full(promptOrder?: BlockId[]): Story {
+    const base = story();
+    return {
+      ...base,
+      persona: { name: 'Mara', description: 'a marine biologist' },
+      world: {
+        ...base.world,
+        storySoFar: 'Mara has just arrived on the island.',
+        entries: [lore({ alwaysOn: true })],
+      },
+      ...(promptOrder ? { promptOrder } : {}),
+    };
+  }
+
+  const ids = (s: Story) => build({ story: s }).blocks.map((b) => b.id);
+
+  it('ships in the order the app was built with', () => {
+    expect(ids(full())).toEqual([...DEFAULT_BLOCK_ORDER]);
+    expect(isDefaultOrder(full())).toBe(true);
+  });
+
+  it('follows a stored order, and the system message follows the blocks', () => {
+    const reordered = full(['scene', 'story-so-far', 'persona', 'lore']);
+    expect(ids(reordered)).toEqual(['mode', 'scene', 'story-so-far', 'persona', 'lore', 'style']);
+    expect(isDefaultOrder(reordered)).toBe(false);
+
+    // Not just the report: the text sent is assembled in the same order.
+    const system = build({ story: reordered }).messages[0].content;
+    expect(system.indexOf('The scene:')).toBeLessThan(system.indexOf('The story so far:'));
+    expect(system.indexOf('The story so far:')).toBeLessThan(system.indexOf('The user plays'));
+  });
+
+  it('keeps the pinned ends where they are, whatever a document says', () => {
+    // A list naming a pinned block is a list this build cannot honour, so it
+    // is not honoured at all — and the ends could not have moved anyway.
+    const meddling = full(['style', 'scene', 'persona', 'mode'] as BlockId[]);
+    expect(ids(meddling)).toEqual([...DEFAULT_BLOCK_ORDER]);
+    expect(ids(meddling)[0]).toBe('mode');
+    expect(ids(meddling).at(-1)).toBe('style');
+  });
+
+  it('falls back to the default when the stored order and this build disagree', () => {
+    // Short, and naming something from nowhere: the acceptance case.
+    expect(movableOrder({ promptOrder: ['lore', 'bogus'] as BlockId[] })).toEqual([
+      'persona',
+      'story-so-far',
+      'lore',
+      'scene',
+    ]);
+    // A duplicate, which would silently drop a block.
+    expect(movableOrder({ promptOrder: ['lore', 'lore', 'persona', 'scene'] })).toEqual([
+      'persona',
+      'story-so-far',
+      'lore',
+      'scene',
+    ]);
+    // The full set plus one a later version might add.
+    expect(
+      movableOrder({
+        promptOrder: ['persona', 'story-so-far', 'lore', 'scene', 'author'] as BlockId[],
+      }),
+    ).toEqual(['persona', 'story-so-far', 'lore', 'scene']);
+    // Absent, which is every story written before this version.
+    expect(movableOrder({})).toEqual(['persona', 'story-so-far', 'lore', 'scene']);
+    expect(isDefaultOrder({})).toBe(true);
+  });
+
+  it('leaves an empty block out without disturbing the order around it', () => {
+    // Persona is unset here, so it is not drawn and not sent — but it is still
+    // named in the story's order, and the blocks either side of it hold.
+    const base = story();
+    const sparse: Story = {
+      ...base,
+      world: { ...base.world, storySoFar: 'Mara has just arrived.' },
+      promptOrder: ['scene', 'persona', 'story-so-far', 'lore'],
+    };
+    expect(ids(sparse)).toEqual(['mode', 'scene', 'story-so-far', 'style']);
   });
 });
 
