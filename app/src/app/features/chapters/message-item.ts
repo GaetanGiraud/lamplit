@@ -1,14 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  computed,
-  effect,
-  inject,
-  input,
-  output,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
@@ -18,6 +8,7 @@ import { renderStoryHtml } from '../../core/formatting';
 import { withDirection } from '../../core/prompt-builder';
 import { SpeakerLabel } from '../../core/speakers';
 import { formatTokens } from '../../core/tokens';
+import { ProseEditor } from '../../shared/prose-editor';
 import { TextValue } from '../../shared/text-value';
 
 /** Both halves of a message, as an edit leaves them. */
@@ -39,7 +30,7 @@ export interface MessageEdit {
  */
 @Component({
   selector: 'ms-message-item',
-  imports: [MatButtonModule, MatMenuModule, MatTooltipModule, TextValue],
+  imports: [MatButtonModule, MatMenuModule, MatTooltipModule, ProseEditor, TextValue],
   template: `
     <article
       class="message"
@@ -58,14 +49,17 @@ export interface MessageEdit {
 
       @if (editing()) {
         <div class="editor">
-          <textarea
-            #editor
+          <!-- The prose, edited as it is read: the same editor as the
+               composer's, with Enter making a paragraph rather than sending. -->
+          <ms-prose-editor
+            class="prose"
             style="--rows-min: 4; --rows-max: 24"
-            class="story-prose"
-            [msText]="draft()"
-            (input)="draft.set(text($event))"
+            label="The message"
+            autofocus
+            [value]="draft()"
+            (valueChange)="draft.set($event)"
             (keydown)="onEditorKey($event)"
-          ></textarea>
+          />
 
           <!-- The author's half, edited as its own field: the whole point of
                keeping the two apart is that neither can eat the other. -->
@@ -471,7 +465,15 @@ export interface MessageEdit {
       gap: 0.5rem;
     }
 
-    /* The shared text field, with the border lit: a message is being edited. */
+    /* Both fields with the border lit: a message is being edited. The prose
+       editor is given the shared text field's frame, since it is not one. */
+    .editor .prose {
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--ms-accent);
+      border-radius: 10px;
+      background: var(--ms-surface-raised);
+    }
+
     .editor textarea {
       border-color: var(--ms-accent);
     }
@@ -549,7 +551,6 @@ export class MessageItem {
   readonly replay = output<void>();
 
   private readonly sanitizer = inject(DomSanitizer);
-  private readonly editorRef = viewChild<ElementRef<HTMLTextAreaElement>>('editor');
 
   protected readonly editing = signal(false);
   protected readonly draft = signal('');
@@ -586,16 +587,6 @@ export class MessageItem {
     if (message.editedAt) parts.push('edited');
     return parts.join('  ·  ');
   });
-
-  constructor() {
-    effect(() => {
-      if (!this.editing()) return;
-      const element = this.editorRef()?.nativeElement;
-      if (!element) return;
-      element.focus();
-      element.setSelectionRange(element.value.length, element.value.length);
-    });
-  }
 
   protected text(event: Event): string {
     return (event.target as HTMLTextAreaElement).value;

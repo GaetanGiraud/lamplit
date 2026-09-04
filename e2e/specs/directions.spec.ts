@@ -1,10 +1,12 @@
 import { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import {
-  CHAPTER_ID,
   captureRequests,
+  CHAPTER_ID,
   composer,
+  fillProse,
   openPromptPreview,
+  proseEditor,
   seedConnectedSettings,
   seedDeveloperMode,
   seedStory,
@@ -50,11 +52,12 @@ test('[AUTHOR] splits the message before it is sent, and both halves go out', as
   const bodies = await captureRequests(page);
   await page.goto(server.url);
 
-  // Typed as one line of text; the composer takes the second half out of the
-  // prose as it is typed, so the split is visible before Send.
-  await composer(page).fill('Mara pushes the door open.\n[AUTHOR] The room is empty.');
-  await expect(composer(page)).toHaveValue('Mara pushes the door open.');
-  await expect(authorField(page)).toHaveValue('The room is empty.');
+  // Typed as one line of text; the composer takes the tag out of the prose the
+  // moment it closes and the rest is typed where the caret went — into the
+  // author's field, leading space and all — so the split is visible before Send.
+  await fillProse(composer(page), 'Mara pushes the door open.\n[AUTHOR] The room is empty.');
+  await expect(composer(page)).toHaveText('Mara pushes the door open.');
+  await expect(authorField(page)).toHaveValue(/^\s*The room is empty\.$/);
   await expect(authorToggle(page)).toHaveAttribute('aria-pressed', 'true');
 
   await page.getByRole('button', { name: 'Send', exact: true }).click();
@@ -161,7 +164,7 @@ test('a direction is not in the summary the chapter closes with', async ({ page,
   const bodies = await captureRequests(page);
   await page.goto(server.url);
 
-  await composer(page).fill('Mara pushes the door open.\n[AUTHOR] The room is empty.');
+  await fillProse(composer(page), 'Mara pushes the door open.\n[AUTHOR] The room is empty.');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await waitForTurn(page);
 
@@ -181,7 +184,7 @@ test('editing a message edits both halves of it', async ({ page, server }) => {
   await seedStory(server, { scene: SCENE });
   await page.goto(server.url);
 
-  await composer(page).fill('Mara pushes the door open.\n[AUTHOR] The room is empty.');
+  await fillProse(composer(page), 'Mara pushes the door open.\n[AUTHOR] The room is empty.');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await waitForTurn(page);
 
@@ -189,9 +192,8 @@ test('editing a message edits both halves of it', async ({ page, server }) => {
   await message.hover();
   await message.getByRole('button', { name: 'Edit' }).click();
 
-  const fields = message.locator('textarea');
-  await fields.first().fill('Mara pushes the door open, slowly.');
-  await fields.last().fill('The room is empty, and it should not be.');
+  await fillProse(proseEditor(message), 'Mara pushes the door open, slowly.');
+  await message.locator('textarea').fill('The room is empty, and it should not be.');
   await message.getByRole('button', { name: 'Save' }).click();
 
   await expect(message.locator('.story-prose')).toHaveText('Mara pushes the door open, slowly.');

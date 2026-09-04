@@ -2,9 +2,10 @@ import { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import type { PersistenceServer } from './persistence-server';
 import {
-  CHAPTER_ID,
   captureRequests,
+  CHAPTER_ID,
   composer,
+  fillProse,
   seedConnectedSettings,
   seedStory,
   send,
@@ -113,15 +114,16 @@ test('narrow, it comes over the page and Escape gives the page back', async ({ p
   await openPanel(page);
   await expect(panel(page).locator('.scrim')).toBeVisible();
 
-  // The composer is above the scrim: the chapter is still being written.
-  await composer(page).fill('I do not move.');
-  await expect(composer(page)).toHaveValue('I do not move.');
+  // The composer is under the scrim but not gone: the chapter is still being
+  // written, and what is in the box stays there.
+  await fillProse(composer(page), 'I do not move.');
+  await expect(composer(page)).toHaveText('I do not move.');
 
   await page.keyboard.press('Escape');
   await expect(panel(page).locator('.scrim')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Open the chapter panel' })).toBeVisible();
   // Escape closed the panel and nothing else.
-  await expect(composer(page)).toHaveValue('I do not move.');
+  await expect(composer(page)).toHaveText('I do not move.');
 });
 
 test('wide, it takes its width out of the page and covers none of it', async ({ page, server }) => {

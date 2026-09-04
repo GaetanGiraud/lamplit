@@ -69,6 +69,17 @@ chapter cannot be written into — instead you get the reason and the button tha
 **Stop** replaces **Send** while an answer streams, and keeps whatever arrived before you pressed
 it — a half-written passage is still a passage, and you can edit it or carry on from it.
 
+**What you type looks like what will be read.** The box is set in the reading face, and a line
+is coloured as you write it: `"speech"` in the speech colour the moment the closing quote lands,
+`*an action*` in italics as soon as the second asterisk does, `**bold**` likewise — the asterisks
+disappear and the mark stays. Three quiet words under the box do the same for a selection, or for
+whatever you type next: **Speech** puts quotes around it (or opens an empty pair to write into),
+**Action** and **Bold** are what they say. The shortcuts are **Ctrl+'**, **Ctrl+I** and **Ctrl+B**.
+Nothing about the message itself has changed: it is still the plain text with its asterisks and
+quotes, which is what the model reads, and a heading or a list typed the markdown way still
+renders as one after sending. Editing a message opens the same editor, where **Enter** starts a
+paragraph and **Ctrl+Enter** saves.
+
 Scroll up to read back and a small **↓** appears in the margin, in the same column as the message
 actions: one click and you are at the end of the page again, box included. Streaming never drags
 you back on its own — but while you are at the end, it keeps you there, so an answer arriving is

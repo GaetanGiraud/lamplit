@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import {
   captureRequests,
   composer,
+  fillProse,
   openPreferences,
   seedConnectedSettings,
   seedDeveloperMode,
@@ -212,7 +213,7 @@ test.describe('developer mode', () => {
     await page.reload();
     await expect(pill(page)).toBeVisible();
     const on = await captureRequests(page);
-    await composer(page).fill('I knock twice and wait.');
+    await fillProse(composer(page), 'I knock twice and wait.');
     await pill(page).click();
     await page.getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: 'Send', exact: true }).click();

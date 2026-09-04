@@ -1,5 +1,5 @@
 import type { Page, Route } from '@playwright/test';
-import { openPreferences, seedConnectedSettings, seedStory } from './helpers';
+import { composer, openPreferences, seedConnectedSettings, seedStory } from './helpers';
 import { expect, test } from './fixtures';
 
 const SCENE = 'The keeper’s cottage, late afternoon, low tide. The door is unlatched.';
@@ -112,7 +112,7 @@ test.describe('a newer version', () => {
 
     // The app is the app: no pill, no error, and a chapter that can be written.
     await expect(pill(page)).toHaveCount(0);
-    await expect(page.locator('ms-composer textarea')).toBeVisible();
+    await expect(composer(page)).toBeVisible();
     await expect(page.locator('ms-top-bar')).toContainText('The Lighthouse');
   });
 });

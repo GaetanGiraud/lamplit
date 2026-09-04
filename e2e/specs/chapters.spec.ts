@@ -1,12 +1,15 @@
 import type { Locator } from '@playwright/test';
 import { expect, test } from './fixtures';
 import {
-  FAKE_MODEL,
   act,
   actFromMenu,
   assistantMessages,
+  CHAPTER_ID,
   composer,
+  FAKE_MODEL,
+  fillProse,
   messages,
+  proseEditor,
   seedConnectedSettings,
   seedDeveloperMode,
   seedStory,
@@ -91,7 +94,7 @@ test.describe('writing a chapter', () => {
 
     const userMessage = userMessages(page).first();
     await act(userMessage, 'Edit');
-    await userMessage.locator('textarea').fill('Second attempt.');
+    await fillProse(proseEditor(userMessage), 'Second attempt.');
     await userMessage.getByRole('button', { name: 'Save' }).click();
     await expect(userMessage).toContainText('Second attempt.');
 
@@ -158,13 +161,80 @@ test.describe('writing a chapter', () => {
     await expect(page.getByRole('button', { name: /Storyteller Large/ })).toBeVisible();
   });
 
+  test('what is typed is coloured as it will be read, and stored as it was typed', async ({
+    page,
+    server,
+  }) => {
+    const box = composer(page);
+    await fillProse(box, 'He looked away. *shrugs* "Not today."');
+
+    // In the box: the action in italics, the speech in colour, no asterisks.
+    await expect(box.locator('em.action')).toHaveText('shrugs');
+    await expect(box.locator('span.speech')).toHaveText('"Not today."');
+    await expect(box).toHaveText('He looked away. shrugs "Not today."');
+
+    // Undo takes back the last thing typed, not the whole message.
+    await box.press('ControlOrMeta+z');
+    await expect(box).not.toHaveText(/Not today\./);
+    await box.press('ControlOrMeta+Shift+z');
+
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await waitForTurn(page);
+    await waitForSaved(server, 2);
+
+    // On the page as it always was, and on disk as it was typed.
+    const line = userMessages(page).first().locator('.story-prose');
+    await expect(line.locator('em.action')).toHaveText('shrugs');
+    await expect(line.locator('span.speech')).toHaveText('"Not today."');
+    const chapter = await server.document('chapters', CHAPTER_ID);
+    const stored = (chapter?.['messages'] ?? []) as Record<string, unknown>[];
+    expect(stored[0]?.['content']).toBe('He looked away. *shrugs* "Not today."');
+
+    // And nothing that was sent can be undone back into the box.
+    await expect(box).toHaveText('');
+    await box.press('ControlOrMeta+z');
+    await expect(box).toHaveText('');
+  });
+
+  test('editing a message keeps the markdown the editor does not model', async ({
+    page,
+    server,
+  }) => {
+    const source = '# A heading\n\n- one\n- two\n\nA line with `code` and a [link](https://x.y).';
+    await fillProse(composer(page), source);
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await waitForTurn(page);
+    await waitForSaved(server, 2);
+
+    const userMessage = userMessages(page).first();
+    await act(userMessage, 'Edit');
+    const editor = proseEditor(userMessage);
+    await expect(editor).toBeFocused();
+    // Kept as the writer's own characters, not turned into anything.
+    await expect(editor).toContainText('# A heading');
+    await expect(editor).toContainText('- one');
+    await editor.press('End');
+    await editor.pressSequentially(' Edited.');
+    await userMessage.getByRole('button', { name: 'Save' }).click();
+
+    await expect
+      .poll(async () => {
+        const chapter = await server.document('chapters', CHAPTER_ID);
+        return ((chapter?.['messages'] ?? []) as Record<string, unknown>[])[0]?.['content'];
+      })
+      .toBe(`${source} Edited.`);
+    // Rendered as the markdown it still is.
+    await expect(userMessage.locator('.story-prose h1')).toHaveText('A heading');
+    await expect(userMessage.locator('.story-prose li')).toHaveCount(2);
+  });
+
   test('the composer grows with the text, without ever scrolling it', async ({ page, server }) => {
     const box = composer(page);
     await box.click();
 
-    // The box is resized from change detection, so it grows on the frame after
-    // the keystroke. Measuring two frames on gives it that frame and no more:
-    // any later than that and the line being written is out of sight.
+    // Measured two frames on, so that a box which only grew on the frame after
+    // the keystroke would still pass — and one that grew any later than that,
+    // with the line being written out of sight, would not.
     const state = () =>
       box.evaluate(
         (el: HTMLTextAreaElement) =>
@@ -256,7 +326,7 @@ test.describe('writing a chapter', () => {
     await expect(pill).toContainText('/ 16k');
     const before = await pill.innerText();
 
-    await composer(page).fill('A sentence that costs a few tokens to send.');
+    await fillProse(composer(page), 'A sentence that costs a few tokens to send.');
     await expect(pill).not.toHaveText(before);
   });
 });
@@ -311,7 +381,7 @@ test.describe('parameters', () => {
     await send(page, '!long give me a long passage');
     await waitForTurn(page);
 
-    await composer(page).fill('And now the next thing.');
+    await fillProse(composer(page), 'And now the next thing.');
     await expect(page.getByText(/older message[s]? left out/)).toBeVisible();
   });
 });

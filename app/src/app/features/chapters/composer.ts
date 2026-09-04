@@ -1,4 +1,5 @@
 import {
+  ChangeDetectorRef,
   Component,
   ElementRef,
   Injector,
@@ -16,6 +17,7 @@ import { SettingsStore } from '../../store/settings-store';
 import { withDirection } from '../../core/prompt-builder';
 import { TOKEN_ESTIMATOR, formatTokens } from '../../core/tokens';
 import { DialogsService } from '../../shared/dialogs.service';
+import { ProseEditor } from '../../shared/prose-editor';
 import { TextValue } from '../../shared/text-value';
 
 /**
@@ -25,10 +27,15 @@ import { TextValue } from '../../shared/text-value';
  * for anyone who has read to the end and out of the way of anyone who has not.
  * Which is why it also listens for a key pressed with nothing focused: a writer
  * who finished reading half a page up should not have to go and find the box.
+ *
+ * The prose is written in a `ms-prose-editor`, which shows speech and actions
+ * as the page will and hands back markdown; `draft` holds that markdown and is
+ * what everything else here reads. The author's direction stays a plain field:
+ * it is an instruction, and formatting means nothing to it.
  */
 @Component({
   selector: 'ms-composer',
-  imports: [MatButtonModule, MatTooltipModule, TextValue],
+  imports: [MatButtonModule, MatTooltipModule, ProseEditor, TextValue],
   host: {
     '(document:keydown)': 'onDocumentKey($event)',
   },
@@ -44,22 +51,80 @@ import { TextValue } from '../../shared/text-value';
             </button>
           } @else {
             <div class="box">
-              <div class="field">
-                <textarea
-                  #input
-                  style="--rows-min: 3; --rows-max: 14"
-                  [msText]="draft()"
-                  [placeholder]="placeholder()"
-                  (input)="onInput($event)"
-                  (keydown)="onKey($event)"
-                ></textarea>
+              <ms-prose-editor
+                #input
+                class="prose"
+                style="--rows-min: 3; --rows-max: 14"
+                label="What happens next"
+                submitOnEnter
+                [value]="draft()"
+                [placeholder]="placeholder()"
+                (valueChange)="onDraft($event)"
+                (enter)="send()"
+              />
+
+              <!-- The author's own field, under the persona's words and inside
+                   the same box: one message in two voices, and the split can be
+                   read before it is sent rather than discovered afterwards. -->
+              @if (authoring()) {
+                <div class="direction">
+                  <span class="tag">author</span>
+                  <textarea
+                    #directionInput
+                    style="--rows-min: 1; --rows-max: 8"
+                    aria-label="A direction from the author"
+                    placeholder="Where the story goes. The model follows it and never mentions it."
+                    [msText]="direction()"
+                    (input)="direction.set(text($event))"
+                    (keydown)="onKey($event)"
+                  ></textarea>
+                </div>
+              }
+
+              <div class="footer">
+                <!-- The three things a line can carry, as quiet words each
+                     wearing its own mark. Mousedown is swallowed so the
+                     selection they are about is still there when they act. -->
+                <div class="marks" role="group" aria-label="Formatting">
+                  <button
+                    class="quiet mark speech"
+                    type="button"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="input.quote()"
+                    matTooltip="Quotes around the selection, or a pair to write into (Ctrl+')"
+                  >
+                    Speech
+                  </button>
+                  <button
+                    class="quiet mark action"
+                    type="button"
+                    [class.on]="input.action()"
+                    [attr.aria-pressed]="input.action()"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="input.toggleAction()"
+                    matTooltip="An action, in italics (Ctrl+I)"
+                  >
+                    Action
+                  </button>
+                  <button
+                    class="quiet mark bold"
+                    type="button"
+                    [class.on]="input.bold()"
+                    [attr.aria-pressed]="input.bold()"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="input.toggleBold()"
+                    matTooltip="Bold (Ctrl+B)"
+                  >
+                    Bold
+                  </button>
+                </div>
 
                 <div class="buttons">
                   @if (chapters.isStreaming()) {
                     <button matButton="filled" class="stop" (click)="chapters.stop()">Stop</button>
                   } @else {
                     <button
-                      class="author"
+                      class="quiet author"
                       type="button"
                       [class.on]="authoring()"
                       [attr.aria-pressed]="authoring()"
@@ -80,24 +145,6 @@ import { TextValue } from '../../shared/text-value';
                   }
                 </div>
               </div>
-
-              <!-- The author's own field, under the persona's words and inside
-                   the same box: one message in two voices, and the split can be
-                   read before it is sent rather than discovered afterwards. -->
-              @if (authoring()) {
-                <div class="direction">
-                  <span class="tag">author</span>
-                  <textarea
-                    #directionInput
-                    style="--rows-min: 1; --rows-max: 8"
-                    aria-label="A direction from the author"
-                    placeholder="Where the story goes. The model follows it and never mentions it."
-                    [msText]="direction()"
-                    (input)="direction.set(text($event))"
-                    (keydown)="onKey($event)"
-                  ></textarea>
-                </div>
-              }
             </div>
 
             <!-- The pill is developer mode's; the trimming note is everyone's,
@@ -150,7 +197,7 @@ import { TextValue } from '../../shared/text-value';
     }
 
     .box {
-      padding: 0.45rem 0.45rem 0.45rem 0.85rem;
+      padding: 0.5rem 0.5rem 0.4rem 0.85rem;
       border: 1px solid var(--ms-border);
       border-radius: var(--ms-radius);
       background: var(--ms-surface-raised);
@@ -161,10 +208,25 @@ import { TextValue } from '../../shared/text-value';
       border-color: color-mix(in srgb, var(--ms-accent) 65%, var(--ms-border));
     }
 
-    .field {
+    /* The page's own prose rules do the setting; the box only gives it room. */
+    .prose {
+      padding: 0.15rem 0.35rem 0.25rem 0;
+    }
+
+    /* Marks on the left, the two verbs on the right, under whatever is being
+       written: a footer, so the box is as wide as the page's text is. */
+    .footer {
       display: flex;
-      align-items: flex-end;
-      gap: 0.5rem;
+      align-items: center;
+      gap: 0.3rem;
+      margin-top: 0.25rem;
+    }
+
+    .marks {
+      display: flex;
+      align-items: center;
+      gap: 0.1rem;
+      margin-right: auto;
     }
 
     .buttons {
@@ -194,16 +256,25 @@ import { TextValue } from '../../shared/text-value';
       color: var(--ms-muted);
     }
 
+    /* Bare inside the box, which draws the frame: no border of its own, no
+       background, and the frame variables restated so the row arithmetic in
+       the shared rule counts what is actually there. */
     .direction textarea {
       --field-pad-y: 0px;
+      --field-pad-x: 0;
+      --field-border: 0px;
+      flex: 1;
+      min-width: 0;
+      border-radius: 0;
+      background: none;
       font-family: var(--ms-sans);
       font-size: 0.9rem;
       font-style: italic;
       color: var(--ms-ink-soft);
     }
 
-    /* A quiet word beside Send, lit when the field is open. */
-    .author {
+    /* A quiet word, lit when what it stands for is on. */
+    .quiet {
       padding: 0.3rem 0.55rem;
       border: 1px solid transparent;
       border-radius: 999px;
@@ -215,31 +286,40 @@ import { TextValue } from '../../shared/text-value';
       cursor: pointer;
     }
 
-    .author:hover,
-    .author:focus-visible {
+    .quiet:hover,
+    .quiet:focus-visible {
       color: var(--ms-ink-soft);
       border-color: var(--ms-border);
     }
 
-    .author.on {
+    .quiet.on {
       border-color: color-mix(in srgb, var(--ms-accent) 55%, var(--ms-border));
       background: color-mix(in srgb, var(--ms-accent) 12%, transparent);
       color: var(--ms-accent);
     }
 
-    /* Bare inside the box, which draws the frame for both fields: no border of
-       its own, no background, and the frame variables restated so the row
-       arithmetic in the shared rule counts what is actually there. */
-    textarea {
-      --field-pad-y: 0.35rem;
-      --field-pad-x: 0;
-      --field-border: 0px;
-      flex: 1;
-      min-width: 0;
-      border-radius: 0;
-      background: none;
+    /* Each mark wears its own: the speech colour, the italic, the weight. */
+    .mark {
+      padding: 0.25rem 0.5rem;
       font-family: var(--ms-serif);
-      font-size: 1rem;
+      font-size: 0.82rem;
+      letter-spacing: 0;
+    }
+
+    .mark.speech {
+      color: color-mix(in srgb, var(--ms-speech) 65%, var(--ms-muted));
+    }
+
+    .mark.action {
+      font-style: italic;
+    }
+
+    .mark.bold {
+      font-weight: 650;
+    }
+
+    .mark.on {
+      color: var(--ms-ink);
     }
 
     .send,
@@ -272,9 +352,10 @@ export class Composer {
   // Not `required`: a chapter with no scene, no connection or a closed status
   // has the reason and the way out of it where the box would be, and the
   // document-wide key listener runs on those pages too.
-  private readonly input = viewChild<ElementRef<HTMLTextAreaElement>>('input');
+  protected readonly input = viewChild<ProseEditor>('input');
   private readonly directionInput = viewChild<ElementRef<HTMLTextAreaElement>>('directionInput');
   private readonly injector = inject(Injector);
+  private readonly changes = inject(ChangeDetectorRef);
 
   /** The page is asked to bring its end into view; only it knows where that is. */
   readonly startedTyping = output<void>();
@@ -344,10 +425,11 @@ export class Composer {
    *
    * It is a shorthand for the button beside Send rather than a syntax: the
    * split happens as it is typed and is shown, so what leaves the composer is
-   * always what the writer can see in it.
+   * always what the writer can see in it. The editor is given the prose back
+   * at once, and forgets the rest: the next keystroke must not land on a tag
+   * that has already been taken out, or it would be taken out again.
    */
-  protected onInput(event: Event): void {
-    const typed = this.text(event);
+  protected onDraft(typed: string): void {
     const match = /^[ \t]*\[author\][ \t]*/im.exec(typed);
     if (!match) {
       this.draft.set(typed);
@@ -359,7 +441,7 @@ export class Composer {
     const already = this.direction().trim();
 
     this.draft.set(prose);
-    this.setInput(prose);
+    this.input()?.show(prose);
     this.direction.set(already && said ? `${already}\n${said}` : already || said);
     this.authoring.set(true);
     this.focusDirection();
@@ -384,30 +466,25 @@ export class Composer {
    * open a line with one.
    *
    * The character is put in by hand rather than left to the browser to deliver
-   * after the focus moves: this way it goes through the same input path as any
-   * other keystroke, so `[AUTHOR]` still works and there is nothing to be
-   * fragile about.
+   * after the focus moves: this way it goes through the editor like any other
+   * keystroke, so `[AUTHOR]` still works and there is nothing to be fragile
+   * about.
    */
   protected onDocumentKey(event: KeyboardEvent): void {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key.length !== 1 || event.key === ' ') return;
     if (document.activeElement && document.activeElement !== document.body) return;
 
-    const field = this.input()?.nativeElement;
-    if (!field) return;
+    const editor = this.input();
+    if (!editor) return;
     event.preventDefault();
-
-    const typed = this.draft() + event.key;
-    this.draft.set(typed);
-    this.setInput(typed);
-    field.focus();
-    field.setSelectionRange(typed.length, typed.length);
+    editor.insertText(event.key);
     this.startedTyping.emit();
   }
 
+  /** The author's field: Enter sends from there too, and Shift+Enter is a newline. */
   protected onKey(event: KeyboardEvent): void {
-    // Shift+Enter is a newline; Ctrl/Cmd+Enter belongs to the global
-    // regenerate shortcut, so neither one sends.
+    // Ctrl/Cmd+Enter belongs to the global regenerate shortcut, so it does not send.
     if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.metaKey) return;
     event.preventDefault();
     this.send();
@@ -417,33 +494,32 @@ export class Composer {
     if (!this.canSend()) return;
     const text = this.draft();
     const said = this.direction();
+    // The editor follows the draft: emptied, and its history with it, so undo
+    // cannot bring back what has been sent.
     this.draft.set('');
     this.direction.set('');
     this.authoring.set(false);
-    // Clearing the signal alone does not push the empty value back into the
-    // DOM node on this path, and the box would keep what was sent.
-    this.setInput('');
     void this.chapters.send(text, said);
   }
 
   /**
-   * The DOM node, which the signal alone does not move: [msText] leaves a box
-   * that is being typed into alone, and this one is. The height follows the
-   * value by itself.
+   * Puts the field on the page now and the caret in it, rather than a frame
+   * from now: the `[AUTHOR]` split happens mid-word, and whatever is typed
+   * between the tag closing and the field taking focus would otherwise land
+   * in the prose the tag was just taken out of.
    */
-  private setInput(value: string): void {
-    const field = this.input()?.nativeElement;
-    if (field) field.value = value;
-  }
-
   private focusDirection(): void {
-    // After the field has been put on the page by the change it was asked for.
+    this.changes.detectChanges();
+    const field = this.directionInput()?.nativeElement;
+    if (field) {
+      focusEnd(field);
+      return;
+    }
+    // Not on the page yet after all: after the render that puts it there.
     afterNextRender(
       () => {
-        const field = this.directionInput()?.nativeElement;
-        if (!field) return;
-        field.focus();
-        field.setSelectionRange(field.value.length, field.value.length);
+        const late = this.directionInput()?.nativeElement;
+        if (late) focusEnd(late);
       },
       { injector: this.injector },
     );
@@ -463,4 +539,9 @@ export class Composer {
         break;
     }
   }
+}
+
+function focusEnd(field: HTMLTextAreaElement): void {
+  field.focus();
+  field.setSelectionRange(field.value.length, field.value.length);
 }

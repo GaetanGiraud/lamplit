@@ -9,6 +9,7 @@ import python from 'highlight.js/lib/languages/python';
 import typescript from 'highlight.js/lib/languages/typescript';
 import xml from 'highlight.js/lib/languages/xml';
 import yaml from 'highlight.js/lib/languages/yaml';
+import { speechRuns } from './prose-markdown';
 
 // A story is not a codebase: register the handful of languages a fenced block
 // here plausibly holds rather than pulling in all of highlight.js.
@@ -123,27 +124,27 @@ export function renderStoryHtml(source: string, options: RenderOptions): string 
 /** Tags whose text is verbatim and must not be reformatted. */
 const VERBATIM = new Set(['CODE', 'PRE', 'A']);
 
-/** Wraps `"quoted runs"` (straight or curly) in `<span class="speech">`. */
+/**
+ * Wraps `"quoted runs"` (straight or curly) in `<span class="speech">`. The
+ * rule lives in `prose-markdown.ts`, because the editor colours what is being
+ * typed by the same one.
+ */
 function markSpeech(host: HTMLElement): void {
-  const quoted = /(["“])([^"“”]+)(["”])/g;
   for (const node of textNodes(host)) {
     const text = node.nodeValue ?? '';
     if (!/["“]/.test(text)) continue;
-    quoted.lastIndex = 0;
-    if (!quoted.test(text)) continue;
+    const runs = speechRuns(text);
+    if (!runs.length) continue;
 
     const fragment = document.createDocumentFragment();
     let cursor = 0;
-    quoted.lastIndex = 0;
-    for (let match = quoted.exec(text); match; match = quoted.exec(text)) {
-      if (match.index > cursor) {
-        fragment.append(document.createTextNode(text.slice(cursor, match.index)));
-      }
+    for (const [from, to] of runs) {
+      if (from > cursor) fragment.append(document.createTextNode(text.slice(cursor, from)));
       const span = document.createElement('span');
       span.className = 'speech';
-      span.textContent = match[0];
+      span.textContent = text.slice(from, to);
       fragment.append(span);
-      cursor = match.index + match[0].length;
+      cursor = to;
     }
     if (cursor < text.length) fragment.append(document.createTextNode(text.slice(cursor)));
     node.parentNode?.replaceChild(fragment, node);

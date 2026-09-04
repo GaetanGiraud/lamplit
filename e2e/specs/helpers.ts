@@ -173,12 +173,34 @@ export function assistantMessages(page: Page): Locator {
 }
 
 /**
- * The box the story is written in. Not every textarea in the composer: the
- * author's field is one too, and it is open whenever a direction is being
- * written.
+ * The box the story is written in: a prose editor, not a textarea. The
+ * author's field under it is still a textarea, and is not this.
  */
 export function composer(page: Page): Locator {
-  return page.locator('ms-composer .field > textarea');
+  return proseEditor(page.locator('ms-composer'));
+}
+
+/** The editable surface of a prose editor inside `scope`: the composer's, or a message's. */
+export function proseEditor(scope: Locator): Locator {
+  return scope.locator('ms-prose-editor [contenteditable]');
+}
+
+/**
+ * Writes into a prose editor the way a writer would, replacing what was there.
+ * Keystroke by keystroke, so the input rules see them; Shift+Enter for a
+ * newline, because Enter is Send in the composer. Focused rather than clicked,
+ * as `fill()` was: a box under the chapter panel's scrim can still be written
+ * into, and a click would wait for the scrim to go.
+ */
+export async function fillProse(editor: Locator, text: string): Promise<void> {
+  await editor.focus();
+  await editor.press('ControlOrMeta+a');
+  await editor.press('Backspace');
+  const lines = text.split('\n');
+  for (const [index, line] of lines.entries()) {
+    if (index) await editor.press('Shift+Enter');
+    if (line) await editor.pressSequentially(line);
+  }
 }
 
 /**
@@ -191,7 +213,7 @@ export async function expectComposerHidden(page: Page, reason: RegExp): Promise<
 }
 
 export async function send(page: Page, text: string): Promise<void> {
-  await composer(page).fill(text);
+  await fillProse(composer(page), text);
   await page.getByRole('button', { name: 'Send', exact: true }).click();
 }
 

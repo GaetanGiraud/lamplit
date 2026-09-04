@@ -281,7 +281,7 @@ async function theApp() {
   // A real turn, streamed by the stand-in model into the real composer: once
   // part-way through, with Stop up, and once finished.
   const stop = page.getByRole('button', { name: 'Stop' });
-  await page.locator('ms-composer textarea').fill('"Who are you?" I say, and I do not move.');
+  await write(page, '"Who are you?" I say, and I do not move.');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await stop.waitFor({ timeout: 20_000 });
   await page.waitForTimeout(500);
@@ -402,8 +402,7 @@ async function theApp() {
   // The author's voice, caught in the composer with the two halves apart: the
   // tag has already been taken out of the prose and what follows it is in the
   // author's own field, so the split is readable before anything is sent.
-  const box = page.locator('ms-composer textarea').first();
-  await box.fill('I take the key off the hook.\n[AUTHOR] Nell refuses to follow her up.');
+  await write(page, 'I take the key off the hook.\n[AUTHOR] Nell refuses to follow her up.');
   await page.waitForTimeout(500);
   await shot(page, 'author', 'a line of the story, and a direction the model must follow');
 
@@ -492,6 +491,21 @@ async function setDeveloperMode(page, on) {
 }
 
 /** Escape closes a modal, and everything in it has already been saved. */
+/**
+ * Writes into the composer as a writer would: keystroke by keystroke, so the
+ * editor colours what is typed, and Shift+Enter for a newline because Enter
+ * is Send.
+ */
+async function write(page, text) {
+  const editor = page.locator('ms-composer ms-prose-editor [contenteditable]');
+  await editor.click();
+  const lines = text.split('\n');
+  for (const [index, line] of lines.entries()) {
+    if (index) await editor.press('Shift+Enter');
+    if (line) await editor.pressSequentially(line);
+  }
+}
+
 async function escape(page) {
   await page.keyboard.press('Escape');
   await page.locator('mat-dialog-container').waitFor({ state: 'hidden' });

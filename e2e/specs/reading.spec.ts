@@ -1,6 +1,13 @@
 import { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { composer, seedConnectedSettings, seedStory, send, waitForTurn } from './helpers';
+import {
+  composer,
+  fillProse,
+  seedConnectedSettings,
+  seedStory,
+  send,
+  waitForTurn,
+} from './helpers';
 
 /**
  * The composer is the end of the page, not a dock under it.
@@ -104,7 +111,7 @@ test('typing with nothing focused goes into the composer, wherever the reader is
   await page.keyboard.type('he waits.');
 
   await expect(composer(page)).toBeFocused();
-  await expect(composer(page)).toHaveValue('She waits.');
+  await expect(composer(page)).toHaveText('She waits.');
   expect(await composerOnScreen(page)).toBe(true);
   await expect(jump(page)).toBeHidden();
 });
@@ -119,7 +126,7 @@ test('a letter pressed inside a dialog stays in the dialog', async ({ page, serv
   await expect(sheet).toBeVisible();
   await page.keyboard.press('x');
 
-  await expect(composer(page)).toHaveValue('');
+  await expect(composer(page)).toHaveText('');
 });
 
 test('at 390px the chapter is text until the end of it', async ({ page, server }) => {
@@ -154,7 +161,7 @@ test('the composer grows as it is written into without pushing itself off the pa
   await send(page, '!long');
   await waitForTurn(page);
 
-  await composer(page).fill(Array.from({ length: 10 }, (_, i) => `line ${i + 1}`).join('\n'));
+  await fillProse(composer(page), Array.from({ length: 10 }, (_, i) => `line ${i + 1}`).join('\n'));
   // The page grew under a reader who had not moved, so it still ends where
   // they are looking.
   expect(await composerOnScreen(page)).toBe(true);

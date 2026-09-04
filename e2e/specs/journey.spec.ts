@@ -1,5 +1,12 @@
 import { BrowserContext, Locator, Page, expect, test } from '@playwright/test';
-import { FAKE_API_URL, captureRequests, composer, systemOf, waitForTurn } from './helpers';
+import {
+  captureRequests,
+  composer,
+  FAKE_API_URL,
+  fillProse,
+  systemOf,
+  waitForTurn,
+} from './helpers';
 import { IS_BUILT, PersistenceServer } from './persistence-server';
 
 /**
@@ -153,7 +160,7 @@ test.describe('a story from nothing, told by a narrator', () => {
   });
 
   test('5 · the first turn carries the narrator, the persona and the scene', async () => {
-    await composer(page).fill('I climb, counting the steps.');
+    await fillProse(composer(page), 'I climb, counting the steps.');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await waitForTurn(page);
 
@@ -185,7 +192,7 @@ test.describe('a story from nothing, told by a narrator', () => {
       .poll(async () => (await server.document<any>('stories', storyId))?.['world']?.storySoFar)
       .toBe(STORY_SO_FAR);
 
-    await composer(page).fill('I say nothing and wait.');
+    await fillProse(composer(page), 'I say nothing and wait.');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await waitForTurn(page);
     expect(lastSystem()).toContain(`The story so far:\n${STORY_SO_FAR}`);
@@ -229,7 +236,7 @@ test.describe('a story from nothing, told by a narrator', () => {
     await close(preview);
 
     // Typing his name is enough: the pill counts the draft in too.
-    await composer(page).fill(`"Did you know ${LORE_KEY}?" I ask.`);
+    await fillProse(composer(page), `"Did you know ${LORE_KEY}?" I ask.`);
     await contextPill().click();
     const armed = page.getByRole('dialog');
     await expect(armed.locator('li', { hasText: 'Old Tomas' })).toContainText(
@@ -288,7 +295,7 @@ test.describe('a story from nothing, told by a narrator', () => {
     await sheet.getByRole('button', { name: 'Open the chapter' }).click();
     await expect(composer(page)).toBeEnabled();
 
-    await composer(page).fill('I put the kettle on.');
+    await fillProse(composer(page), 'I put the kettle on.');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await waitForTurn(page);
 

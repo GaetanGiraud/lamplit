@@ -7,6 +7,22 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**What you type looks like what will be read.** The box you write in is a prose editor now, set in
+the reading face at the reading size, and a line is coloured as it is written: `"speech"` in the
+speech colour the moment the closing quote lands, `*an action*` in italics the moment the second
+asterisk does, `**bold**` likewise — the asterisks go and the mark stays. Editing a message opens
+the same editor.
+
+- **Three quiet words under the box**, **Speech**, **Action** and **Bold**, do the same for a
+  selection or for what you type next; the shortcuts are **Ctrl+'**, **Ctrl+I** and **Ctrl+B**.
+- **Nothing about the message changed.** It is still the plain text with its quotes and asterisks,
+  which is what the model reads, and a heading or a list typed the markdown way still renders as
+  one after sending. Pasting brings the text and nothing else.
+- **Enter still sends, Shift+Enter still breaks the line**, `[AUTHOR]` still splits as it is typed,
+  and undo after sending gives back nothing that was sent.
+- The editor is [Tiptap](https://tiptap.dev) on ProseMirror, headless. The app is about 86 kB
+  larger to download (322 kB uncompressed).
+
 **Every text box grows on the line that needs it.** The scene, the lore, a persona, the summary
 of a chapter closing, the author's direction and the box you write in all size themselves to their
 text now, up to the height they were given, and shrink again when text is deleted. They used to
