@@ -1,4 +1,9 @@
-import { DEFAULT_SCAN, DEFAULT_STORY_TITLE, DEFAULT_STYLE } from '../core/defaults';
+import {
+  DEFAULT_ROLEPLAY,
+  DEFAULT_SCAN,
+  DEFAULT_STORY_TITLE,
+  DEFAULT_STYLE,
+} from '../core/defaults';
 import { Chapter, ChapterMessage, Story } from '../core/models';
 import { StorageBackend } from './storage';
 
@@ -32,6 +37,7 @@ export function newStory(title = DEFAULT_STORY_TITLE): Story {
     mode: 'narrator',
     narrator: { useDefault: true, prompt: '' },
     characters: [],
+    roleplay: { ...DEFAULT_ROLEPLAY },
     persona: { name: '', description: '' },
     style: { ...DEFAULT_STYLE },
     world: {
@@ -94,6 +100,9 @@ export function normaliseStory(stored: Partial<Story>): Story {
     id: stored.id ?? base.id,
     narrator: { ...base.narrator, ...stored.narrator },
     characters: Array.isArray(stored.characters) ? stored.characters : [],
+    // A story written before casting was a choice is an ensemble, which is
+    // what it always was.
+    roleplay: { ...base.roleplay, ...stored.roleplay },
     persona: { ...base.persona, ...stored.persona },
     style: { ...base.style, ...stored.style },
     world: {
@@ -113,6 +122,9 @@ export function normaliseChapter(stored: Partial<Chapter>): Chapter {
     ...stored,
     id: stored.id ?? base.id,
     // A reload mid-stream would otherwise restore a message stuck at "typing".
-    messages: messages.filter((m: ChapterMessage) => m.content || m.meta?.error),
+    // A cast record has no words in it and is kept on the strength of its kind.
+    messages: messages.filter(
+      (m: ChapterMessage) => m.kind === 'cast' || m.content || m.meta?.error,
+    ),
   };
 }

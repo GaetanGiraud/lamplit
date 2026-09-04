@@ -7,6 +7,7 @@ import {
   BlockId,
   Chapter,
   ChapterMessage,
+  Character,
   GenerationParams,
   LoreEntry,
   OutboundMessage,
@@ -110,6 +111,12 @@ export interface BuiltPrompt {
   messages: OutboundMessage[];
   blocks: PromptBlock[];
   lore: LoreHit[];
+  /**
+   * What the model is told, mid-history, about the cast changing. Empty in
+   * every casting but one at a time, where a switch has to be understood
+   * rather than guessed at from a change of voice.
+   */
+  castNotes: string[];
   tokens: {
     system: number;
     history: number;
@@ -144,22 +151,25 @@ export function buildPrompt(input: PromptInput): BuiltPrompt {
   const reserve = params.maxResponseTokens;
   const budget = Math.max(0, params.maxContextTokens - reserve - systemTokens - draftTokens);
 
-  const usable = history.filter((m) => m.content.trim() && !m.meta?.error);
+  const usable = outboundHistory(story, history);
   const kept: OutboundMessage[] = [];
   let historyTokens = 0;
+  let sent = 0;
   // Oldest messages drop out first, so the newest turns always survive.
   for (let i = usable.length - 1; i >= 0; i--) {
-    const message: OutboundMessage = { role: usable[i].role, content: usable[i].content };
+    const { message, note } = usable[i];
     const cost = estimator.countMessages([message]);
     if (historyTokens + cost > budget && (kept.length || draft)) break;
     kept.unshift(message);
     historyTokens += cost;
+    if (!note) sent++;
   }
 
   return {
     messages: [...systemMessage, ...kept, ...draftMessage],
     blocks,
     lore,
+    castNotes: usable.filter((entry) => entry.note).map((entry) => entry.message.content),
     tokens: {
       system: systemTokens,
       history: historyTokens,
@@ -168,8 +178,88 @@ export function buildPrompt(input: PromptInput): BuiltPrompt {
       budget: params.maxContextTokens,
       reserve,
     },
-    dropped: usable.length - kept.length,
+    // Only the turns count as dropped: a note is not something the writer
+    // wrote, and a chapter that lost one has not lost a word of itself.
+    dropped: usable.filter((entry) => !entry.note).length - sent,
   };
+}
+
+/**
+ * The chapter's own list as the request will carry it: the turns worth
+ * sending, with a system note at each point the cast changed.
+ *
+ * In every casting but one at a time this is exactly the filter it has always
+ * been — a cast record has no words in it, so it falls out of the same test
+ * that drops an empty placeholder, and the request is unchanged.
+ */
+function outboundHistory(
+  story: Story,
+  history: readonly ChapterMessage[],
+): { message: OutboundMessage; note: boolean }[] {
+  const telling = isOneAtATime(story);
+  const out: { message: OutboundMessage; note: boolean }[] = [];
+  for (const message of history) {
+    if (message.kind === 'cast') {
+      const note = telling && message.cast ? castNote(message.cast, story.characters) : '';
+      if (note) out.push({ message: { role: 'system', content: note }, note: true });
+      continue;
+    }
+    if (!message.content.trim() || message.meta?.error) continue;
+    out.push({
+      message: { role: message.role, content: message.content },
+      note: false,
+    });
+  }
+  return out;
+}
+
+/**
+ * What the model is told at the point the cast changed. Short and firm: it is
+ * read as an instruction, and the history above it is left exactly as it was
+ * written — the model is told what it was, not handed a rewritten past.
+ */
+function castNote(change: NonNullable<ChapterMessage['cast']>, cast: readonly Character[]): string {
+  const nameOf = (id: string) => cast.find((c) => c.id === id)?.name.trim() ?? '';
+  const parts: string[] = [];
+
+  const now = nameOf(change.activeCharacterId);
+  const before = change.was ? nameOf(change.was.activeCharacterId) : '';
+  if (now && now !== before) {
+    parts.push(
+      before
+        ? `From here you play ${now}. ${before} is no longer the character you play; everything above in ${before}'s voice was ${before}, not you.`
+        : `From here you play ${now}.`,
+    );
+  }
+
+  // A change with no `was` is one this build cannot see the other side of, so
+  // it reports the switch and stays quiet about who came and went.
+  const was = new Set(change.was?.enabled ?? change.enabled);
+  const is = new Set(change.enabled);
+  for (const id of was) {
+    if (!is.has(id) && nameOf(id)) parts.push(`${nameOf(id)} has left the scene.`);
+  }
+  for (const id of is) {
+    if (!was.has(id) && nameOf(id)) parts.push(`${nameOf(id)} joins the scene.`);
+  }
+
+  return parts.join(' ');
+}
+
+/** True when the model is playing one character rather than the whole room. */
+export function isOneAtATime(story: Pick<Story, 'mode' | 'roleplay'>): boolean {
+  return story.mode === 'roleplay' && story.roleplay.casting === 'one-at-a-time';
+}
+
+/**
+ * Who the model is playing. Naming nobody, or naming somebody who is not in
+ * the scene, falls back to the first character who is — a story is never left
+ * with a voice it cannot use.
+ */
+export function activeCharacter(story: Pick<Story, 'characters' | 'roleplay'>): Character | null {
+  const cast = story.characters.filter((c) => c.enabled && c.name.trim());
+  const named = cast.find((c) => c.id === story.roleplay.activeCharacterId);
+  return named ?? cast[0] ?? null;
 }
 
 /**
@@ -188,9 +278,11 @@ export function buildSummaryPrompt(story: Story, chapter: Chapter): OutboundMess
     `Chapter ${chapter.number}${title ? `, ${title}` : ''} has just finished.`,
   ];
   if (chapter.scene.trim()) parts.push(`The scene it opened on:\n${chapter.scene.trim()}`);
+  // A cast record has nothing to summarise; who was speaking does, so a line
+  // written by one character is attributed to them and not to the story.
   const transcript = chapter.messages
-    .filter((m) => m.content.trim() && !m.meta?.error)
-    .map((m) => `${m.role === 'user' ? 'Reader' : 'Story'}: ${m.content.trim()}`)
+    .filter((m) => m.kind !== 'cast' && m.content.trim() && !m.meta?.error)
+    .map((m) => `${speakerLabel(story, m)}: ${m.content.trim()}`)
     .join('\n\n');
   parts.push(`What happened in it:\n${transcript || '(nothing was written in this chapter)'}`);
 
@@ -201,6 +293,13 @@ export function buildSummaryPrompt(story: Story, chapter: Chapter): OutboundMess
     },
     { role: 'user', content: `${parts.join('\n\n')}\n\n${summaryInstruction(story)}` },
   ];
+}
+
+/** Whose line this is: the reader, a named character, or the story itself. */
+function speakerLabel(story: Story, message: ChapterMessage): string {
+  if (message.role === 'user') return 'Reader';
+  const speaker = story.characters.find((c) => c.id === message.speakerId);
+  return speaker?.name.trim() || 'Story';
 }
 
 /** Ours, or the writer's own once they have overridden it. */
@@ -256,6 +355,30 @@ function modeBlock(story: Story): string {
   if (!cast.length) {
     return 'You play every character the story needs except the one the user plays. Answer in character, in the first person.';
   }
+
+  // One at a time: the model is one of them, and the rest are furniture it
+  // can describe. Saying who else is there matters as much as saying who it
+  // is — without it the scene empties out the moment the others stop speaking.
+  const only = isOneAtATime(story) ? activeCharacter(story) : null;
+  if (only) {
+    const others = cast.filter((c) => c.id !== only.id);
+    const lines = [
+      `You are playing ${only.name.trim()}, and nobody else. Answer in character, in the first person, as they would speak and act.`,
+      `${only.name.trim()}: ${only.description.trim() || '(no description)'}`,
+    ];
+    if (others.length) {
+      lines.push(
+        `Also in the scene: ${joinNames(others.map((c) => c.name.trim()))}. Describe what they do as ${only.name.trim()} sees it, and never speak or act for them.`,
+      );
+      for (const character of others) {
+        lines.push(
+          `${character.name.trim()}: ${character.description.trim() || '(no description)'}`,
+        );
+      }
+    }
+    return lines.join('\n');
+  }
+
   const lines = [
     `You are playing ${joinNames(cast.map((c) => c.name.trim()))}. Answer in character, in the first person, as they would speak and act.`,
   ];
@@ -297,7 +420,7 @@ function styleBlock(story: Story): string {
     story.style.dialogueOnOwnLine ? 'Give each spoken line a paragraph of its own.' : '',
     REPLY_LENGTH_HINTS[story.style.replyLength],
     story.mode === 'roleplay'
-      ? `Stay in character, and never write words, thoughts or actions for ${story.persona.name.trim() || 'the user'}.`
+      ? `Stay in character, and never write words, thoughts or actions for ${joinNames(offLimits(story), 'or')}.`
       : 'Stay inside the story: no notes to the reader, no asking what they would like next.',
   ]
     .filter(Boolean)
@@ -371,7 +494,21 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function joinNames(names: readonly string[]): string {
+/**
+ * Who the model must not write for: the user always, and — when it is playing
+ * one character — everybody else in the scene as well.
+ */
+function offLimits(story: Story): string[] {
+  const user = story.persona.name.trim() || 'the user';
+  const only = isOneAtATime(story) ? activeCharacter(story) : null;
+  if (!only) return [user];
+  const others = story.characters
+    .filter((c) => c.enabled && c.name.trim() && c.id !== only.id)
+    .map((c) => c.name.trim());
+  return [user, ...others];
+}
+
+function joinNames(names: readonly string[], conjunction = 'and'): string {
   if (names.length === 1) return names[0];
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  return `${names.slice(0, -1).join(', ')} ${conjunction} ${names[names.length - 1]}`;
 }

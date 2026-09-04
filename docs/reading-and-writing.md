@@ -100,8 +100,11 @@ its own, and those stay folded too.
 - **Persona** — a name and a few lines. It belongs to the story rather than the chapter, and it is
   sent with every request in both modes.
 - **Cast** *(role-play mode)* — one row per character: their name and the first line of their
-  description. The pencil at the end of a row opens them in the **Story** sheet, because a
-  character is a name and a paragraph and that is more than a row can hold.
+  description. The switch on a row takes them in and out of the scene; when the story is cast
+  [one character at a time](story-and-world.md), clicking a row hands the model that character
+  from there on, and the row being played is marked. The pencil at the end opens them in the
+  **Story** sheet, because a character is a name and a paragraph and that is more than a row can
+  hold.
 
 Nothing about the app is in here — no connection, no sampling parameters, no reading settings.
 Those are not chapter fields, and they stay behind their own sheets.

@@ -1,4 +1,11 @@
-import { GenerationParams, ReplyLength, ScanSettings, Settings, StoryStyle } from './models';
+import {
+  GenerationParams,
+  ReplyLength,
+  RoleplaySettings,
+  ScanSettings,
+  Settings,
+  StoryStyle,
+} from './models';
 import { DEFAULT_PROVIDER_ID, providerPreset } from './providers';
 
 export const DEFAULT_GENERATION: GenerationParams = {
@@ -70,6 +77,15 @@ export const DEFAULT_SCAN: ScanSettings = {
   depth: 4,
   caseSensitive: false,
   matchWholeWords: false,
+};
+
+/**
+ * Ensemble, with nobody singled out — the behaviour every story had before
+ * casting was a choice, and so what a story that says nothing still gets.
+ */
+export const DEFAULT_ROLEPLAY: RoleplaySettings = {
+  casting: 'ensemble',
+  activeCharacterId: '',
 };
 
 export const DEFAULT_STYLE: StoryStyle = {

@@ -22,7 +22,7 @@ The system message is assembled in this order:
 
 | # | Block | When |
 |---|---|---|
-| 1 | **Mode preamble** — the narrator instruction, or "You are playing X and Y" plus each character's description | always |
+| 1 | **Mode preamble** — the narrator instruction, or "You are playing X and Y" (or "X, and nobody else") plus each character's description | always |
 | 2 | **Persona** — "The user plays *name*: *description*" | when you have set one |
 | 3 | **The story so far** | when it is not empty |
 | 4 | **What is true in this world** — lore entries that fired | when any fired |
@@ -37,6 +37,11 @@ those you can put in any order you like — see [Changing the order](#changing-t
 Then the chapter's messages, oldest first — and **only this chapter's**. Earlier chapters reach
 the model through block 3 and nowhere else. That is the whole point of
 [chapters](chapters.md).
+
+One thing can sit between those messages: when a role-play story is cast
+[one character at a time](story-and-world.md), a short `system` line marks each point where the
+cast changed — who the model plays from here, and who has left or joined. Nothing above it is
+touched.
 
 ## The context budget
 

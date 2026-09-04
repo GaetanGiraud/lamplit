@@ -1,6 +1,13 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { DEFAULT_STORY_TITLE } from '../core/defaults';
-import { BlockId, Character, LoreCategory, LoreEntry, Story } from '../core/models';
+import {
+  BlockId,
+  Character,
+  LoreCategory,
+  LoreEntry,
+  RoleplaySettings,
+  Story,
+} from '../core/models';
 import { SettingsStore } from './settings-store';
 import { STORAGE_BACKEND } from './storage';
 import {
@@ -112,6 +119,15 @@ export class StoryStore {
   }
 
   // -- cast -----------------------------------------------------------------
+
+  /**
+   * How role-play is cast, and who is being played. The chapter store is what
+   * calls these: a change mid-chapter is also a record in the chapter, and it
+   * is the one place that knows where in the chapter "now" is.
+   */
+  patchRoleplay(patch: Partial<RoleplaySettings>): void {
+    this.patch({ roleplay: { ...this.story().roleplay, ...patch } });
+  }
 
   addCharacter(name = ''): Character {
     const character: Character = { id: newId(), name, description: '', enabled: true };

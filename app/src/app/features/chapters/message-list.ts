@@ -22,7 +22,9 @@ const PINNED_SLACK = 96;
   template: `
     <div #scroller class="scroller" (scroll)="onScroll()">
       <div class="column" [style.--ms-reading-size.px]="settings.ui().fontSize">
-        @for (message of chapters.messages(); track message.id) {
+        <!-- The written turns, not every row: a record of the cast changing is
+             in the list so the prompt knows where it happened, not to be read. -->
+        @for (message of chapters.written(); track message.id) {
           <ms-message-item
             [message]="message"
             [streaming]="chapters.streamingId() === message.id"
@@ -156,7 +158,7 @@ export class MessageList {
 
   /** Changes on a new message and on every flushed streaming delta. */
   private readonly growth = computed(() => {
-    const messages = this.chapters.messages();
+    const messages = this.chapters.written();
     const last = messages[messages.length - 1];
     return `${messages.length}:${last?.content.length ?? 0}`;
   });

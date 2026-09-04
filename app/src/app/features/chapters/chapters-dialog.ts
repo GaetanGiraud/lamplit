@@ -164,14 +164,19 @@ export class ChaptersDialog {
 
   protected readonly rows = computed<Row[]>(() => {
     const active = this.chapters.chapter()?.id;
-    return this.chapters.chapters().map((chapter) => ({
-      chapter,
-      title: chapterTitle(chapter),
-      opening: firstLine(chapter.scene),
-      messages: chapter.messages.length,
-      words: chapter.messages.reduce((total, m) => total + countWords(m.content), 0),
-      active: chapter.id === active,
-    }));
+    return this.chapters.chapters().map((chapter) => {
+      // The records of the cast changing are in the list but are not of it:
+      // a chapter's size is what was written in it.
+      const written = chapter.messages.filter((m) => m.kind !== 'cast');
+      return {
+        chapter,
+        title: chapterTitle(chapter),
+        opening: firstLine(chapter.scene),
+        messages: written.length,
+        words: written.reduce((total, m) => total + countWords(m.content), 0),
+        active: chapter.id === active,
+      };
+    });
   });
 
   protected open(row: Row): void {

@@ -137,15 +137,45 @@ export interface MessageMeta {
   error?: string;
 }
 
+/**
+ * What a row in a chapter's list is. Absent — which is every row written by a
+ * version before this one — is a message, so an old chapter reads unchanged.
+ */
+export type MessageKind = 'cast';
+
+/**
+ * A change to who is on stage, kept in the chapter's list at the point it
+ * happened. `was` is the same pair as it stood before the change, so each
+ * record says what changed on its own rather than by reading the one before
+ * it — which a deleted or replayed message would otherwise take away.
+ */
+export interface CastChange {
+  /** Who the model plays from here. Empty in ensemble casting. */
+  activeCharacterId: string;
+  /** Every character in the scene from here, by id. */
+  enabled: string[];
+  was?: { activeCharacterId: string; enabled: string[] };
+}
+
 export interface ChapterMessage {
   id: string;
-  role: 'user' | 'assistant';
+  /** Absent on a message; see `MessageKind` for what else a row can be. */
+  kind?: MessageKind;
+  /** `system` belongs to cast records, which are never drawn in the chapter. */
+  role: 'user' | 'assistant' | 'system';
   content: string;
   /** Chain-of-thought text some endpoints stream separately. Never sent back. */
   reasoning?: string;
   createdAt: string;
   editedAt?: string;
   meta?: MessageMeta;
+  /**
+   * Who wrote this answer, when the story was playing one character at a time.
+   * Ensemble answers have none: nobody in particular wrote them.
+   */
+  speakerId?: string;
+  /** Cast records only. */
+  cast?: CastChange;
 }
 
 // ---------------------------------------------------------------------------
@@ -160,6 +190,21 @@ export interface ChapterMessage {
 export type BlockId = 'mode' | 'persona' | 'story-so-far' | 'lore' | 'scene' | 'style';
 
 export type StoryMode = 'narrator' | 'roleplay';
+
+/**
+ * How role-play is cast. `ensemble` is what the app has always done: the model
+ * plays every enabled character and answers as whoever the moment calls for.
+ * `one-at-a-time` gives it one character to be, and the rest are in the scene
+ * without a voice.
+ */
+export type RoleplayCasting = 'ensemble' | 'one-at-a-time';
+
+export interface RoleplaySettings {
+  casting: RoleplayCasting;
+  /** One-at-a-time only. Unset, or naming nobody, means the first enabled. */
+  activeCharacterId: string;
+}
+
 export type ReplyLength = 'short' | 'medium' | 'long';
 export type LoreCategory = 'fact' | 'person' | 'place' | 'other';
 
@@ -219,6 +264,8 @@ export interface Story {
   /** Narrator mode only; `useDefault` keeps the built-in preamble. */
   narrator: { useDefault: boolean; prompt: string };
   characters: Character[];
+  /** Role-play only; ensemble, which is what every story before it did. */
+  roleplay: RoleplaySettings;
   persona: { name: string; description: string };
   style: StoryStyle;
   world: StoryWorld;

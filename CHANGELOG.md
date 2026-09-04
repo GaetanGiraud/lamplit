@@ -7,6 +7,24 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**Role-play can be a room or a conversation.** Under **Story → Mode → Role-play** there are now
+two ways to cast it. **Ensemble** is what the app has always done and stays the default: the model
+plays everyone in the scene and answers as whoever the moment calls for. **One at a time** gives it
+a single character to be — the rest are named as present, and it may describe what they do, but it
+never speaks for them.
+
+- **Switching is in the chapter panel.** Click a row in **Cast** and the model plays that character
+  from there on; the row being played is marked. The small switch on each row takes somebody in or
+  out of the scene, in either casting.
+- **The model is told, where it happened.** A switch or a departure becomes a short line in the
+  chapter at that point — *"From here you play Tomas. Nell is no longer the character you play"*,
+  *"Isa has left the scene."* Nothing already written is rewritten, and the chapter reads exactly as
+  it did: the lines are in **What the model sees**, not in the story.
+- **Each answer remembers who wrote it**, so closing a chapter summarises it with the right names
+  attached rather than as one anonymous voice.
+- **An existing story is untouched.** A story that never answered the question is an ensemble, and
+  an ensemble sends the same prompt, byte for byte, that it always did.
+
 **The chapter's own fields are beside the page now, not on top of it.** The scene, the narrator's
 instructions, your persona and the cast each used to mean leaving the story for a modal and coming
 back. They are a panel down the right-hand side: a thin edge until you click it or press

@@ -133,6 +133,16 @@ export interface PromptPreviewData {
             · {{ prompt().dropped }} older left out to fit the budget
           }
         </p>
+
+        <!-- Not blocks: these sit between the turns, at the point in the
+             chapter where the cast changed. -->
+        @if (prompt().castNotes.length) {
+          <ul class="notes">
+            @for (note of prompt().castNotes; track $index) {
+              <li>{{ note }}</li>
+            }
+          </ul>
+        }
       </section>
 
       @if (data.draft.trim()) {
@@ -187,6 +197,15 @@ export interface PromptPreviewData {
     .tokens {
       font-size: 0.72rem;
       color: var(--ms-muted);
+    }
+
+    .notes {
+      margin: 0;
+      padding: 0 0.75rem 0.7rem 1.6rem;
+      font-family: var(--ms-serif);
+      font-size: 0.86rem;
+      line-height: 1.5;
+      color: var(--ms-ink-soft);
     }
 
     pre {

@@ -135,7 +135,7 @@ export class DialogsService {
    */
   async newChapter(): Promise<void> {
     const chapter = this.chapters.chapter();
-    if (chapter && chapter.status === 'writing' && chapter.messages.length) {
+    if (chapter && chapter.status === 'writing' && !this.chapters.isEmpty()) {
       await this.closeChapter();
       return;
     }

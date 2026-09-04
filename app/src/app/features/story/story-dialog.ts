@@ -6,7 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTabsModule } from '@angular/material/tabs';
 import { DEFAULT_NARRATOR_PROMPT } from '../../core/defaults';
-import { ReplyLength, StoryMode } from '../../core/models';
+import { ReplyLength, RoleplayCasting, StoryMode } from '../../core/models';
 import { StoryStore } from '../../store/story-store';
 import { EditorField } from '../../shared/editor-field';
 
@@ -79,6 +79,33 @@ export interface StoryDialogData {
               }
             } @else {
               <div class="cast">
+                <div class="ms-choices casting">
+                  <button
+                    type="button"
+                    class="ms-choice"
+                    [class.on]="story().roleplay.casting === 'ensemble'"
+                    (click)="setCasting('ensemble')"
+                  >
+                    <span class="name">Ensemble</span>
+                    <span class="ms-hint">
+                      The model plays everyone in the scene and answers as whoever the moment calls
+                      for.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="ms-choice"
+                    [class.on]="story().roleplay.casting === 'one-at-a-time'"
+                    (click)="setCasting('one-at-a-time')"
+                  >
+                    <span class="name">One at a time</span>
+                    <span class="ms-hint">
+                      It plays one of them. The rest are in the scene without a voice; switch in the
+                      chapter panel.
+                    </span>
+                  </button>
+                </div>
+
                 @for (character of story().characters; track character.id) {
                   <section class="character" [attr.data-character]="character.id">
                     <header>
@@ -213,6 +240,16 @@ export interface StoryDialogData {
       gap: 0.8rem;
     }
 
+    /* Nested inside the mode choice above it, so it is drawn a size down: the
+       question it asks only exists because of the answer to that one. */
+    .casting .ms-choice {
+      padding: 0.55rem 0.7rem;
+    }
+
+    .casting .name {
+      font-size: 0.95rem;
+    }
+
     .character {
       display: flex;
       flex-direction: column;
@@ -300,6 +337,10 @@ export class StoryDialog {
 
   protected setMode(mode: StoryMode): void {
     this.stories.patch({ mode });
+  }
+
+  protected setCasting(casting: RoleplayCasting): void {
+    this.stories.patchRoleplay({ casting });
   }
 
   protected setOverride(override: boolean): void {

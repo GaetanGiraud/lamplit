@@ -1,8 +1,14 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { Chapter, ChapterMessage } from '../core/models';
+import { CastChange, Chapter, ChapterMessage, Story } from '../core/models';
 import { ModelClient } from '../core/model-client';
 import { ModelError, errorFromThrown } from '../core/model-errors';
-import { BuiltPrompt, buildPrompt, buildSummaryPrompt } from '../core/prompt-builder';
+import {
+  BuiltPrompt,
+  activeCharacter,
+  buildPrompt,
+  buildSummaryPrompt,
+  isOneAtATime,
+} from '../core/prompt-builder';
 import { TOKEN_ESTIMATOR } from '../core/tokens';
 import { SettingsStore } from './settings-store';
 import { StoryStore } from './story-store';
@@ -32,7 +38,7 @@ export class ChapterStore {
 
   private readonly state = signal<Chapter[]>([]);
   private readonly streamingIdState = signal<string | null>(null);
-  private readonly written = new Map<string, Chapter>();
+  private readonly saved = new Map<string, Chapter>();
   private loadedStoryId = '';
   /** The chapter a running turn belongs to, in case the reader moves away. */
   private streamingChapterId = '';
@@ -55,7 +61,10 @@ export class ChapterStore {
   });
 
   readonly messages = computed(() => this.chapter()?.messages ?? []);
-  readonly isEmpty = computed(() => this.messages().length === 0);
+
+  /** What the chapter reads as: the records of the cast changing are not it. */
+  readonly written = computed(() => this.messages().filter((m) => m.kind !== 'cast'));
+  readonly isEmpty = computed(() => this.written().length === 0);
   readonly hasScene = computed(() => !!this.chapter()?.scene.trim());
   readonly isClosed = computed(() => this.chapter()?.status === 'closed');
 
@@ -86,8 +95,8 @@ export class ChapterStore {
     });
     effect(() => {
       for (const chapter of this.state()) {
-        if (this.written.get(chapter.id) === chapter) continue;
-        this.written.set(chapter.id, chapter);
+        if (this.saved.get(chapter.id) === chapter) continue;
+        this.saved.set(chapter.id, chapter);
         this.storage.write(KEYS.chapter(chapter.id), chapter);
       }
     });
@@ -154,7 +163,7 @@ export class ChapterStore {
 
   /** Retry for the inline error bubble, and for Ctrl+Enter. */
   async retryLast(): Promise<void> {
-    const messages = this.messages();
+    const messages = this.written();
     const last = messages[messages.length - 1];
     if (!last) return;
     await (last.role === 'assistant' ? this.regenerate(last.id) : this.replayFrom(last.id));
@@ -163,6 +172,68 @@ export class ChapterStore {
   clearMessages(): void {
     this.stop();
     this.patchChapter(this.chapter().id, () => ({ messages: [] }));
+  }
+
+  // -- the cast, as the chapter sees it -------------------------------------
+
+  /** The character the model is playing, or none in an ensemble. */
+  readonly playing = computed(() =>
+    isOneAtATime(this.stories.story()) ? activeCharacter(this.stories.story()) : null,
+  );
+
+  /** Hands the model a different character to be, from here on. */
+  setActiveCharacter(id: string): void {
+    const story = this.stories.story();
+    if (story.roleplay.activeCharacterId === id) return;
+    const was = castState(story);
+    this.stories.patchRoleplay({ activeCharacterId: id });
+    this.recordCast(was);
+  }
+
+  /** In the scene, or out of it. A change either way is told to the model. */
+  setCharacterEnabled(id: string, enabled: boolean): void {
+    const story = this.stories.story();
+    if (story.characters.find((c) => c.id === id)?.enabled === enabled) return;
+    const was = castState(story);
+    this.stories.patchCharacter(id, { enabled });
+    this.recordCast(was);
+  }
+
+  /**
+   * A change to the cast, filed where in the chapter it happened.
+   *
+   * The record carries the cast as it now stands *and* as it stood, so it says
+   * what changed without being read next to its neighbours — a message
+   * deleted or replayed between two of them must not change what either means.
+   */
+  private recordCast(was: CastChange['was']): void {
+    const chapter = this.chapter();
+    // Before the first word there is nothing for a record to sit between: the
+    // mode block already opens by saying who is on stage.
+    if (!chapter || !chapter.messages.length) return;
+
+    this.patchChapter(chapter.id, (current) => {
+      const messages = [...current.messages];
+      const last = messages[messages.length - 1];
+      // Two changes with nothing written between them are one change, and it
+      // is the older record that knows what the cast was before both.
+      const from = last?.kind === 'cast' ? (last.cast?.was ?? was) : was;
+      if (last?.kind === 'cast') messages.pop();
+
+      const cast = castState(this.stories.story());
+      // Clicked away and back again: there is no change left to tell anyone.
+      if (sameCast(from, cast)) return { messages };
+
+      messages.push({
+        id: newId(),
+        kind: 'cast',
+        role: 'system',
+        content: '',
+        createdAt: now(),
+        cast: { ...cast, was: from },
+      });
+      return { messages };
+    });
   }
 
   // -- the chapters themselves ----------------------------------------------
@@ -206,7 +277,7 @@ export class ChapterStore {
   deleteChapter(id: string): void {
     const remaining = this.state().filter((c) => c.id !== id);
     this.storage.remove(KEYS.chapter(id));
-    this.written.delete(id);
+    this.saved.delete(id);
     this.state.set(remaining);
     if (!remaining.length) {
       this.createChapter();
@@ -257,6 +328,9 @@ export class ChapterStore {
       role: 'assistant',
       content: '',
       createdAt: now(),
+      // Who is answering, when somebody in particular is. An ensemble reply is
+      // the room talking and belongs to nobody.
+      speakerId: this.playing()?.id,
       meta: { model: connection.model },
     };
     this.appendMessage(placeholder);
@@ -383,13 +457,33 @@ export class ChapterStore {
   private loadFor(storyId: string): void {
     this.loadedStoryId = storyId;
     this.stop();
-    this.written.clear();
+    this.saved.clear();
     const chapters = readChapters(this.storage, storyId);
-    for (const chapter of chapters) this.written.set(chapter.id, chapter);
+    for (const chapter of chapters) this.saved.set(chapter.id, chapter);
     this.state.set(chapters);
     if (!chapters.length) this.createChapter();
     else if (!chapters.some((c) => c.id === this.stories.story().activeChapterId)) {
       this.stories.setActiveChapter(chapters[chapters.length - 1].id);
     }
   }
+}
+
+/** Who is on stage, as a record of a change stores it. */
+function castState(story: Story): { activeCharacterId: string; enabled: string[] } {
+  return {
+    activeCharacterId: activeCharacter(story)?.id ?? '',
+    enabled: story.characters.filter((c) => c.enabled).map((c) => c.id),
+  };
+}
+
+function sameCast(
+  a: { activeCharacterId: string; enabled: string[] } | undefined,
+  b: { activeCharacterId: string; enabled: string[] },
+): boolean {
+  return (
+    !!a &&
+    a.activeCharacterId === b.activeCharacterId &&
+    a.enabled.length === b.enabled.length &&
+    a.enabled.every((id, i) => id === b.enabled[i])
+  );
 }

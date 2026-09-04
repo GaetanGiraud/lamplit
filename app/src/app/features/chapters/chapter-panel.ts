@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DEFAULT_NARRATOR_PROMPT } from '../../core/defaults';
 import { PanelSection } from '../../core/models';
-import { firstLine } from '../../core/prompt-builder';
+import { firstLine, isOneAtATime } from '../../core/prompt-builder';
 import { DialogsService } from '../../shared/dialogs.service';
 import { EditorField } from '../../shared/editor-field';
 import { TextValue } from '../../shared/text-value';
@@ -174,12 +174,55 @@ const PANEL_PUSH_WIDTH = 1100;
                   <!-- A character is a name and a paragraph, which is more than
                        a row can hold: these are read here, edited in the sheet. -->
                   @for (character of story().characters; track character.id) {
-                    <div class="cast-row" [class.off]="!character.enabled">
+                    <div
+                      class="cast-row"
+                      [class.off]="!character.enabled"
+                      [class.playing]="isPlaying(character.id)"
+                    >
                       <span class="swatch"></span>
-                      <span class="who">
-                        <span class="cast-name">{{ character.name || 'Unnamed' }}</span>
-                        <span class="cast-line">{{ describe(character.description) }}</span>
-                      </span>
+
+                      <!-- Playing one at a time, the row is the switch: click
+                           it and the model is that character from here on. -->
+                      @if (switching()) {
+                        <button
+                          type="button"
+                          class="who"
+                          [disabled]="!character.enabled || isPlaying(character.id)"
+                          [attr.aria-label]="'Play ' + (character.name || 'this character')"
+                          [matTooltip]="playTooltip(character.enabled)"
+                          (click)="play(character.id)"
+                        >
+                          <span class="cast-name">
+                            {{ character.name || 'Unnamed' }}
+                            @if (isPlaying(character.id)) {
+                              <span class="tag">playing</span>
+                            }
+                          </span>
+                          <span class="cast-line">{{ describe(character.description) }}</span>
+                        </button>
+                      } @else {
+                        <span class="who">
+                          <span class="cast-name">{{ character.name || 'Unnamed' }}</span>
+                          <span class="cast-line">{{ describe(character.description) }}</span>
+                        </span>
+                      }
+
+                      <button
+                        type="button"
+                        class="in-scene"
+                        role="switch"
+                        [attr.aria-checked]="character.enabled"
+                        [attr.aria-label]="
+                          (character.name || 'This character') + ' is in the scene'
+                        "
+                        [matTooltip]="
+                          character.enabled ? 'In the scene — take them out' : 'Bring them in'
+                        "
+                        (click)="setInScene(character.id, !character.enabled)"
+                      >
+                        <span class="knob"></span>
+                      </button>
+
                       <button
                         type="button"
                         class="icon"
@@ -421,9 +464,60 @@ const PANEL_PUSH_WIDTH = 1100;
       background: var(--ms-surface-raised);
     }
 
-    /* In the cast but not in the story: the sheet's own switch is off. */
-    .cast-row.off {
-      opacity: 0.5;
+    /* In the cast but out of the scene. Still listed, because it is a door
+       back in rather than a deletion. */
+    .cast-row.off .who {
+      opacity: 0.45;
+    }
+
+    /* Who the model is being, when it is being one of them. */
+    .cast-row.playing {
+      border-color: color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
+      background: color-mix(in srgb, var(--ms-accent) 12%, transparent);
+    }
+
+    .tag {
+      margin-left: 0.35rem;
+      padding: 0 0.3rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--ms-accent) 22%, transparent);
+      color: var(--ms-accent);
+      font-size: 0.6rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      vertical-align: 1px;
+    }
+
+    /* A switch small enough to live on a row: track, knob, nothing written. */
+    .in-scene {
+      flex: none;
+      width: 1.55rem;
+      height: 0.85rem;
+      padding: 0;
+      border: 1px solid var(--ms-border);
+      border-radius: 999px;
+      background: var(--ms-surface);
+      cursor: pointer;
+    }
+
+    .in-scene[aria-checked='true'] {
+      border-color: color-mix(in srgb, var(--ms-accent) 55%, var(--ms-border));
+      background: color-mix(in srgb, var(--ms-accent) 30%, transparent);
+    }
+
+    .knob {
+      display: block;
+      width: 0.5rem;
+      height: 0.5rem;
+      margin-left: 0.1rem;
+      border-radius: 50%;
+      background: var(--ms-muted);
+      transition: transform 120ms ease;
+    }
+
+    .in-scene[aria-checked='true'] .knob {
+      transform: translateX(0.62rem);
+      background: var(--ms-accent);
     }
 
     .swatch {
@@ -439,6 +533,15 @@ const PANEL_PUSH_WIDTH = 1100;
       min-width: 0;
       display: flex;
       flex-direction: column;
+      padding: 0;
+      border: 0;
+      background: none;
+      font: inherit;
+      text-align: left;
+    }
+
+    button.who:not(:disabled) {
+      cursor: pointer;
     }
 
     .cast-name {
@@ -511,7 +614,12 @@ export class ChapterPanel {
       : 'Sent with every request of this chapter.',
   );
 
+  /** Whether a row is a switch: only one casting has anything to switch. */
+  protected readonly switching = computed(() => isOneAtATime(this.story()));
+
   protected readonly castLabel = computed(() => {
+    const playing = this.chapters.playing();
+    if (playing) return `playing ${playing.name.trim() || 'Unnamed'}`;
     const count = this.story().characters.length;
     return count === 1 ? '1 character' : `${count} characters`;
   });
@@ -574,6 +682,24 @@ export class ChapterPanel {
 
   protected setPersona(patch: Partial<{ name: string; description: string }>): void {
     this.stories.patch({ persona: { ...this.story().persona, ...patch } });
+  }
+
+  protected isPlaying(characterId: string): boolean {
+    return this.chapters.playing()?.id === characterId;
+  }
+
+  protected playTooltip(enabled: boolean): string {
+    return enabled
+      ? 'Play this character from here on'
+      : 'Bring them into the scene before playing them';
+  }
+
+  protected play(characterId: string): void {
+    this.chapters.setActiveCharacter(characterId);
+  }
+
+  protected setInScene(characterId: string, inScene: boolean): void {
+    this.chapters.setCharacterEnabled(characterId, inScene);
   }
 
   protected edit(characterId: string): void {

@@ -28,9 +28,36 @@ can see what you are replacing.
 ### Role-play
 
 The model plays the other characters and answers in their own words. Add them here — a name and a
-description each — and switch any of them off without deleting them. The prompt becomes *"You are
-playing X and Y"* followed by each description, plus a firm instruction never to write words,
-thoughts or actions for your persona.
+description each — and switch any of them off without deleting them, either here or on the row in
+the [chapter panel](reading-and-writing.md).
+
+There are two ways to cast it, and the choice sits under the mode.
+
+**Ensemble** is the default and what the app has always done. The model plays every character in
+the scene and answers as whoever the moment calls for. The prompt becomes *"You are playing X and
+Y"* followed by each description. Pick it for a room: a scene where several people talk to each
+other as much as to you, and you would rather the model decide who speaks than tell it.
+
+**One at a time** gives the model a single character to be. The rest are named as present — it may
+describe what they do, as your character sees it — but it never speaks for them. Pick it for a
+conversation: one person across a table, whose voice you want to stay put. The prompt becomes
+*"You are playing X, and nobody else"*, and the rule about never writing for your persona extends
+to everybody else on stage.
+
+**Switching** is in the chapter panel's **Cast** section: click a row and the model plays that
+character from there on. The row that is being played is marked, and the little switch on each row
+takes a character in and out of the scene.
+
+The model is told when any of that changes, at the point in the chapter where it changed:
+
+> *From here you play Tomas. Nell is no longer the character you play; everything above in Nell's
+> voice was Nell, not you.*
+>
+> *Isa has left the scene.* / *Isa joins the scene.*
+
+Nothing already written is rewritten — the model is told what it was, and the chapter reads exactly
+as it did. The notes are in [What the model sees](the-prompt.md) under **This chapter**, and each
+answer remembers who wrote it, so closing the chapter summarises it with the right names attached.
 
 ## Story → Persona
 

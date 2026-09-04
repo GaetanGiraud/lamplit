@@ -75,6 +75,8 @@ export async function openPromptPreview(page: Page): Promise<void> {
 export interface SeedStory {
   title?: string;
   mode?: 'narrator' | 'roleplay';
+  /** Absent is what a story written before casting was a choice looks like. */
+  roleplay?: { casting: 'ensemble' | 'one-at-a-time'; activeCharacterId: string };
   persona?: { name: string; description: string };
   characters?: { id: string; name: string; description: string; enabled: boolean }[];
   storySoFar?: string;
@@ -102,6 +104,7 @@ export async function seedStory(server: PersistenceServer, options: SeedStory = 
     mode: options.mode ?? 'narrator',
     narrator: { useDefault: true, prompt: '' },
     characters: options.characters ?? [],
+    ...(options.roleplay ? { roleplay: options.roleplay } : {}),
     persona: options.persona ?? { name: '', description: '' },
     style: { dialogueOnOwnLine: true, replyLength: 'medium' },
     world: {
@@ -237,4 +240,16 @@ export async function captureRequests(page: Page): Promise<Record<string, any>[]
 export function systemOf(body: Record<string, any> | undefined): string {
   const message = (body?.['messages'] ?? []).find((m: { role: string }) => m.role === 'system');
   return message?.content ?? '';
+}
+
+/**
+ * The system messages sent *between* the turns. The first system message is
+ * the prompt itself; anything after it is the app telling the model that the
+ * cast changed at that point in the chapter.
+ */
+export function notesOf(body: Record<string, any> | undefined): string[] {
+  return ((body?.['messages'] ?? []) as { role: string; content: string }[])
+    .filter((m) => m.role === 'system')
+    .slice(1)
+    .map((m) => m.content);
 }
