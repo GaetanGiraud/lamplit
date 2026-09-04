@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu, app, ipcMain, shell } from 'electron';
+import { BrowserWindow, Menu, app, dialog, ipcMain, shell } from 'electron';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -156,6 +156,27 @@ async function openWindow(url) {
       event.preventDefault();
       openExternal(target);
     }
+  });
+
+  // The page stops the window closing when its queue is failing — the one case
+  // where leaving loses what was written. A browser would ask; Electron does
+  // not, it asks *us*, and a shell that says nothing here is a window whose
+  // close button does nothing at all, with no reason given.
+  window.webContents.on('will-prevent-unload', (event) => {
+    const answer = dialog.showMessageBoxSync(window ?? undefined, {
+      type: 'warning',
+      buttons: ['Keep Lamplit open', 'Close anyway'],
+      defaultId: 0,
+      cancelId: 0,
+      title: 'Lamplit',
+      message: 'Some of what you have written has not been saved yet.',
+      detail:
+        'Lamplit cannot reach its own server, so the last few changes are still ' +
+        'only in this window. Keep it open and they will be saved as soon as the ' +
+        'server answers again.',
+    });
+    // preventDefault here means "overrule the page": close in spite of it.
+    if (answer === 1) event.preventDefault();
   });
 
   window.once('ready-to-show', () => window?.show());

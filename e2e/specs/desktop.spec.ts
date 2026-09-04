@@ -100,3 +100,49 @@ test('writes its documents into the profile, not beside the app', async () => {
     )
     .toBe('a-key-typed-in-the-desktop-app');
 });
+
+/**
+ * A page that refuses to unload shows no dialog of its own in Electron: the
+ * shell is asked instead, through `will-prevent-unload`, and a shell that does
+ * not answer is a close button that silently does nothing. The app refuses
+ * exactly once — while its save queue is failing — which is the moment a
+ * window that will not close and will not say why is at its worst.
+ */
+test('answers the page when it refuses to close, rather than ignoring the button', async () => {
+  // The dialog is native and cannot be clicked from out here, so this stands in
+  // for the person: it records that it was asked, and keeps the window open.
+  await app.evaluate(({ dialog }) => {
+    const asked: string[] = [];
+    (globalThis as { asked?: string[] }).asked = asked;
+    dialog.showMessageBoxSync = ((...args: unknown[]) => {
+      const options = (args.length > 1 ? args[1] : args[0]) as { message?: string };
+      asked.push(options.message ?? '');
+      return 0; // Keep Lamplit open
+    }) as typeof dialog.showMessageBoxSync;
+  });
+
+  await window.evaluate(() => {
+    const refuse = (event: BeforeUnloadEvent) => event.preventDefault();
+    (window as { refuse?: (event: BeforeUnloadEvent) => void }).refuse = refuse;
+    window.addEventListener('beforeunload', refuse);
+  });
+
+  // Electron answers the "leave site?" prompt itself, through the handler under
+  // test. Without a listener here Playwright would try to dismiss a dialog that
+  // by then no longer exists, and fail on that rather than on the app.
+  window.on('dialog', () => undefined);
+  await window.evaluate(() => window.close());
+
+  await expect
+    .poll(() => app.evaluate(() => (globalThis as { asked?: string[] }).asked ?? []), {
+      timeout: 10_000,
+    })
+    .toEqual([expect.stringContaining('not been saved')]);
+  // Answered "keep open", so the window is still here to say so.
+  expect(await window.evaluate(() => document.title)).toBeTruthy();
+
+  await window.evaluate(() => {
+    const refuse = (window as { refuse?: (event: BeforeUnloadEvent) => void }).refuse;
+    if (refuse) window.removeEventListener('beforeunload', refuse);
+  });
+});
