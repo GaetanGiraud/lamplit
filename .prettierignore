@@ -5,3 +5,6 @@ package-lock.json
 test-results/
 playwright-report/
 *.md
+
+# Where CI keeps the Playwright browser (see .github/actions/verify).
+.cache/

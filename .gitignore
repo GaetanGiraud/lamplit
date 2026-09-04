@@ -11,3 +11,6 @@ build/
 # One contributor's IntelliJ IDEA project, which nobody else's checkout wants.
 .idea/
 *.iml
+
+# Where CI keeps the Playwright browser (see .github/actions/verify).
+.cache/

@@ -25,6 +25,7 @@ export default defineConfig([
     '**/dist/',
     'app/.angular/',
     'build/',
+    '.cache/',
     'backups/',
     'data/',
     'docs/',
