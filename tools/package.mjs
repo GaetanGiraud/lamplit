@@ -38,6 +38,8 @@ import { STAMP_FILE, buildStamp } from '../server/src/version.js';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ROOT_MODULES = join(ROOT, 'node_modules');
 const BUILT_APP = join(ROOT, 'app', 'dist', 'app', 'browser');
+/** Written by `ng build`, one entry per package bundled into the app. */
+const LICENCES_FILE = '3rdpartylicenses.txt';
 
 const options = parseArguments(process.argv.slice(2));
 const version = readJson(join(ROOT, 'package.json')).version;
@@ -69,6 +71,11 @@ if (options.zipOnly) {
   await mkdir(stageDir, { recursive: true });
   await cp(join(ROOT, 'server', 'src'), join(stageDir, 'server', 'src'), { recursive: true });
   await cp(BUILT_APP, join(stageDir, 'public'), { recursive: true });
+  // The licences of everything bundled into that JavaScript. Angular writes
+  // them beside the build rather than inside it, so they have to be asked for
+  // — and Apache-2.0 and BSD-3, which several of them are, require the notice
+  // to travel with what it covers. NOTICE says this file is here.
+  await cp(join(dirname(BUILT_APP), LICENCES_FILE), join(stageDir, LICENCES_FILE));
   // Next to the built app: which commit, which CI run, and when. The server
   // reads it back and /api/health repeats it, so a bug report can name the
   // build it came from rather than a version two dozen builds have carried.

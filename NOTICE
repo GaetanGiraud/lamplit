@@ -25,6 +25,12 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 --------------------------------------------------------------------------------
 
-Everything else is covered by LICENSE (MIT). Runtime dependencies keep their own
-licences and are not redistributed here except in the packaged build, where they
-travel in node_modules with their own licence files intact.
+Everything else is covered by LICENSE (MIT).
+
+Runtime dependencies keep their own licences. In a packaged build they travel
+two ways: the server's dependencies as they are, in node_modules, with their own
+licence files intact; and the app's — Angular, rxjs, marked, DOMPurify,
+highlight.js, Tiptap and ProseMirror among them — bundled into the JavaScript
+the browser loads, whose licences are gathered into 3rdpartylicenses.txt beside
+it. Several of those (Apache-2.0, BSD-3-Clause, MPL-2.0) ask that the notice
+travel with the code; that file is how it does.
