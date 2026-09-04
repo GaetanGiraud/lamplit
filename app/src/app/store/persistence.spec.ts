@@ -71,15 +71,31 @@ describe('Persistence', () => {
   let server: FakeServer;
   let persistence: Persistence;
 
+  /**
+   * Every listener this test's `Persistence` puts on the window, so that it can
+   * be taken off again. It is a page-long singleton in the app and has no
+   * reason to stop listening there; here, one left behind would answer the next
+   * test's `beforeunload` with the last test's queue.
+   */
+  let listeners: [string, EventListener][] = [];
+
   beforeEach(() => {
     server = new FakeServer();
     vi.stubGlobal('fetch', server.fetch);
     vi.useFakeTimers();
+    listeners = [];
+    const add = window.addEventListener.bind(window);
+    vi.spyOn(window, 'addEventListener').mockImplementation((type, handler, options) => {
+      listeners.push([type, handler as EventListener]);
+      add(type, handler, options);
+    });
     TestBed.configureTestingModule({});
     persistence = TestBed.inject(Persistence);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
+    for (const [type, handler] of listeners) window.removeEventListener(type, handler);
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
@@ -224,6 +240,34 @@ describe('Persistence', () => {
     expect(server.requests[1].body).toEqual({ id: 'one', turn: 1 });
     // The later one wins wherever the two land: the server drops the older seq.
     expect(server.requests[1].seq).toBeGreaterThan(server.requests[0].seq);
+  });
+
+  it('says a chapter is unsaved rather than posting it into a refusal', async () => {
+    await persistence.load();
+    persistence.listen();
+    server.requests.length = 0;
+
+    // A chapter of a few dozen exchanges: past the 64 KiB the browser will
+    // carry for a page that is leaving, which it refuses without a word.
+    persistence.write('chapter:long-one', { id: 'long-one', text: 'x'.repeat(70_000) });
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(server.requests).toHaveLength(0);
+  });
+
+  it('carries what does fit, and says nothing about it', async () => {
+    await persistence.load();
+    persistence.listen();
+    server.requests.length = 0;
+
+    persistence.write('chapter:short-one', { id: 'short-one', text: 'A short scene.' });
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(server.requests).toHaveLength(1);
   });
 
   it('keeps the session going while the server is away, and catches up after', async () => {

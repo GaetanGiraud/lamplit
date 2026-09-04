@@ -18,6 +18,16 @@ const RETRY_MAX = 15_000;
 const LOAD_ATTEMPTS = 4;
 const LOAD_RETRY = 400;
 
+/**
+ * All the keepalive requests a page may leave behind it, together, come to 64
+ * KiB — the Fetch standard says so and Chromium enforces it by failing the
+ * request, with the page already gone and nobody to hear it. A few dozen
+ * exchanges of prose is a chapter document past that on its own, so the size
+ * is counted before anything is sent and what will not fit is admitted to
+ * rather than dropped. The rest of the allowance is headers.
+ */
+const BEACON_BUDGET = 60 * 1024;
+
 interface Queued {
   ref: DocRef;
   kind: 'write' | 'delete';
@@ -113,13 +123,27 @@ export class Persistence implements StorageBackend {
       // One keepalive request per document is all the browser will still carry.
       // Deletes go too: a chapter deleted and then closed on is a file still on
       // disk, and the next start reads it back as a chapter that is there again.
+      let carried = 0;
+      let tooBig = false;
       for (const [key, queued] of this.pending) {
-        if (queued.kind === 'delete') this.api.sendBeaconRemove(queued.ref, this.nextSeq());
-        else this.api.sendBeacon(queued.ref, this.documents.get(key), this.nextSeq());
+        if (queued.kind === 'delete') {
+          this.api.sendBeaconRemove(queued.ref, this.nextSeq());
+          continue;
+        }
+        const body = JSON.stringify(this.documents.get(key));
+        carried += sizeOf(body);
+        // Over the allowance the browser fails the request without a word, so
+        // the honest thing is to say the writing is not saved yet.
+        if (carried > BEACON_BUDGET) {
+          tooBig = true;
+          continue;
+        }
+        this.api.sendBeacon(queued.ref, body, this.nextSeq());
       }
       // Debounced writes almost always make it. A queue that is already failing
-      // almost certainly will not, and that is worth stopping someone for.
-      if (this.statusState() === 'offline') event.preventDefault();
+      // almost certainly will not, and neither will a chapter too long to carry
+      // — and both are worth stopping someone for.
+      if (tooBig || this.statusState() === 'offline') event.preventDefault();
     });
     window.addEventListener('online', () => this.retryNow());
   }
@@ -229,6 +253,11 @@ export class Persistence implements StorageBackend {
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** Bytes on the wire, not characters: an accented line is longer than it looks. */
+function sizeOf(body: string): number {
+  return new TextEncoder().encode(body).length;
 }
 
 function delay(ms: number): Promise<void> {

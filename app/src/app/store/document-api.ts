@@ -90,8 +90,8 @@ export class DocumentApi {
    * The last write of a session, sent from `beforeunload`. `keepalive` is what
    * lets it outlive the page; it is fire-and-forget by nature.
    */
-  sendBeacon(ref: DocRef, document: unknown, seq: number): void {
-    this.beacon(ref, seq, 'PUT', JSON.stringify(document));
+  sendBeacon(ref: DocRef, body: string, seq: number): void {
+    this.beacon(ref, seq, 'PUT', body);
   }
 
   /** The same, for a document the session deleted and then closed the tab on. */
