@@ -213,6 +213,14 @@ export interface Character {
   name: string;
   description: string;
   enabled: boolean;
+  /**
+   * A name from the character palette. Absent on a document written before
+   * there was one, and filled in on load from the character's place in the
+   * cast, so an old story opens coloured and opens the same way every time.
+   */
+  colour?: string;
+  /** A colour of their own, from Preferences. Beats the palette name. */
+  colourOverride?: string;
 }
 
 export interface LoreEntry {

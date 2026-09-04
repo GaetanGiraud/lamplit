@@ -8,6 +8,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { DEFAULT_NARRATOR_PROMPT } from '../../core/defaults';
 import { ReplyLength, RoleplayCasting, StoryMode } from '../../core/models';
 import { StoryStore } from '../../store/story-store';
+import { CharacterSwatch } from '../../shared/character-swatch';
 import { EditorField } from '../../shared/editor-field';
 
 export interface StoryDialogData {
@@ -25,6 +26,7 @@ export interface StoryDialogData {
     MatInputModule,
     MatSlideToggleModule,
     MatTabsModule,
+    CharacterSwatch,
     EditorField,
   ],
   template: `
@@ -109,6 +111,10 @@ export interface StoryDialogData {
                 @for (character of story().characters; track character.id) {
                   <section class="character" [attr.data-character]="character.id">
                     <header>
+                      <ms-character-swatch
+                        [character]="character"
+                        (pick)="stories.setCharacterColour(character.id, $event)"
+                      />
                       <mat-form-field appearance="outline" class="name-field">
                         <mat-label>Name</mat-label>
                         <input

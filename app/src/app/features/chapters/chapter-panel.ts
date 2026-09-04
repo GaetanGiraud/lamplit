@@ -2,9 +2,11 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DEFAULT_NARRATOR_PROMPT } from '../../core/defaults';
-import { PanelSection } from '../../core/models';
+import { characterColour } from '../../core/character-colours';
+import { Character, PanelSection } from '../../core/models';
 import { firstLine, isOneAtATime } from '../../core/prompt-builder';
 import { DialogsService } from '../../shared/dialogs.service';
+import { CharacterSwatch } from '../../shared/character-swatch';
 import { EditorField } from '../../shared/editor-field';
 import { TextValue } from '../../shared/text-value';
 import { ChapterStore } from '../../store/chapter-store';
@@ -36,7 +38,7 @@ const PANEL_PUSH_WIDTH = 1100;
  */
 @Component({
   selector: 'ms-chapter-panel',
-  imports: [MatTooltipModule, EditorField, TextValue],
+  imports: [MatTooltipModule, CharacterSwatch, EditorField, TextValue],
   template: `
     @if (open()) {
       <!-- Only when it is covering the page: something has to say the page is
@@ -178,8 +180,12 @@ const PANEL_PUSH_WIDTH = 1100;
                       class="cast-row"
                       [class.off]="!character.enabled"
                       [class.playing]="isPlaying(character.id)"
+                      [style.--ms-cast-colour]="colourOf(character)"
                     >
-                      <span class="swatch"></span>
+                      <ms-character-swatch
+                        [character]="character"
+                        (pick)="stories.setCharacterColour(character.id, $event)"
+                      />
 
                       <!-- Playing one at a time, the row is the switch: click
                            it and the model is that character from here on. -->
@@ -470,18 +476,19 @@ const PANEL_PUSH_WIDTH = 1100;
       opacity: 0.45;
     }
 
-    /* Who the model is being, when it is being one of them. */
+    /* Who the model is being, when it is being one of them — in their own
+       colour, so the row and the dot on it are saying the same thing. */
     .cast-row.playing {
-      border-color: color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
-      background: color-mix(in srgb, var(--ms-accent) 12%, transparent);
+      border-color: color-mix(in srgb, var(--ms-cast-colour) 45%, var(--ms-border));
+      background: color-mix(in srgb, var(--ms-cast-colour) 14%, transparent);
     }
 
     .tag {
       margin-left: 0.35rem;
       padding: 0 0.3rem;
       border-radius: 999px;
-      background: color-mix(in srgb, var(--ms-accent) 22%, transparent);
-      color: var(--ms-accent);
+      background: color-mix(in srgb, var(--ms-cast-colour) 24%, transparent);
+      color: var(--ms-cast-colour);
       font-size: 0.6rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -518,14 +525,6 @@ const PANEL_PUSH_WIDTH = 1100;
     .in-scene[aria-checked='true'] .knob {
       transform: translateX(0.62rem);
       background: var(--ms-accent);
-    }
-
-    .swatch {
-      flex: none;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: var(--ms-muted);
     }
 
     .who {
@@ -682,6 +681,10 @@ export class ChapterPanel {
 
   protected setPersona(patch: Partial<{ name: string; description: string }>): void {
     this.stories.patch({ persona: { ...this.story().persona, ...patch } });
+  }
+
+  protected colourOf(character: Character): string {
+    return characterColour(character, this.settings.ui().theme);
   }
 
   protected isPlaying(characterId: string): boolean {

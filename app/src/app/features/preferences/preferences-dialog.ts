@@ -14,7 +14,9 @@ import {
   contrastRatio,
   shippedColour,
 } from '../../core/theming';
+import { characterColour, characterColourLabel } from '../../core/character-colours';
 import { SettingsStore } from '../../store/settings-store';
+import { StoryStore } from '../../store/story-store';
 import { UpdatesStore } from '../../store/updates-store';
 import { DialogsService } from '../../shared/dialogs.service';
 
@@ -126,6 +128,44 @@ import { DialogsService } from '../../shared/dialogs.service';
               Reset the {{ ui().theme }} colours
             </button>
           </div>
+
+          <!-- The cast's own colours. They belong to the story rather than to
+               the app, but this is where colours are changed, so this is where
+               somebody comes looking for them. -->
+          @if (cast().length) {
+            <hr />
+            <p class="ms-hint editing">
+              <strong>The cast of {{ stories.story().title }}.</strong> Each one has a colour from
+              the palette, and the swatch beside their name in the chapter panel is the way to
+              another of the ten. Below is the way out of the ten altogether — one colour, used in
+              both themes, and yours to keep legible.
+            </p>
+
+            <div class="swatches">
+              @for (character of cast(); track character.id) {
+                <label class="swatch" [class.custom]="!!character.colourOverride">
+                  <input
+                    type="color"
+                    [value]="character.colour"
+                    (input)="setCharacterColour(character.id, $event)"
+                  />
+                  <span class="text">
+                    <span class="name">{{ character.name || 'Unnamed character' }}</span>
+                    <span class="ms-hint">{{ character.label }}</span>
+                  </span>
+                  @if (character.colourOverride) {
+                    <button
+                      matButton
+                      class="revert"
+                      (click)="clearCharacterColour($event, character.id)"
+                    >
+                      Back to the palette
+                    </button>
+                  }
+                </label>
+              }
+            </div>
+          }
         </mat-expansion-panel>
 
         <mat-expansion-panel>
@@ -312,10 +352,22 @@ import { DialogsService } from '../../shared/dialogs.service';
       justify-content: flex-end;
       margin-top: 0.75rem;
     }
+
+    hr {
+      border: 0;
+      border-top: 1px solid var(--ms-border);
+      margin: 1.1rem 0 0.9rem;
+    }
+
+    .revert {
+      flex: none;
+      font-size: 0.75rem;
+    }
   `,
 })
 export class PreferencesDialog {
   protected readonly settings = inject(SettingsStore);
+  protected readonly stories = inject(StoryStore);
   private readonly updates = inject(UpdatesStore);
   private readonly dialogs = inject(DialogsService);
 
@@ -337,6 +389,26 @@ export class PreferencesDialog {
   );
 
   /** Each colour as the page draws it now: the override, or the shipped one. */
+  /** The open story's cast, each with the colour the input should show. */
+  protected readonly cast = computed(() => {
+    const theme = this.ui().theme;
+    return this.stories.story().characters.map((character) => ({
+      ...character,
+      colour: characterColour(character, theme),
+      label: characterColourLabel(character),
+    }));
+  });
+
+  protected setCharacterColour(id: string, event: Event): void {
+    this.stories.setCharacterColourOverride(id, (event.target as HTMLInputElement).value);
+  }
+
+  /** The label wraps the input, so a click on the button would open it too. */
+  protected clearCharacterColour(event: Event, id: string): void {
+    event.preventDefault();
+    this.stories.setCharacterColourOverride(id, null);
+  }
+
   protected readonly swatches = computed(() => {
     const { theme, colours } = this.ui();
     const overrides = colours[theme] ?? {};

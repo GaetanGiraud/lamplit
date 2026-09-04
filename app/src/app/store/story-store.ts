@@ -8,6 +8,7 @@ import {
   RoleplaySettings,
   Story,
 } from '../core/models';
+import { nextColour } from '../core/character-colours';
 import { SettingsStore } from './settings-store';
 import { STORAGE_BACKEND } from './storage';
 import {
@@ -130,9 +131,31 @@ export class StoryStore {
   }
 
   addCharacter(name = ''): Character {
-    const character: Character = { id: newId(), name, description: '', enabled: true };
-    this.patch({ characters: [...this.story().characters, character] });
+    const cast = this.story().characters;
+    const character: Character = {
+      id: newId(),
+      name,
+      description: '',
+      enabled: true,
+      // Nobody is asked to choose: the first ten in a story are all different.
+      colour: nextColour(cast.map((c) => c.colour)),
+    };
+    this.patch({ characters: [...cast, character] });
     return character;
+  }
+
+  /** One of the ten, chosen from the swatch on the character's row. */
+  setCharacterColour(id: string, colour: string): void {
+    this.patchCharacter(id, { colour, colourOverride: undefined });
+  }
+
+  /**
+   * A colour of their own, from Preferences. Passing nothing puts the palette
+   * back: an override is stored as an override, so forgetting it *is* the
+   * palette colour, exactly as the reading palette works.
+   */
+  setCharacterColourOverride(id: string, colour: string | null): void {
+    this.patchCharacter(id, { colourOverride: colour ?? undefined });
   }
 
   patchCharacter(id: string, patch: Partial<Character>): void {

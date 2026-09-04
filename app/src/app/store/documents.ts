@@ -4,7 +4,8 @@ import {
   DEFAULT_STORY_TITLE,
   DEFAULT_STYLE,
 } from '../core/defaults';
-import { Chapter, ChapterMessage, Story } from '../core/models';
+import { CHARACTER_COLOURS } from '../core/character-colours';
+import { Chapter, ChapterMessage, Character, Story } from '../core/models';
 import { StorageBackend } from './storage';
 
 /**
@@ -99,7 +100,7 @@ export function normaliseStory(stored: Partial<Story>): Story {
     ...stored,
     id: stored.id ?? base.id,
     narrator: { ...base.narrator, ...stored.narrator },
-    characters: Array.isArray(stored.characters) ? stored.characters : [],
+    characters: coloured(Array.isArray(stored.characters) ? stored.characters : []),
     // A story written before casting was a choice is an ensemble, which is
     // what it always was.
     roleplay: { ...base.roleplay, ...stored.roleplay },
@@ -112,6 +113,20 @@ export function normaliseStory(stored: Partial<Story>): Story {
       scan: { ...base.world.scan, ...stored.world?.scan },
     },
   };
+}
+
+/**
+ * Every character has a colour, including the ones written before there were
+ * any. Taken from their place in the cast rather than from what is free, so a
+ * story from an older version opens the same way every time it is opened —
+ * and, because the store writes what it read back, only works it out once.
+ */
+function coloured(characters: Character[]): Character[] {
+  return characters.map((character, i) =>
+    character.colour
+      ? character
+      : { ...character, colour: CHARACTER_COLOURS[i % CHARACTER_COLOURS.length].name },
+  );
 }
 
 export function normaliseChapter(stored: Partial<Chapter>): Chapter {

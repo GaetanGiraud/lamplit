@@ -99,8 +99,9 @@ its own, and those stay folded too.
   Your own text is kept either way, so switching between them loses nothing.
 - **Persona** — a name and a few lines. It belongs to the story rather than the chapter, and it is
   sent with every request in both modes.
-- **Cast** *(role-play mode)* — one row per character: their name and the first line of their
-  description. The switch on a row takes them in and out of the scene; when the story is cast
+- **Cast** *(role-play mode)* — one row per character: their colour, their name and the first line
+  of their description. The dot opens the palette of ten. The switch on a row takes them in and out
+  of the scene; when the story is cast
   [one character at a time](story-and-world.md), clicking a row hands the model that character
   from there on, and the row being played is marked. The pencil at the end opens them in the
   **Story** sheet, because a character is a name and a paragraph and that is more than a row can
@@ -158,6 +159,12 @@ when it moves.
 
 Only what you changed is written down, so a colour a later version of Lamplit improves still
 reaches you unless you had overridden that exact one.
+
+At the foot of the section is **the cast of the open story**, one colour input each. Every
+character already has a colour from a palette of ten — see
+[Story and world](story-and-world.md) — and this is the way out of the ten: a colour of your own,
+used in both themes, with **Back to the palette** to give it back. It belongs to the story rather
+than to the app, so it travels with a duplicate and goes with a deletion.
 
 ### Advanced
 

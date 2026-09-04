@@ -7,6 +7,24 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**Every character has a colour.** One from a palette of ten, handed out the moment a character is
+added, so the first ten in a story are all different without anyone choosing. It is the dot beside
+their name in the chapter panel's **Cast** and in the **Story** sheet, and it tints the row of
+whoever the model is playing.
+
+- **The ten were not picked by eye.** Each is written twice, a dark ink for the light papers and a
+  light one for the dark, and every one of them clears WCAG AA against all three surfaces of its
+  theme. The hues were chosen by maximising the smallest gap between any two of them once
+  protanopia, deuteranopia and tritanopia have each been simulated over the whole set. Ten colours
+  cannot all be distinct to everyone; the palette's job was to make the worst pair as good as it
+  can be.
+- **Changing one** is a click on the dot and a click on another of the ten. No colour picker there,
+  because a free colour promises none of the above.
+- **A colour of your own**, if you want one: **Preferences → Colours** now lists the cast with a
+  colour input each, and **Back to the palette** gives it back. That one is used in both themes.
+- **A story written before any of this opens coloured**, worked out from each character's place in
+  the cast, so it opens the same way every time.
+
 **Role-play can be a room or a conversation.** Under **Story → Mode → Role-play** there are now
 two ways to cast it. **Ensemble** is what the app has always done and stays the default: the model
 plays everyone in the scene and answers as whoever the moment calls for. **One at a time** gives it

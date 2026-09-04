@@ -31,6 +31,19 @@ The model plays the other characters and answers in their own words. Add them he
 description each — and switch any of them off without deleting them, either here or on the row in
 the [chapter panel](reading-and-writing.md).
 
+**Each one gets a colour** from a palette of ten, the moment it is added. Nobody is asked: the
+first ten characters in a story are all different, and an eleventh shares with the first. The dot
+beside a name opens the palette, and one more click changes it.
+
+There is no colour picker there on purpose. Every one of the ten clears WCAG AA against both
+papers and was chosen to stay as far as it can from the other nine once a common colour-vision
+deficiency has flattened them — a free colour promises none of that. If you want one anyway,
+**Preferences → Colours** lists the cast with a colour input each; that colour is used in both
+themes, and **Back to the palette** undoes it.
+
+A story written before any of this opens coloured, worked out from each character's place in the
+cast, so it opens the same way every time.
+
 There are two ways to cast it, and the choice sits under the mode.
 
 **Ensemble** is the default and what the app has always done. The model plays every character in
