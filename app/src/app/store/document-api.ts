@@ -19,10 +19,7 @@ const REQUEST_TIMEOUT = 10_000;
 /** The header the server compares against the last write it applied. */
 const SEQ_HEADER = 'x-doc-seq';
 
-/**
- * Storage keys the server holds. Step 1's `chat:` documents are deliberately
- * not among them: they are migrated on load and then gone.
- */
+/** Where a storage key lives on the server, or null if it lives nowhere. */
 export function refOf(key: string): DocRef | null {
   if (key === KEYS.settings) return { collection: 'settings', id: KEYS.settings };
   if (key.startsWith(KEYS.storyPrefix)) {

@@ -85,7 +85,8 @@ to.
 
 **Cancelling a chapter close no longer closes the chapter.** It closed it with an empty summary,
 which also replaced the story so far with nothing. Cancel now leaves the chapter, the story so far
-and the world exactly as they were.
+and the world exactly as they were. **Cancelling a rename** leaves the name alone in the same way;
+it used to save the empty box over it.
 
 **You can say it as the author now.** *The storm arrives tonight. She should refuse.* Written into
 the story that is a hint the model may or may not take. Written as a **direction** it is an
@@ -214,10 +215,11 @@ handle: drag one and the sheet rebuilds as it moves, so you can see what the
 change does before anything is sent. The arrow keys move a block whose handle
 has the focus.
 
-- **Two blocks stay where they are.** The mode preamble is always first — it
+- **Three blocks stay where they are.** The mode preamble is always first — it
   says what the model is, and the rest is read as instructions to that — and
-  the style rules are always last, because the instruction closest to the
-  conversation is the one that sticks. Each says so in the sheet.
+  the style rules and your own direction are always last, because the
+  instruction closest to the conversation is the one that sticks. Each says so
+  in the sheet.
 - **The order belongs to the story**, not to the app: another story is
   unaffected, and a duplicate carries it along. **Reset the order** appears
   once you have moved something.
@@ -259,8 +261,8 @@ counts, text size — and it is open when the sheet opens.
 - Only what you changed is written down, so a `settings.json` from 0.1.0 opens
   with the theme exactly as it shipped, and a colour a later version improves
   still reaches you unless you had overridden that one.
-- **Advanced** is there and empty. It is where the options that come with a
-  warning will live.
+- **Advanced** is where the two settings above live: the update check and
+  developer mode. It is the drawer for anything that comes with a warning.
 
 **The zip is on the release now.** Every release carries `Lamplit.zip` beside the
 installers: the whole app in about a megabyte, for any machine that already has

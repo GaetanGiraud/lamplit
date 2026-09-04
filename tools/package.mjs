@@ -130,6 +130,10 @@ function manifest() {
       description: readJson(join(ROOT, 'package.json')).description,
       main: 'server/src/index.js',
       scripts: { start: 'node server/src/index.js --open' },
+      // What the start scripts check for before they start anything. The root
+      // package.json is stricter — building the app needs a version Angular
+      // will run on — but nothing in here is built.
+      engines: server.engines,
       dependencies: server.dependencies,
     },
     null,

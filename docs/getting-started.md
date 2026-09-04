@@ -25,7 +25,7 @@ the window works.
 Neither is necessary; both exist because some people prefer them.
 
 **The zip** — a megabyte, runs from one call, keeps your stories in a folder you chose. It needs
-Node.js 20.19+, 22.12+ or 24+ already on the machine. See
+Node.js 20.19 or newer already on the machine, which is what its start scripts check for. See
 [Running it anywhere](running-anywhere.md).
 
 **From the source** — the way in for anyone who wants to change it:

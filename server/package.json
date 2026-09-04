@@ -9,6 +9,9 @@
     "start": "node src/index.js",
     "test": "node --test \"test/*.test.js\""
   },
+  "engines": {
+    "node": ">=20.19"
+  },
   "dependencies": {
     "express": "^5.2.1"
   }
