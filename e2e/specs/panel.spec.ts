@@ -203,3 +203,38 @@ test('a cast row says who they are, and the edit mark opens the sheet on them', 
   const sheet = page.getByRole('dialog');
   await expect(sheet.locator('[data-character="nell"] input').first()).toBeFocused();
 });
+
+/**
+ * Escape is answered by one thing at a time, and by the thing nearest the
+ * reader. A menu opened from inside the panel is over the panel: closing it is
+ * the whole of what the key was for, and taking the panel away with it loses
+ * the section that menu was opened from.
+ */
+test('narrow, Escape closes the menu it was pressed for and leaves the panel', async ({
+  page,
+  server,
+}) => {
+  await seedConnectedSettings(server);
+  await seedStory(server, {
+    scene: SCENE,
+    mode: 'roleplay',
+    characters: [
+      { id: 'nell', name: 'Nell', description: 'The keeper.', enabled: true },
+      { id: 'isa', name: 'Isa', description: 'The harbourmaster’s daughter.', enabled: true },
+    ],
+  });
+  await page.setViewportSize({ width: 900, height: 800 });
+  await page.goto(server.url);
+  await openPanel(page);
+  await expect(panel(page).locator('.scrim')).toBeVisible();
+
+  // The dot beside a character's name: the menu that changes their colour.
+  await panel(page).locator('ms-character-swatch button').first().click();
+  const menu = page.locator('.mat-mdc-menu-panel');
+  await expect(menu).toBeVisible();
+
+  await page.keyboard.press('Escape');
+
+  await expect(menu).toBeHidden();
+  await expect(panel(page).locator('.scrim')).toBeVisible();
+});

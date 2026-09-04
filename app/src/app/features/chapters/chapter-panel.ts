@@ -649,11 +649,19 @@ export class ChapterPanel {
 
   /**
    * Escape belongs to whatever is on top of everything else. A sheet is over
-   * the panel, so it answers first; and a panel that is pushing the page is
-   * part of the page, with nothing to dismiss.
+   * the panel, so it answers first; a menu opened from inside the panel — a
+   * character's colours — is over it too, and closing the menu is the whole
+   * of what the key meant. A panel that is pushing the page rather than
+   * covering it is part of the page, with nothing to dismiss.
+   *
+   * There is no register of open menus to ask, the way `MatDialog` keeps one
+   * of open dialogs, so the overlay container is looked at directly. What
+   * cannot be asked is whether the event was handled: the prose editor marks
+   * Escape handled whenever it has the focus, which is most of the time.
    */
   protected onEscape(): void {
     if (this.dialog.openDialogs.length) return;
+    if (document.querySelector('.cdk-overlay-container .mat-mdc-menu-panel')) return;
     if (this.open() && this.overlay()) this.close();
   }
 
