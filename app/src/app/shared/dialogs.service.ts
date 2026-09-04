@@ -65,6 +65,21 @@ export class DialogsService {
     this.dialog.open(WorldDialog, { width: '46rem', maxWidth: '95vw', autoFocus: 'dialog' });
   }
 
+  /**
+   * The release notes. From the pill it shows what is newer than this build;
+   * from About, everything, because the notes are worth reading with nothing
+   * pending.
+   */
+  async openWhatsNew(all = false): Promise<void> {
+    const { WhatsNewDialog } = await import('../features/updates/whats-new-dialog');
+    this.dialog.open(WhatsNewDialog, {
+      width: '38rem',
+      maxWidth: '95vw',
+      data: { all },
+      autoFocus: 'dialog',
+    });
+  }
+
   /** No settings on it: what this is, which build of it, and where to go next. */
   async openAbout(): Promise<void> {
     const { AboutDialog } = await import('./about-dialog');

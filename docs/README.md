@@ -30,6 +30,9 @@ New here? Start with **[Getting started](getting-started.md)**.
 11. **[Development](development.md)** — repo layout, npm scripts, the test suites, and how these
     screenshots are made.
 
+Alongside the guide: **[Release notes](releases.md)** — what changed in each version, which is
+also what the app shows under **⋯ → About Lamplit → Release notes**.
+
 ## The shape of the thing, in one paragraph
 
 A **story** holds who tells it, who you play, and its world. A story has **chapters**, and a

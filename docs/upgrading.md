@@ -62,6 +62,41 @@ inside is the same everywhere and is described in [Your data](your-data.md); a d
 lands in `backups` next door when the app starts, which is your safety net if an upgrade goes
 somewhere you did not intend.
 
+## How you hear about a new one
+
+Every way of running Lamplit checks, once, when it starts: the server asks GitHub which versions
+have been published, and the top bar says so when one of them is newer than the one you are
+running.
+
+![A newer version, and what changed in it](images/whats-new.png)
+
+It is a small pill — *0.2.0 available* — and nothing else. No modal, no banner over the page you
+are writing on. Click it for **What's new**: every release above yours, newest first, with the
+notes as they were written, and a line at the bottom about getting it on the channel you are
+using. The same sheet, showing every release, is under **⋯ → About Lamplit → Release notes**,
+because the notes are worth reading with nothing pending.
+
+What the desktop app does with the answer is what it always did: **electron-updater** downloads
+the new version on its own and installs it the next time you quit. The zip and a copy running from
+the repository have nothing to install for you, so the sheet links to the download instead.
+
+> **What leaves your machine.** One request, to `api.github.com`, asking for the list of published
+> releases. It carries what any HTTP request carries — a URL, a user agent and your IP — and
+> nothing about you, your stories or your provider. The server makes it, not the browser, so the
+> only host the app itself ever talks to is still the model endpoint you chose.
+
+**Switching it off.** **Preferences → Advanced → Check for a new version when Lamplit starts.**
+Off means the server is not asked, so GitHub is not asked either — the request does not happen
+rather than happening and being ignored. `LAMPLIT_UPDATE_CHECK=0` in the environment does the same
+for a zip started by a script:
+
+```bash
+LAMPLIT_UPDATE_CHECK=0 ./start.sh
+```
+
+With it off, **Release notes** in About still works: opening that sheet is you asking, so it asks
+then.
+
 ## What the app does when it notices
 
 The server writes the version it is running into `data/lastRun.json`. When it starts and finds a
@@ -74,6 +109,9 @@ upgraded 0.1.0 → 0.2.0
 — and the app shows one line at the top of the page: *Lamplit was upgraded to 0.2.0*, with a link
 to what changed in it. Dismiss it and it is gone for good; it is recorded in `settings.json`, so
 it never appears twice for the same version.
+
+That is the other half of the same story: the pill above is *before* you upgrade, this line is
+after. Both point at the same [release notes](releases.md).
 
 A fresh unzip with no `data` folder has nothing to compare against and says nothing, which is
 right — there is no upgrade to report. Neither is anything reported by a build that carries the

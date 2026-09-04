@@ -6,6 +6,7 @@ import { chapterTitle } from '../core/prompt-builder';
 import { SettingsStore } from '../store/settings-store';
 import { ChapterStore } from '../store/chapter-store';
 import { StoryStore } from '../store/story-store';
+import { UpdatesStore } from '../store/updates-store';
 import { DialogsService } from './dialogs.service';
 import { SaveStatusIndicator } from './save-status';
 
@@ -42,6 +43,19 @@ import { SaveStatusIndicator } from './save-status';
 
       <div class="actions">
         <ms-save-status />
+
+        <!-- Quiet on purpose: a newer Lamplit exists, and that is all. No
+             modal, no banner, nothing over the page being written. -->
+        @if (updates.available(); as release) {
+          <button
+            class="ms-pill available"
+            type="button"
+            (click)="dialogs.openWhatsNew()"
+            matTooltip="Read what changed in it"
+          >
+            {{ release.version }} available
+          </button>
+        }
 
         <button
           matButton
@@ -174,6 +188,20 @@ import { SaveStatusIndicator } from './save-status';
       background: light-dark(#2f8f5b, #6fd39b);
     }
 
+    .available {
+      flex: none;
+      margin-right: 0.35rem;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--ms-accent);
+      border-color: color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
+      background: color-mix(in srgb, var(--ms-accent) 10%, var(--ms-surface));
+    }
+
+    .available:hover {
+      background: color-mix(in srgb, var(--ms-accent) 18%, var(--ms-surface));
+    }
+
     hr {
       border: 0;
       border-top: 1px solid var(--ms-border);
@@ -185,6 +213,7 @@ export class TopBar {
   protected readonly settings = inject(SettingsStore);
   protected readonly stories = inject(StoryStore);
   protected readonly chapters = inject(ChapterStore);
+  protected readonly updates = inject(UpdatesStore);
   protected readonly dialogs = inject(DialogsService);
 
   protected readonly chapterLabel = computed(() => {

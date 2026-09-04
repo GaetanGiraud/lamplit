@@ -7,6 +7,29 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**Lamplit tells you when there is a newer one, and what changed in it.** Once
+per start, the server asks GitHub which versions have been published. When one
+of them is newer than yours, the top bar says so — a small pill, *0.2.0
+available*, and nothing else. No modal, no banner over the page you are writing
+on. Click it for **What's new**: every release above yours, newest first, with
+the notes as they were written.
+
+- **The notes are in the app now.** **⋯ → About Lamplit → Release notes** shows
+  every release, so they can be read with nothing pending. They are also a page
+  on the website, generated from this file, so there is still one place they are
+  written.
+- **The desktop app is unchanged in what it does**: it still downloads the
+  update itself and installs it when you quit. The zip and a copy running from
+  the repository now hear about one too, which they never did.
+- **What leaves your machine**: one request to `api.github.com` for the list of
+  releases, carrying what any HTTP request carries and nothing about you, your
+  stories or your provider. The server makes it, not the browser, so the only
+  host the app itself talks to is still the model endpoint you chose.
+- **Switching it off** is **Preferences → Advanced → Check for a new version
+  when Lamplit starts**, or `LAMPLIT_UPDATE_CHECK=0` for a zip started by a
+  script. Off means the request does not happen, rather than happening and being
+  ignored.
+
 **The prompt's blocks can be put in a different order.** In **What the model
 sees**, the persona, the story so far, the world and this chapter each have a
 handle: drag one and the sheet rebuilds as it moves, so you can see what the

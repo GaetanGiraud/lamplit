@@ -89,6 +89,11 @@ export interface UiSettings {
    * changes nothing about the request — see the preferences dialog.
    */
   developerMode: boolean;
+  /**
+   * Whether the server asks GitHub, once per start, whether a newer Lamplit
+   * has been published. Off means it is not asked at all.
+   */
+  checkForUpdates: boolean;
 }
 
 export interface Settings {

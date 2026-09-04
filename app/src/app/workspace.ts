@@ -5,6 +5,7 @@ import { ChaptersPage } from './features/chapters/chapters-page';
 import { TopBar } from './shared/top-bar';
 import { UpgradeNotice } from './shared/upgrade-notice';
 import { SettingsStore } from './store/settings-store';
+import { UpdatesStore } from './store/updates-store';
 import { ChapterStore } from './store/chapter-store';
 import { StoryStore } from './store/story-store';
 import { Persistence } from './store/persistence';
@@ -51,6 +52,11 @@ export class Workspace {
 
   constructor() {
     inject(Persistence).listen();
+
+    // Once, at start, and only when the reader has left it on — off means the
+    // server is never asked, so GitHub is never asked either. Nothing waits
+    // for the answer: it is a pill in the top bar or it is nothing.
+    if (this.settings.ui().checkForUpdates) void inject(UpdatesStore).load();
 
     // Everything under Preferences that the page can see — the theme, the
     // customised colours of that theme, the face the story is set in — is

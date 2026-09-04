@@ -86,11 +86,22 @@ async function start() {
   const { previousVersion, upgraded } = await recordRun(DATA_DIR, build.version);
   if (upgraded) console.log(`upgraded ${previousVersion} → ${build.version}`);
 
+  // The same endpoint the zip serves, so the What's new sheet reads the same
+  // answer here as it does there. What the shell *does* with an update is its
+  // own business and unchanged: electron-updater downloads it and installs it
+  // on quit, which is why the sheet says so rather than offering a download.
+  const { createUpdateChecker } = await import(pathToFileURL(join(SERVER, 'updates.js')).href);
+  const updates = createUpdateChecker({
+    version: build.version,
+    enabled: process.env['LAMPLIT_UPDATE_CHECK'] !== '0',
+  });
+
   const expressApp = createApp({
     dataDir: DATA_DIR,
     publicDir: PUBLIC_DIR,
     build,
     previousVersion,
+    updates,
   });
   await expressApp.locals['store'].init();
 

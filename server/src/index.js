@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 import { backupOnStartup } from './backup.js';
 import { readBuildInfo, recordRun } from './version.js';
+import { createUpdateChecker } from './updates.js';
 
 /**
  * The one process a packaged Lamplit runs: documents on disk, the built
@@ -38,7 +39,15 @@ const build = readBuildInfo({ root: ROOT, publicDir });
 // signal that an upgrade happened, and the app shows one notice for it.
 const { previousVersion, upgraded } = await recordRun(dataDir, build.version);
 
-const app = createApp({ dataDir, publicDir, build, previousVersion });
+// Nothing is asked of GitHub until the app calls /api/updates, and the app
+// only calls it when the reader has left the check on. This is the same switch
+// from the environment, for a zip started by a script rather than by a person.
+const updates = createUpdateChecker({
+  version: build.version,
+  enabled: process.env['LAMPLIT_UPDATE_CHECK'] !== '0',
+});
+
+const app = createApp({ dataDir, publicDir, build, previousVersion, updates });
 const store = app.locals['store'];
 
 await store.init();
@@ -52,6 +61,8 @@ if (upgraded) console.log(`  upgraded   ${previousVersion} → ${build.version}`
 console.log(
   `  app        ${existsSync(join(publicDir, 'index.html')) ? publicDir : '(not built; API only)'}`,
 );
+
+if (!updates.enabled) console.log('  updates    not checked (LAMPLIT_UPDATE_CHECK=0)');
 
 if (process.env['LAMPLIT_BACKUP'] !== '0') {
   backupOnStartup(dataDir, backupsDir).then(

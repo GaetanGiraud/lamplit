@@ -253,6 +253,13 @@ and what each one needs, is in [Models and parameters](models-and-parameters.md)
 ---
 
 <p class="ms-note">
+Every link above is the newest version. What changed in each one is on the
+<a href="releases.html">release notes</a> page, and Lamplit itself says so when a newer one is
+out — once, quietly, in the top bar. See <a href="upgrading.html">Upgrading</a> for what that
+check sends and how to switch it off.
+</p>
+
+<p class="ms-note">
 Free and open source, MIT licensed, on
 <a href="https://github.com/GaetanGiraud/lamplit">GitHub</a> — which is also where to
 <a href="https://github.com/GaetanGiraud/lamplit/issues">report anything wrong</a>. To run it

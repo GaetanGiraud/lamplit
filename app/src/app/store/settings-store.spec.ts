@@ -60,6 +60,8 @@ describe('SettingsStore', () => {
     expect(ui.colours).toEqual({});
     expect(ui.font).toBe(DEFAULT_SETTINGS.ui.font);
     expect(ui.developerMode).toBe(false);
+    // On by default, so an upgrade is something an old install hears about.
+    expect(ui.checkForUpdates).toBe(true);
   });
 
   it('keeps developer mode once it is switched on', () => {

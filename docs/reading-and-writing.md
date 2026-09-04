@@ -119,7 +119,12 @@ reaches you unless you had overridden that exact one.
 
 ![Developer mode, and what it puts back](images/preferences-advanced.png)
 
-Options for people who want to look under the hood. There is one so far.
+Options for people who want to look under the hood. There are two.
+
+**Check for a new version when Lamplit starts** — on by default. Once per start, the server asks
+GitHub which versions have been published, and the top bar says so when one of them is newer.
+Switched off, it is not asked at all. See [Upgrading](upgrading.md) for what the request carries
+and what the pill leads to.
 
 **Developer mode** puts back the parts of the app that are about the app rather than about the
 story, and it is off on a fresh install:

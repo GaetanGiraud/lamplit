@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { BuildInfoStore } from '../store/build-info';
 import { SettingsStore } from '../store/settings-store';
+import { DialogsService } from './dialogs.service';
 
 /** Where the release notes and the issues are. Also in the desktop Help menu. */
 const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
@@ -34,7 +35,9 @@ const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
         It runs on this machine; your stories are files you can read, copy and back up.
       </p>
       <p class="links">
-        <a [href]="notes()" target="_blank" rel="noreferrer noopener">Release notes</a>
+        <!-- In the app rather than on GitHub: the notes of every release are
+             already here, and reading them should not need a browser tab. -->
+        <button type="button" class="as-link" (click)="openNotes()">Release notes</button>
         <span aria-hidden="true">·</span>
         <a [href]="issues" target="_blank" rel="noreferrer noopener">Report a problem</a>
       </p>
@@ -104,13 +107,28 @@ const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
     .links span {
       color: var(--ms-muted);
     }
+
+    .as-link {
+      padding: 0;
+      border: 0;
+      background: none;
+      font: inherit;
+      color: var(--ms-accent);
+      cursor: pointer;
+      text-decoration: underline;
+    }
   `,
 })
 export class AboutDialog {
   private readonly builds = inject(BuildInfoStore);
   private readonly settings = inject(SettingsStore);
+  private readonly dialogs = inject(DialogsService);
 
   protected readonly issues = `${REPOSITORY}/issues`;
+
+  protected openNotes(): void {
+    void this.dialogs.openWhatsNew(true);
+  }
 
   protected readonly dataDir = computed(() =>
     this.settings.ui().developerMode ? (this.builds.info()?.dataDir ?? '') : '',
@@ -127,15 +145,5 @@ export class AboutDialog {
     if (!info) return 'The server did not say which build this is.';
     const line = this.builds.buildLine();
     return info.channel === 'dev' ? `${line} · from the repository` : `${line} · ${info.channel}`;
-  });
-
-  /**
-   * The release for *this* version, which is where its notes are. A build that
-   * was never published has no tag, so that one goes to the list.
-   */
-  protected readonly notes = computed(() => {
-    const info = this.builds.info();
-    if (!info || info.build === 'local') return `${REPOSITORY}/releases`;
-    return `${REPOSITORY}/releases/tag/v${info.version}`;
   });
 }

@@ -47,6 +47,39 @@ const STORY_SO_FAR =
   'lighthouse the way he left it in March: automated, weatherproof, and locked. Nine of her ' +
   'fourteen days are gone. She has not been inside it since she was twenty-two.';
 
+/**
+ * What /api/updates would say if 0.2.0 had been published. Only the shot of
+ * the What's new sheet uses it; every other picture is the app as it is.
+ */
+const NEWER_VERSION = {
+  ok: true,
+  enabled: true,
+  checked: true,
+  version: '0.1.0',
+  latest: null,
+  newer: [
+    {
+      tag: 'v0.2.0',
+      version: '0.2.0',
+      name: '0.2.0 — preferences, colours and the prompt in your own order',
+      publishedAt: '2026-04-02T09:00:00.000Z',
+      body: [
+        '**The Reading menu is now Preferences.** Three sections — Reading, Colours,',
+        'Advanced — with the four reading settings exactly where they were.',
+        '',
+        '- **Every colour the theme is built from** is a swatch you can change, and the',
+        '  page redraws as you drag. Each theme keeps its own set.',
+        '- **A reading font** — the serif it ships with, a sans, or a mono.',
+        '- **The prompt’s blocks can be reordered** per story, in What the model sees.',
+        '- **Developer mode**, for the parts of the app that are about the app.',
+      ].join('\n'),
+      url: 'https://github.com/GaetanGiraud/lamplit/releases/tag/v0.2.0',
+      assets: [],
+    },
+  ],
+  releases: [],
+};
+
 /** What the stand-in model answers a live turn with. */
 const REPLY = [
   '*She does not answer at once. She crosses to the seaward glass and rubs a circle in it with ' +
@@ -289,6 +322,20 @@ async function theApp() {
   await page.getByRole('switch', { name: 'Dark theme' }).click();
   await escape(page);
   await page.waitForTimeout(400);
+
+  // A newer version, which there is no way to publish from here: the answer
+  // the server would have given is fabricated for this one picture and taken
+  // away again after it, so no other shot has the pill in it.
+  await page.route('**/api/updates', (route) => route.fulfill({ json: NEWER_VERSION }));
+  await page.reload();
+  await page.getByRole('button', { name: /available$/ }).click();
+  await page.getByRole('heading', { name: /new|Release notes/ }).waitFor();
+  await page.waitForTimeout(500);
+  await shot(page, 'whats-new', 'a newer version, and what changed in it');
+  await escape(page);
+  await page.unroute('**/api/updates');
+  await page.reload();
+  await page.waitForTimeout(800);
 
   await page.getByRole('button', { name: 'Close chapter' }).click();
   await page.getByRole('heading', { name: /^Close Chapter/ }).waitFor();

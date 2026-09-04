@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
     colours: {},
     font: 'serif',
     developerMode: false,
+    checkForUpdates: true,
   },
   activeStoryId: null,
   acknowledgedVersion: null,

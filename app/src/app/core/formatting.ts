@@ -35,20 +35,29 @@ export interface RenderOptions {
   bookStyleDialogue: boolean;
 }
 
-const marked = new Marked({
-  gfm: true,
-  breaks: true,
-  renderer: {
-    code({ text, lang }) {
-      const language = (lang ?? '').trim().split(/\s+/)[0];
-      const highlighted =
-        language && hljs.getLanguage(language)
-          ? hljs.highlight(text, { language, ignoreIllegals: true }).value
-          : hljs.highlightAuto(text).value;
-      return `<pre><code class="hljs language-${escapeAttribute(language || 'plaintext')}">${highlighted}</code></pre>`;
-    },
+const renderer = {
+  code({ text, lang }: { text: string; lang?: string }) {
+    const language = (lang ?? '').trim().split(/\s+/)[0];
+    const highlighted =
+      language && hljs.getLanguage(language)
+        ? hljs.highlight(text, { language, ignoreIllegals: true }).value
+        : hljs.highlightAuto(text).value;
+    return `<pre><code class="hljs language-${escapeAttribute(language || 'plaintext')}">${highlighted}</code></pre>`;
   },
-});
+};
+
+/**
+ * Story prose, where a newline the writer typed is a newline they meant. A
+ * model that puts each spoken line on its own row expects to see it that way.
+ */
+const marked = new Marked({ gfm: true, breaks: true, renderer });
+
+/**
+ * Ordinary markdown, where a wrapped line is still the same paragraph. Release
+ * notes are written for GitHub and hard-wrapped by the formatter, so `breaks`
+ * would put a line ending in the middle of every sentence.
+ */
+const markedPlain = new Marked({ gfm: true, breaks: false, renderer });
 
 const PURIFY_CONFIG = {
   ALLOWED_TAGS: [
@@ -85,14 +94,23 @@ const PURIFY_CONFIG = {
 };
 
 /**
+ * Markdown -> safe HTML, and nothing else. What release notes want: they are
+ * ordinary markdown written for GitHub, not story prose, so none of the
+ * book-setting below has any business with them.
+ */
+export function renderMarkdown(source: string): string {
+  if (!source) return '';
+  return DOMPurify.sanitize(markedPlain.parse(source, { async: false }) as string, PURIFY_CONFIG);
+}
+
+/**
  * Story text -> safe HTML: markdown first, then sanitising, then a formatting
  * pass over the resulting text nodes (never over the markup) that marks speech
  * and italic "actions" so the stylesheet can set them like a book.
  */
 export function renderStoryHtml(source: string, options: RenderOptions): string {
   if (!source) return '';
-  const parsed = marked.parse(source, { async: false }) as string;
-  const clean = DOMPurify.sanitize(parsed, PURIFY_CONFIG);
+  const clean = DOMPurify.sanitize(marked.parse(source, { async: false }) as string, PURIFY_CONFIG);
 
   const host = document.createElement('div');
   host.innerHTML = clean;

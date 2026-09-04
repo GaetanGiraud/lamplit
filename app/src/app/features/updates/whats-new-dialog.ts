@@ -1,0 +1,288 @@
+import { Component, computed, inject } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { renderMarkdown } from '../../core/formatting';
+import { BuildInfoStore } from '../../store/build-info';
+import { Release, UpdatesStore } from '../../store/updates-store';
+
+export interface WhatsNewData {
+  /** True from About, where the point is to read notes with nothing pending. */
+  all: boolean;
+}
+
+const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
+const WEBSITE = 'https://gaetangiraud.github.io/lamplit/';
+/** Unversioned on purpose, so this link keeps pointing at the newest one. */
+const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
+
+/**
+ * The release notes, newest first, as they were written for the release.
+ *
+ * Opened from the pill in the top bar, where it shows what is newer than the
+ * running version, and from About, where it shows everything — the notes are
+ * worth reading without an update pending.
+ *
+ * The sheet asks the server for the list if nobody has yet, whatever the
+ * start-up check is set to: opening it *is* the reader asking.
+ */
+@Component({
+  selector: 'ms-whats-new-dialog',
+  imports: [MatButtonModule, MatDialogModule, MatProgressSpinnerModule],
+  template: `
+    <h2 mat-dialog-title class="ms-dialog-title">{{ heading() }}</h2>
+
+    <mat-dialog-content>
+      @if (releases().length) {
+        <p class="ms-hint running">You are running {{ running() }}.</p>
+
+        @for (release of releases(); track release.tag) {
+          <article class="release">
+            <header>
+              <span class="version">{{ release.name || release.version }}</span>
+              @if (published(release); as when) {
+                <span class="when">{{ when }}</span>
+              }
+            </header>
+            @if (notes(release); as html) {
+              <div class="notes" [innerHTML]="html"></div>
+            } @else {
+              <p class="ms-hint empty">This release was published without notes.</p>
+            }
+            <a class="source" [href]="release.url" target="_blank" rel="noreferrer noopener">
+              On GitHub
+            </a>
+          </article>
+        }
+
+        <section class="how">
+          <h3>{{ howHeading() }}</h3>
+          <p>{{ how() }}</p>
+          @if (channel() !== 'desktop') {
+            <p class="links">
+              @if (channel() === 'zip') {
+                <a [href]="zip" target="_blank" rel="noreferrer noopener">Download the zip</a>
+                <span aria-hidden="true">·</span>
+              }
+              <a [href]="website" target="_blank" rel="noreferrer noopener">Every download</a>
+            </p>
+          }
+        </section>
+      } @else if (updates.asking()) {
+        <p class="waiting">
+          <mat-spinner diameter="18" />
+          Asking GitHub which versions there are…
+        </p>
+      } @else {
+        <p class="ms-hint">{{ nothing() }}</p>
+        <p class="links">
+          <a [href]="releasesPage" target="_blank" rel="noreferrer noopener">
+            The releases, on GitHub
+          </a>
+        </p>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button matButton="filled" mat-dialog-close cdkFocusInitial>Done</button>
+    </mat-dialog-actions>
+  `,
+  styles: `
+    mat-dialog-content {
+      max-height: min(74vh, 44rem) !important;
+    }
+
+    .running {
+      margin: 0 0 0.9rem;
+    }
+
+    .release {
+      margin: 0 0 0.9rem;
+      padding: 0.75rem 0.9rem 0.85rem;
+      border: 1px solid var(--ms-border);
+      border-radius: 12px;
+      background: var(--ms-surface-raised);
+    }
+
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .version {
+      font-family: var(--ms-serif);
+      font-size: 1.1rem;
+      color: var(--ms-ink);
+    }
+
+    .when {
+      flex: none;
+      font-size: 0.75rem;
+      color: var(--ms-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Release notes are ordinary markdown, set as prose rather than as story. */
+    .notes {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--ms-ink-soft);
+      overflow-wrap: break-word;
+    }
+
+    .notes :first-child {
+      margin-top: 0;
+    }
+
+    .notes :last-child {
+      margin-bottom: 0;
+    }
+
+    .notes strong {
+      color: var(--ms-ink);
+    }
+
+    .notes a {
+      color: var(--ms-accent);
+    }
+
+    .notes ul,
+    .notes ol {
+      margin: 0.5em 0;
+      padding-left: 1.3em;
+    }
+
+    .notes code {
+      font-family: var(--ms-mono);
+      font-size: 0.85em;
+      background: color-mix(in srgb, var(--ms-ink) 8%, transparent);
+      padding: 0.12em 0.35em;
+      border-radius: 5px;
+    }
+
+    .source {
+      display: inline-block;
+      margin-top: 0.6rem;
+      font-size: 0.78rem;
+      color: var(--ms-muted);
+    }
+
+    .empty {
+      margin: 0;
+    }
+
+    .how {
+      margin-top: 1.2rem;
+      padding: 0.75rem 0.9rem 0.85rem;
+      border: 1px solid color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--ms-accent) 7%, transparent);
+    }
+
+    h3 {
+      margin: 0 0 0.3rem;
+      font-family: var(--ms-serif);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ms-ink);
+    }
+
+    .how p {
+      margin: 0;
+      font-size: 0.86rem;
+      line-height: 1.55;
+      color: var(--ms-ink-soft);
+    }
+
+    .links {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.6rem !important;
+      font-size: 0.86rem;
+    }
+
+    .links a {
+      color: var(--ms-accent);
+    }
+
+    .links span {
+      color: var(--ms-muted);
+    }
+
+    .waiting {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin: 0;
+      font-size: 0.88rem;
+      color: var(--ms-muted);
+    }
+  `,
+})
+export class WhatsNewDialog {
+  protected readonly data = inject<WhatsNewData>(MAT_DIALOG_DATA);
+  protected readonly updates = inject(UpdatesStore);
+  private readonly builds = inject(BuildInfoStore);
+  private readonly sanitizer = inject(DomSanitizer);
+
+  protected readonly zip = ZIP;
+  protected readonly website = WEBSITE;
+  protected readonly releasesPage = `${REPOSITORY}/releases`;
+
+  constructor() {
+    // Nothing yet means nobody has asked — including a reader who turned the
+    // start-up check off and then opened this on purpose.
+    void this.updates.load();
+  }
+
+  protected readonly releases = computed(() =>
+    this.data.all ? this.updates.releases() : this.updates.newer(),
+  );
+
+  protected readonly channel = computed(() => this.builds.info()?.channel ?? 'dev');
+
+  protected readonly running = computed(() => this.builds.version() || 'an unknown version');
+
+  protected readonly heading = computed(() =>
+    this.data.all || !this.updates.newer().length ? 'Release notes' : 'What’s new',
+  );
+
+  protected readonly howHeading = computed(() =>
+    this.updates.newer().length ? 'Getting it' : 'When there is a new one',
+  );
+
+  protected readonly how = computed(() => {
+    switch (this.channel()) {
+      case 'desktop':
+        return 'The desktop app downloads the update on its own and installs it the next time you quit Lamplit. There is nothing to do.';
+      case 'zip':
+        return 'Unzip the new version beside this one and carry your data folder across — Upgrading in the guide has the two lines for it. Your stories are not inside the app.';
+      default:
+        return 'This copy runs from the repository: git pull, npm install, npm run build.';
+    }
+  });
+
+  protected readonly nothing = computed(() => {
+    const report = this.updates.report();
+    if (report && !report.enabled) {
+      return 'Lamplit has not asked: the version check is switched off in Preferences → Advanced. The notes are on GitHub.';
+    }
+    return 'Lamplit could not reach GitHub to read the release notes. They are on the releases page, which needs no app to read.';
+  });
+
+  protected notes(release: Release) {
+    const html = renderMarkdown(release.body);
+    return html ? this.sanitizer.bypassSecurityTrustHtml(html) : null;
+  }
+
+  /** The date alone: the time a release was cut is nobody's business. */
+  protected published(release: Release): string {
+    if (!release.publishedAt) return '';
+    const when = new Date(release.publishedAt);
+    return Number.isNaN(when.getTime()) ? '' : when.toISOString().slice(0, 10);
+  }
+}

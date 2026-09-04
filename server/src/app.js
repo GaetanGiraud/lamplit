@@ -2,6 +2,7 @@ import express from 'express';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { COLLECTIONS, DocumentStore, isCollection, isId } from './store.js';
+import { createUpdateChecker } from './updates.js';
 
 /** The header the client stamps each write with. See DocumentStore. */
 const SEQ_HEADER = 'x-doc-seq';
@@ -13,7 +14,13 @@ const SEQ_HEADER = 'x-doc-seq';
  * nothing but the bytes. Anything the server understood about a document would
  * be a second place to change when the shape changes.
  */
-export function createApp({ dataDir, publicDir, build = {}, previousVersion = null }) {
+export function createApp({
+  dataDir,
+  publicDir,
+  build = {},
+  previousVersion = null,
+  updates = createUpdateChecker({ version: build.version ?? '0.0.0', enabled: false }),
+}) {
   const store = new DocumentStore(dataDir);
   const app = express();
 
@@ -38,6 +45,20 @@ export function createApp({ dataDir, publicDir, build = {}, previousVersion = nu
       previousVersion,
       dataDir,
     });
+  });
+
+  /**
+   * Whether a newer Lamplit has been published. Nothing asks GitHub until this
+   * is called, and it is called only by an app whose reader left the check on —
+   * so switching it off in Preferences means the request does not happen,
+   * rather than happening and being ignored.
+   */
+  app.get('/api/updates', async (request, response, next) => {
+    try {
+      response.json(await updates.check());
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.get('/api/docs/:collection', async (request, response, next) => {

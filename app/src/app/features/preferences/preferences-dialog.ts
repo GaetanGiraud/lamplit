@@ -15,6 +15,7 @@ import {
   shippedColour,
 } from '../../core/theming';
 import { SettingsStore } from '../../store/settings-store';
+import { UpdatesStore } from '../../store/updates-store';
 import { DialogsService } from '../../shared/dialogs.service';
 
 /**
@@ -137,6 +138,20 @@ import { DialogsService } from '../../shared/dialogs.service';
 
           <div class="stack">
             <mat-slide-toggle
+              [checked]="ui().checkForUpdates"
+              (change)="setCheckForUpdates($event.checked)"
+            >
+              Check for a new version when Lamplit starts
+            </mat-slide-toggle>
+            <p class="ms-hint">
+              Once per start, the server asks GitHub which versions have been published and the top
+              bar says so if one of them is newer. Switched off, it is not asked at all. Your
+              stories never leave this machine either way.
+            </p>
+
+            <hr />
+
+            <mat-slide-toggle
               [checked]="ui().developerMode"
               (change)="settings.patchUi({ developerMode: $event.checked })"
             >
@@ -182,6 +197,13 @@ import { DialogsService } from '../../shared/dialogs.service';
 
     .under-the-hood {
       margin: 0 0 1rem;
+    }
+
+    hr {
+      width: 100%;
+      border: 0;
+      border-top: 1px solid var(--ms-border);
+      margin: 0.35rem 0;
     }
 
     /* A switch with a sentence for a label wraps, and its own text should not
@@ -294,6 +316,7 @@ import { DialogsService } from '../../shared/dialogs.service';
 })
 export class PreferencesDialog {
   protected readonly settings = inject(SettingsStore);
+  private readonly updates = inject(UpdatesStore);
   private readonly dialogs = inject(DialogsService);
 
   protected readonly ui = this.settings.ui;
@@ -328,9 +351,11 @@ export class PreferencesDialog {
 
   protected readonly customised = computed(() => this.swatches().some((s) => s.custom));
 
-  protected readonly advancedSummary = computed(() =>
-    this.ui().developerMode ? 'developer mode on' : 'nothing switched on',
-  );
+  protected readonly advancedSummary = computed(() => {
+    const ui = this.ui();
+    if (ui.developerMode) return 'developer mode on';
+    return ui.checkForUpdates ? 'checking for new versions' : 'not checking for new versions';
+  });
 
   protected readonly readingSummary = computed(() => {
     const ui = this.ui();
@@ -368,6 +393,15 @@ export class PreferencesDialog {
 
   protected setFont(font: ReadingFont): void {
     this.settings.patchUi({ font });
+  }
+
+  /**
+   * Switching it on asks now rather than at the next start: the label is about
+   * what happens on a start, and waiting for one to find out would be silly.
+   */
+  protected setCheckForUpdates(on: boolean): void {
+    this.settings.patchUi({ checkForUpdates: on });
+    if (on) void this.updates.load();
   }
 
   protected async reset(): Promise<void> {

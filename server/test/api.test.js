@@ -4,9 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { createApp } from '../src/app.js';
+import { createUpdateChecker } from '../src/updates.js';
 
 /** Starts the real app on a free port and hands back a `fetch` bound to it. */
-async function serve({ withApp = false } = {}) {
+async function serve({ withApp = false, updates } = {}) {
   const dataDir = await mkdtemp(join(tmpdir(), 'lamplit-api-'));
   let publicDir;
   if (withApp) {
@@ -26,6 +27,7 @@ async function serve({ withApp = false } = {}) {
       channel: 'zip',
     },
     previousVersion: '9.9.8',
+    ...(updates ? { updates } : {}),
   });
   await app.locals.store.init();
   const server = await new Promise((fulfil) => {
@@ -82,6 +84,93 @@ describe('GET /api/health', () => {
     assert.equal(body.channel, 'dev');
     assert.equal(body.previousVersion, null);
     await new Promise((fulfil) => server.close(fulfil));
+  });
+});
+
+describe('GET /api/updates', () => {
+  /** GitHub, without GitHub: one release, and a count of who asked for it. */
+  function fakeGithub() {
+    const calls = [];
+    return {
+      calls,
+      fetchImpl: async (url) => {
+        calls.push(url);
+        return Response.json([
+          {
+            tag_name: 'v9.9.10',
+            name: 'Lamplit v9.9.10',
+            published_at: '2026-10-01T00:00:00Z',
+            body: 'A newer one.',
+            html_url: 'https://example.invalid/v9.9.10',
+            draft: false,
+            prerelease: false,
+            assets: [
+              {
+                name: 'Lamplit.zip',
+                browser_download_url: 'https://example.invalid/Lamplit.zip',
+                size: 10,
+              },
+            ],
+          },
+        ]);
+      },
+    };
+  }
+
+  it('hands the app what is newer than the build it is serving', async () => {
+    const github = fakeGithub();
+    const api = await serve({
+      updates: createUpdateChecker({ version: '9.9.9', fetchImpl: github.fetchImpl }),
+    });
+
+    const body = await (await api.call('/api/updates')).json();
+
+    assert.equal(body.ok, true);
+    assert.equal(body.enabled, true);
+    assert.equal(body.version, '9.9.9');
+    assert.equal(body.newer.length, 1);
+    assert.equal(body.newer[0].version, '9.9.10');
+    assert.equal(body.newer[0].body, 'A newer one.');
+    assert.equal(github.calls.length, 1);
+    await api.close();
+  });
+
+  it('asks GitHub once, however many browser tabs are open', async () => {
+    const github = fakeGithub();
+    const api = await serve({
+      updates: createUpdateChecker({ version: '9.9.9', fetchImpl: github.fetchImpl }),
+    });
+
+    await Promise.all([api.call('/api/updates'), api.call('/api/updates')]);
+    await api.call('/api/updates');
+
+    assert.equal(github.calls.length, 1);
+    await api.close();
+  });
+
+  it('never asks GitHub when the check is switched off', async () => {
+    const github = fakeGithub();
+    const api = await serve({
+      updates: createUpdateChecker({
+        version: '9.9.9',
+        enabled: false,
+        fetchImpl: github.fetchImpl,
+      }),
+    });
+
+    const body = await (await api.call('/api/updates')).json();
+
+    assert.equal(github.calls.length, 0);
+    assert.equal(body.enabled, false);
+    assert.deepEqual(body.newer, []);
+    await api.close();
+  });
+
+  it('is switched off by default, so a caller has to have meant it', async () => {
+    const api = await serve();
+    const body = await (await api.call('/api/updates')).json();
+    assert.equal(body.enabled, false);
+    await api.close();
   });
 });
 

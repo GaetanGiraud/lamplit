@@ -3,7 +3,7 @@ import { readSseData } from './sse';
 import { buildBody, normaliseBaseUrl, parseChunk } from './model-client';
 import { errorFromResponse } from './model-errors';
 import { formatTokens, heuristicEstimator } from './tokens';
-import { renderStoryHtml } from './formatting';
+import { renderMarkdown, renderStoryHtml } from './formatting';
 import { GenerationParams } from './models';
 
 /** A body split at awkward places, the way a real socket delivers it. */
@@ -224,5 +224,32 @@ describe('renderStoryHtml', () => {
 
   it('renders nothing for nothing', () => {
     expect(renderStoryHtml('', plain)).toBe('');
+  });
+});
+
+describe('renderMarkdown', () => {
+  it('leaves a wrapped line as one paragraph, unlike story prose', () => {
+    // Release notes come out of a changelog a formatter has hard-wrapped, so a
+    // newline in the middle of a sentence is the formatter's, not the writer's.
+    const wrapped = 'A line about what changed,\nwrapped the way a changelog wraps it.';
+    expect(renderMarkdown(wrapped)).not.toContain('<br>');
+    expect(renderStoryHtml(wrapped, { bookStyleDialogue: false })).toContain('<br>');
+  });
+
+  it('does none of the book-setting: no speech spans, no action classes', () => {
+    const html = renderMarkdown('*Ready?* he said, and then "Now."');
+    expect(html).not.toContain('class="speech"');
+    expect(html).not.toContain('class="action"');
+    expect(html).toContain('<em>Ready?</em>');
+  });
+
+  it('sanitises what it is given, the same as everything else does', () => {
+    const html = renderMarkdown('<img src=x onerror=alert(1)>**bold**');
+    expect(html).not.toContain('onerror');
+    expect(html).toContain('<strong>bold</strong>');
+  });
+
+  it('renders nothing for nothing', () => {
+    expect(renderMarkdown('')).toBe('');
   });
 });

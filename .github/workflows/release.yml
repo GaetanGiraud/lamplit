@@ -68,6 +68,13 @@ jobs:
       - name: Check the docs links
         run: npm run check:docs
 
+      # The release notes page on the website is generated from CHANGELOG.md,
+      # and the website serves what is committed. A changelog edited without
+      # regenerating it would put out a release whose notes page is the last
+      # version's, so this fails here rather than after anyone has read it.
+      - name: Check the release notes page
+        run: npm run check:notes
+
       - name: Unit tests
         run: npm test
 
