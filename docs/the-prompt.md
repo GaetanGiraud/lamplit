@@ -36,6 +36,11 @@ conversation is the one a model holds onto — with the author's block after eve
 outranks them. The four blocks in the middle describe the story, and those you can put in any
 order you like — see [Changing the order](#changing-the-order).
 
+None of those blocks says which person the story is written in. That is not an omission: a model
+takes the frame from the prose it is given, and the blocks above are where you say so if you want
+to say it outright — see
+[Voice, and why there is no switch for it](story-and-world.md).
+
 Then the chapter's messages, oldest first — and **only this chapter's**. Earlier chapters reach
 the model through block 3 and nowhere else. That is the whole point of
 [chapters](chapters.md).

@@ -94,6 +94,39 @@ Two settings, and both of them become a sentence in the style rules the model is
 > lives in **Preferences → Reading** and changes nothing about the prompt. See
 > [Reading and writing](reading-and-writing.md).
 
+### Voice, and why there is no switch for it
+
+Some writers put their character's actions in the first person — *I open the door* — and some in
+the third — *Mara opens the door*. Some want a narrator that talks to them: *you open the door*.
+
+There is no setting for any of it, on purpose. A model reads the frame from what it is given and
+follows it, and **the first turns of a chapter set it more firmly than a checkbox would.** Write
+your opening line the way you want the answers and you will usually get them; a switch that says
+one thing while your prose says another is a fight the prose wins.
+
+If you do want to say it outright — or it has drifted and you want it back — every one of these is
+sent with the request, and every one of them is yours to edit:
+
+- **Your own first turn.** The cheapest and the strongest. The model has your line in front of it
+  and a pattern to continue.
+- **The scene** — sent verbatim with every request of the chapter, and the first thing the model
+  reads about it. A scene written in the voice you want is a strong and quiet instruction.
+- **The narrator's instructions**, in narrator mode: **Story → Mode → Write my own**, or the
+  **Narrator** section of the [chapter panel](reading-and-writing.md). The default's second
+  sentence is *"Write in third person, past tense, in clear literary prose."* Replace that one
+  sentence — *"Address Mara as you and write in the second person, present tense"* — and keep the
+  rest of it as it is. The text starts out as the default, so this is an edit rather than a blank
+  page.
+- **Your persona's description**, which is sent in both modes: *"Mara, a marine biologist. Her
+  lines are written in the first person."*
+- **An author direction**, for a change part-way through a chapter:
+  *[AUTHOR] From here, write in the second person.* It is followed, it is never mentioned, and it
+  stays in the chapter behind every later turn. See
+  [Reading and writing](reading-and-writing.md).
+
+Whatever you change, [What the model sees](the-prompt.md) shows the assembled request, so you can
+read what the model is actually being told rather than guessing why it answered as it did.
+
 ## World → Story so far
 
 ![The story so far](images/world.png)
