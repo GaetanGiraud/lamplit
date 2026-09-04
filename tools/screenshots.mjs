@@ -33,6 +33,15 @@ const CHAPTER_1 = 'demo-chapter-1';
 const CHAPTER_2 = 'demo-chapter-2';
 const MODEL = 'demo/lamplighter-large';
 
+/**
+ * A second story, cast one character at a time, for the one picture that is
+ * about who is speaking. The demo story is a narrator's and has no names on it,
+ * which is exactly what makes it the wrong story for that shot.
+ */
+const CAST_STORY_ID = 'demo-cast-story';
+const CAST_STORY_TITLE = 'The Keeper’s Stair';
+const CAST_CHAPTER = 'demo-cast-chapter';
+
 const SCENE_1 =
   'The lantern room, an hour before dusk, rain on the seaward glass. The lamp is running ' +
   'on its timer and nobody has been up here in weeks. The door at the bottom of the stairs ' +
@@ -41,6 +50,20 @@ const SCENE_1 =
 const SCENE_2 =
   'The keeper’s cottage the same night, the fire lit for the first time since March. ' +
   'Two mugs on the table. Only one of them is Mara’s.';
+
+const SCENE_3 =
+  'The lantern room, the same evening. Nell has not moved from the seaward glass, and the man ' +
+  'on the stair below has not come up.';
+
+/** The turns the cast story is seeded with: a run of Nell's, and then Tomas. */
+const CAST_PASSAGES = [
+  '"Fifty-one years I have been up these stairs," she says.',
+  '"Ask him for the rest of it. He is on the stair, and he has been since four."',
+  [
+    '*Below, the sound of a man getting to his feet.*',
+    '"She tells it wrong," he says. "She always has."',
+  ].join('\n\n'),
+];
 
 const STORY_SO_FAR =
   'Mara Vance came back to Ash Head for a fortnight of survey work and found her father’s ' +
@@ -349,6 +372,13 @@ async function theApp() {
   await page.reload();
   await page.waitForTimeout(800);
 
+  // The other story: role-play, cast one character at a time, so the page has
+  // names on it. The demo story is a narrator's and never has any, which is
+  // what makes it the wrong story for this one picture.
+  await switchStory(page, CAST_STORY_TITLE);
+  await shot(page, 'speakers', 'who is speaking, named once per run of turns');
+  await switchStory(page, 'The Lantern Room');
+
   await page.getByRole('button', { name: 'Close chapter' }).click();
   await page.getByRole('heading', { name: /^Close Chapter/ }).waitFor();
   // Let the summary finish streaming into the review sheet.
@@ -388,6 +418,14 @@ async function session() {
 async function shot(page, name, caption, options = {}) {
   await page.screenshot({ path: join(OUT, `${name}.png`), animations: 'disabled', ...options });
   shots.push(`${name}.png — ${caption}`);
+}
+
+/** Another story, from the menu on the title in the top bar. */
+async function switchStory(page, title) {
+  await page.locator('ms-top-bar .here').click();
+  await page.getByRole('menuitem', { name: title }).click();
+  await page.locator('article[data-role]').first().waitFor();
+  await page.waitForTimeout(600);
 }
 
 /** Developer mode, through the interface, because that is where it lives. */
@@ -529,6 +567,97 @@ function documents() {
       createdAt: at(21, '20'),
       updatedAt: at(21, '20'),
       messages: [],
+    },
+    // Cast one character at a time, and written in far enough to show a run of
+    // one speaker's turns as well as a switch to another. No colours on the
+    // characters: they are handed out on load, from their place in the cast.
+    [`story:${CAST_STORY_ID}`]: {
+      id: CAST_STORY_ID,
+      title: CAST_STORY_TITLE,
+      createdAt: at(22, '09'),
+      updatedAt: at(22, '10'),
+      mode: 'roleplay',
+      narrator: { useDefault: true, prompt: '' },
+      characters: [
+        {
+          id: 'nell',
+          name: 'Nell',
+          description: 'Kept house for Tomas, then kept the light with him. Eighty-one.',
+          enabled: true,
+        },
+        {
+          id: 'tomas',
+          name: 'Tomas',
+          description: 'The keeper before Mara’s father. Seventy-nine, deaf on one side.',
+          enabled: true,
+        },
+      ],
+      roleplay: { casting: 'one-at-a-time', activeCharacterId: 'tomas' },
+      persona: {
+        name: 'Mara',
+        description: 'A marine biologist, thirty-one, back on the island after nine years.',
+      },
+      style: { dialogueOnOwnLine: true, replyLength: 'medium' },
+      world: {
+        storySoFar: STORY_SO_FAR,
+        summary: { useDefault: true, prompt: '' },
+        entries: [],
+        scan: { depth: 4, caseSensitive: false, matchWholeWords: false },
+      },
+      activeChapterId: CAST_CHAPTER,
+      chapterCounter: 1,
+    },
+    [`chapter:${CAST_CHAPTER}`]: {
+      id: CAST_CHAPTER,
+      storyId: CAST_STORY_ID,
+      number: 1,
+      title: 'The stair',
+      scene: SCENE_3,
+      status: 'writing',
+      summary: '',
+      createdAt: at(22, '10'),
+      updatedAt: at(22, '11'),
+      messages: [
+        {
+          id: 'c1',
+          role: 'user',
+          content: 'I put the lantern down and look at her properly.',
+          createdAt: at(22, '10'),
+        },
+        {
+          id: 'c2',
+          role: 'assistant',
+          content: CAST_PASSAGES[0],
+          createdAt: at(22, '10'),
+          speakerId: 'nell',
+          speakerName: 'Nell',
+          meta: { model: MODEL, promptTokens: 588, completionTokens: 41, finishReason: 'stop' },
+        },
+        {
+          id: 'c3',
+          role: 'assistant',
+          content: CAST_PASSAGES[1],
+          createdAt: at(22, '10'),
+          speakerId: 'nell',
+          speakerName: 'Nell',
+          meta: { model: MODEL, promptTokens: 641, completionTokens: 58, finishReason: 'stop' },
+        },
+        {
+          id: 'c4',
+          role: 'user',
+          content: '"Tomas?" I say, to the stairwell.',
+          createdAt: at(22, '11'),
+        },
+        {
+          id: 'c5',
+          role: 'assistant',
+          content: CAST_PASSAGES[2],
+          createdAt: at(22, '11'),
+          speakerId: 'tomas',
+          speakerName: 'Tomas',
+          meta: { model: MODEL, promptTokens: 702, completionTokens: 63, finishReason: 'stop' },
+        },
+      ],
     },
   };
 }

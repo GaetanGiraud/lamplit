@@ -174,6 +174,12 @@ export interface ChapterMessage {
    * Ensemble answers have none: nobody in particular wrote them.
    */
   speakerId?: string;
+  /**
+   * What that character was called when the answer was written. Stored beside
+   * the id rather than looked up from it, so a rename or a deletion later
+   * leaves the page saying what it said at the time.
+   */
+  speakerName?: string;
   /** Cast records only. */
   cast?: CastChange;
 }

@@ -70,7 +70,8 @@ The model is told when any of that changes, at the point in the chapter where it
 
 Nothing already written is rewritten — the model is told what it was, and the chapter reads exactly
 as it did. The notes are in [What the model sees](the-prompt.md) under **This chapter**, and each
-answer remembers who wrote it, so closing the chapter summarises it with the right names attached.
+answer remembers who wrote it: closing the chapter summarises it with the right names attached, and
+the page says [who is speaking](reading-and-writing.md) above each passage.
 
 ## Story → Persona
 

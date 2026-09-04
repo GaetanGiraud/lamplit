@@ -7,6 +7,20 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**The page says who is speaking.** A story cast one character at a time now puts a small name above
+each passage — the character who wrote it, in their own colour, with a dot to match — and your own
+lines carry your persona's name in a quieter one. A run of turns by the same speaker is named once,
+because the second one is the same person still talking.
+
+- **Nothing else changed about a message.** No avatar, no box, no border: the name is set in the
+  interface font at the size the meta line uses, above the first paragraph in both dialogue
+  settings, and the model and token count stay where they were underneath.
+- **A narrator's story has no labels**, and neither does an ensemble answer: nobody in particular
+  wrote it, and the prose carries the names as it always did.
+- **A rename does not go back and change who said what.** The name is written down with the answer,
+  so what a character already said stays in the name she had then. Delete her and her lines keep
+  her name, in the muted colour.
+
 **Every character has a colour.** One from a palette of ten, handed out the moment a character is
 added, so the first ten in a story are all different without anyone choosing. It is the dot beside
 their name in the chapter panel's **Cast** and in the **Story** sheet, and it tints the row of

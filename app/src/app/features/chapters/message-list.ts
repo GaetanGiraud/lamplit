@@ -9,8 +9,10 @@ import {
   viewChild,
 } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { speakerLabels } from '../../core/speakers';
 import { ChapterStore } from '../../store/chapter-store';
 import { SettingsStore } from '../../store/settings-store';
+import { StoryStore } from '../../store/story-store';
 import { MessageItem } from './message-item';
 
 /** How close to the bottom still counts as "following along". */
@@ -31,6 +33,7 @@ const PINNED_SLACK = 96;
             [busy]="chapters.isStreaming()"
             [bookStyle]="settings.ui().bookStyleDialogue"
             [showTokens]="settings.ui().showTokenCounts"
+            [speaker]="speakers().get(message.id) ?? null"
             (edited)="chapters.editMessage(message.id, $event)"
             (remove)="chapters.deleteMessage(message.id)"
             (regenerate)="chapters.regenerate(message.id)"
@@ -150,6 +153,16 @@ const PINNED_SLACK = 96;
 export class MessageList {
   protected readonly chapters = inject(ChapterStore);
   protected readonly settings = inject(SettingsStore);
+  private readonly stories = inject(StoryStore);
+
+  /**
+   * Worked out over the whole list rather than per message, because whether a
+   * turn is labelled depends on the one before it — and on the cast records
+   * between them, which the page itself does not show.
+   */
+  protected readonly speakers = computed(() =>
+    speakerLabels(this.stories.story(), this.chapters.messages(), this.settings.ui().theme),
+  );
 
   private readonly scroller = viewChild.required<ElementRef<HTMLElement>>('scroller');
 

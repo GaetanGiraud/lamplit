@@ -22,6 +22,27 @@ Three things are done to the model's text as it arrives:
 Under each answer, if you want it, is the model that wrote it and what the turn actually cost —
 `612 in · 148 out`, taken from the provider's own usage rather than guessed.
 
+## Who is speaking
+
+A story with a cast, played [one character at a time](story-and-world.md), puts a small name above
+each passage: the character who wrote it, in their own colour, with a dot to match. Your own lines
+carry your persona's name, quietly, and a run of turns by the same speaker is named once — the
+second one is the same person still talking.
+
+![Who is speaking, named once per run of turns](images/speakers.png)
+
+That is the whole of it. No avatars, no boxes, no borders: it is set in the interface font at the
+size the meta line uses, so it reads as a note above the words rather than as the first of them.
+
+- **A narrator's story has no labels at all.** The page is the narrator's and you know it.
+- **Nor does an ensemble**, where the model answers as whoever the moment calls for: no single
+  character wrote the passage, and the prose carries the names as it always did.
+- **A name is the one that was stored when the line was written.** Rename a character and what she
+  already said stays in her old name; only what she says next is Anna. Delete her and her lines
+  keep her name, in the muted colour, because the colour went with her.
+- **A switch mid-chapter shows the label again**, even where the two passages are by the same
+  character: something happened between them.
+
 ## The composer
 
 The box grows as you type, up to a point, and then scrolls. It is not there at all when the

@@ -16,6 +16,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChapterMessage } from '../../core/models';
 import { renderStoryHtml } from '../../core/formatting';
+import { SpeakerLabel } from '../../core/speakers';
 import { formatTokens } from '../../core/tokens';
 import { TextValue } from '../../shared/text-value';
 
@@ -40,6 +41,15 @@ import { TextValue } from '../../shared/text-value';
       [class.user]="isUser()"
       [class.failed]="!!error()"
     >
+      <!-- Who is speaking, when somebody in particular is: a name and a dot in
+           their colour, in the UI font, so it reads as a note in the margin
+           rather than as the first words of the passage. -->
+      @if (speaker(); as who) {
+        <header class="speaker" [class.faded]="!who.colour" [style.color]="who.colour || null">
+          <span class="dot" aria-hidden="true"></span>{{ who.name }}
+        </header>
+      }
+
       @if (editing()) {
         <div class="editor">
           <textarea
@@ -215,6 +225,34 @@ import { TextValue } from '../../shared/text-value';
     .message.user .story-prose .action,
     .message.user .story-prose em {
       color: inherit;
+    }
+
+    /* Above the first paragraph in both dialogue settings, because it is a
+       header: the prose below it starts wherever it was going to start. */
+    .speaker {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin: 0 0 0.3rem;
+      font-family: var(--ms-sans);
+      font-size: 0.7rem;
+      font-variant-caps: all-small-caps;
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+    }
+
+    /* The reader's own persona, and a character who is no longer in the cast:
+       there is no colour to say it in, so it is said quietly. */
+    .speaker.faded {
+      color: var(--ms-muted);
+    }
+
+    .speaker .dot {
+      flex: none;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
     }
 
     .meta {
@@ -443,6 +481,8 @@ export class MessageItem {
   readonly busy = input(false);
   readonly bookStyle = input(true);
   readonly showTokens = input(true);
+  /** Whose turn this is, when the page has a name for it. */
+  readonly speaker = input<SpeakerLabel | null>(null);
 
   readonly edited = output<string>();
   readonly remove = output<void>();

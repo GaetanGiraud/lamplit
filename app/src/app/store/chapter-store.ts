@@ -323,6 +323,7 @@ export class ChapterStore {
     if (!this.settings.isConnected()) return;
     const chapterId = this.chapter().id;
 
+    const playing = this.playing();
     const placeholder: ChapterMessage = {
       id: newId(),
       role: 'assistant',
@@ -330,7 +331,10 @@ export class ChapterStore {
       createdAt: now(),
       // Who is answering, when somebody in particular is. An ensemble reply is
       // the room talking and belongs to nobody.
-      speakerId: this.playing()?.id,
+      speakerId: playing?.id,
+      // And what they were called at the time, so a rename later does not go
+      // back and change who said what.
+      speakerName: playing?.name.trim() || undefined,
       meta: { model: connection.model },
     };
     this.appendMessage(placeholder);
