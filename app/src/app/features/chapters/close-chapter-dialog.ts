@@ -434,16 +434,27 @@ export class CloseChapterDialog {
     return (event.target as HTMLTextAreaElement).value;
   }
 
+  /**
+   * Asked for again after a Stop, and the first request is still on its way
+   * back: aborting resolves rather than throws, so the old one arrives after
+   * the new one started. Everything it has to say — its deltas, its cost, its
+   * error, its "no longer busy" — is about a summary that is no longer on the
+   * screen, and left to speak it would append to the new text, hand the Stop
+   * button a controller that no longer aborts anything, and offer Write it
+   * again while writing. So each request is compared with the one in hand.
+   */
   protected async rewrite(): Promise<void> {
     this.stop();
     this.summary.set('');
     this.error.set('');
     this.busy.set(true);
-    this.controller = new AbortController();
-    const result = await this.chapters.summarise(
-      (delta) => this.summary.update((text) => text + delta),
-      this.controller.signal,
-    );
+    const controller = new AbortController();
+    this.controller = controller;
+    const result = await this.chapters.summarise((delta) => {
+      if (this.controller === controller) this.summary.update((text) => text + delta);
+    }, controller.signal);
+    if (this.controller !== controller) return;
+
     this.busy.set(false);
     this.controller = null;
     this.summaryCost.set(cost(result.usage));
@@ -465,9 +476,13 @@ export class CloseChapterDialog {
     this.proposals.set([]);
     this.ticked.set(new Set());
     this.proposing.set(true);
-    this.loreController = new AbortController();
+    const controller = new AbortController();
+    this.loreController = controller;
 
-    const result = await this.chapters.proposeLore(this.loreController.signal);
+    const result = await this.chapters.proposeLore(controller.signal);
+    // The same rule as the summary above: an answer to a question that has
+    // since been asked again belongs to nobody.
+    if (this.loreController !== controller) return;
     this.loreController = null;
     this.proposing.set(false);
     this.proposed.set(true);
