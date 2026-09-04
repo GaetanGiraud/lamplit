@@ -7,6 +7,51 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**A read through the whole of it, and the things that read found.** Nothing here is a feature; all
+of it is something that was wrong. The ones you could have noticed:
+
+- **A chapter you deleted stays deleted.** Deleting one and closing the window in the same breath
+  left the file on disk, and it came back on the next start. Deleting a story did it story-wide.
+- **The last thing you wrote is not lost to a closed window.** A save still on its way was
+  invisible to the app as it closed; and a long chapter is too big for the browser to carry out of
+  a page that is leaving, which it refuses to say. Both are now saved before the window goes, and
+  if the writing cannot be saved you are asked before it closes rather than told afterwards — in
+  the desktop app that was a close button that did nothing at all.
+- **Saved means saved.** The indicator said so while writes were still queued.
+- **An answer you can see is not replaced by an error.** A reply cut short by the endpoint or by
+  the connection kept its words and says underneath that it stopped early; it used to be hidden
+  behind a red line with the text still on disk.
+- **A reply still arriving cannot be edited.** The edit was accepted and then quietly overwritten.
+- **Leaving a story mid-answer marks the answer**, instead of leaving one that stops mid-sentence
+  and claims to be finished.
+- **Escape closes one thing.** A colour menu opened in the chapter panel took the panel with it.
+- **Shortcuts stay on the page.** Ctrl+Enter inside a sheet regenerated the chapter behind it, and
+  Ctrl+K stacked a second Connection sheet on the first.
+- **A chapter title can be given back**: clearing the box now returns it to the scene's first line,
+  as the scene sheet has always said it would.
+- **A new lore entry appears** even when a search was in the box.
+- **A chapter opens at its end**, wherever you left the last one, and arriving at the foot of the
+  page no longer tugs it.
+- **Ten thousand tokens reads as 10k**, not 10.0k, and a million is not 1000k.
+- **What you type comes back as you typed it** in two more shapes: `*a *b* c*` and `***a** b*`.
+- **An endpoint that will not stream** is understood rather than reported as an empty answer, and
+  a page that will not parse is shown as the text it is rather than blanking the view.
+- **The colours the model picks** are the ones it named, not the first name in our own list.
+
+And underneath, where a reader would only notice them going wrong: the API answers only to this
+machine's own names, so a page on the web cannot reach it by pointing a domain at your loopback;
+`index.html` is never cached, so an upgrade cannot leave a browser asking for files that are gone;
+a backup that fails says so instead of reporting one that is not there; an interrupted archive is
+written again rather than kept; a write that cannot be renamed cleans up after itself; one
+unreadable file costs that file rather than the whole collection; a body that is empty or a list is
+refused rather than saved over your story; and a pre-release version compares as older than the
+release it precedes.
+
+The desktop build carries the version it was built at, so an update can be published at all; a
+portable copy no longer installs itself; the browser's own cache lives in a folder of its own
+rather than beside your writing; and a start that fails says why instead of leaving a process with
+no window. The licences of everything bundled into the app now ship with it.
+
 **What you type looks like what will be read.** The box you write in is a prose editor now, set in
 the reading face at the reading size, and a line is coloured as it is written: `"speech"` in the
 speech colour the moment the closing quote lands, `*an action*` in italics the moment the second
