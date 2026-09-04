@@ -102,6 +102,17 @@ describe('DocumentStore', () => {
     assert.deepEqual(files.sort(), ['a.json', 'b.json']);
   });
 
+  it('treats two spellings of one id as the one document the disk makes them', async () => {
+    const store = await freshStore();
+    await store.write('stories', 'abc', { title: 'newer' }, 200);
+    // On a case-insensitive filesystem this is the same file; on a sensitive
+    // one it is a different document, and dropping the write is still correct
+    // because the client never sends two spellings of an id it generated.
+    const stale = await store.write('stories', 'ABC', { title: 'older' }, 100);
+    assert.equal(stale.skipped, true);
+    assert.deepEqual(await store.read('stories', 'abc'), { title: 'newer' });
+  });
+
   it('leaves no temporary file behind when the rename itself fails', async () => {
     const store = await freshStore();
     // A folder wearing the document's name: nothing can be renamed over it.

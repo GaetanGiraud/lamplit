@@ -138,7 +138,10 @@ export class DocumentStore {
 
   /** Serialises work on one document and applies the sequence guard. */
   #enqueue(collection, id, seq, work) {
-    const key = `${collection}/${id}`;
+    // Lower-cased, because Windows and macOS give `abc.json` and `ABC.json`
+    // the same file: two chains and two sequence guards over one document
+    // would order neither. Ids are UUIDs, so nothing is lost by folding them.
+    const key = `${collection}/${String(id).toLowerCase()}`;
     const path = this.pathOf(collection, id);
     const previous = this.#chains.get(key) ?? Promise.resolve();
     const run = previous.then(async () => {
