@@ -92,6 +92,38 @@ test('scrolled up, the page is text to the bottom edge, and Jump brings the end 
   );
 });
 
+test('a chapter opens at its end, however the last one was left', async ({ page, server }) => {
+  await seedConnectedSettings(server);
+  await seedStory(server, { scene: SCENE });
+  await page.goto(server.url);
+
+  await send(page, '!long');
+  await waitForTurn(page);
+  // Left half-way up, which is what the reader was doing there.
+  await scroller(page).evaluate((el) => el.scrollTo(0, 0));
+  await expect(jump(page)).toBeVisible();
+
+  // A second chapter — which closes this one first, summary and all — long
+  // enough to have an end that is not also its beginning.
+  await page.getByRole('button', { name: 'Chapters' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'New chapter' }).click();
+  const review = page.getByRole('dialog');
+  await expect(review.locator('textarea')).not.toBeEmpty();
+  await review.getByRole('button', { name: 'Close the chapter' }).click();
+
+  const sheet = page.getByRole('dialog');
+  await sheet.locator('textarea.scene').fill('The harbour, after the storm.');
+  await sheet.getByRole('button', { name: /Open the chapter/ }).click();
+  await expect(sheet).toBeHidden();
+
+  await send(page, '!long');
+  await waitForTurn(page);
+
+  // Reading it starts where it is being written, not where the last one was.
+  await expect(jump(page)).toBeHidden();
+  expect(await composerOnScreen(page)).toBe(true);
+});
+
 test('typing with nothing focused goes into the composer, wherever the reader is', async ({
   page,
   server,

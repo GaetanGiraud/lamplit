@@ -6,6 +6,7 @@ import {
   computed,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -265,10 +266,27 @@ export class ChaptersPage {
     return `${this.chapters.chapter().id}:${messages.length}:${last?.content.length ?? 0}`;
   });
 
+  /** The chapter the pinning belongs to; a different one opens at its end. */
+  private shownChapterId = '';
+
   constructor() {
     afterRenderEffect(() => {
       this.growth();
-      this.keepPinned();
+      // `untracked`, because `keepPinned` reads `pinned` and this effect is
+      // reactive over what its callback reads: scrolling into the last inch
+      // flips `pinned` true, which would re-run this and snap the reader to
+      // the very bottom — a page that pulls the last line out from under them
+      // as they arrive at it.
+      untracked(() => {
+        const id = this.chapters.chapter().id;
+        if (id !== this.shownChapterId) {
+          // Opened rather than grown: a chapter starts at its end, whatever
+          // was true of the one being left.
+          this.shownChapterId = id;
+          this.pinned.set(true);
+        }
+        this.keepPinned();
+      });
     });
 
     // Everything else that makes the page taller while the reader is at the
