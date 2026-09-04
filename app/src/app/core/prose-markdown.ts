@@ -65,7 +65,7 @@ function inlineNodes(tokens: Token[], marks: Mark[]): JSONContent[] {
   for (const token of tokens) {
     switch (token.type) {
       case 'em':
-      case 'strong':
+      case 'strong': {
         // Only the asterisk spelling is ours. `_like this_` renders the same
         // after sending, but it is not what the editor writes, so it is kept
         // as the text it was typed as rather than rewritten on the way out.
@@ -79,6 +79,7 @@ function inlineNodes(tokens: Token[], marks: Mark[]): JSONContent[] {
           out.push(...textNodes(token.raw, marks));
         }
         break;
+      }
       case 'br': {
         // Whatever came before the newline — two spaces, a backslash — is
         // text, and goes back out in front of it.
@@ -228,9 +229,17 @@ function serialiseParagraph(paragraph: JSONContent): string {
     active = next;
   };
 
-  for (const node of paragraph.content ?? []) {
+  const nodes = paragraph.content ?? [];
+  /** How many nodes from `from` onwards carry the mark: what to open outermost. */
+  const reach = (from: number) => (mark: Mark) => {
+    let count = 0;
+    while (from + count < nodes.length && marksOf(nodes[from + count]!).includes(mark)) count++;
+    return count;
+  };
+
+  for (const [index, node] of nodes.entries()) {
     if (node.type === 'hardBreak') {
-      const next = ordered(active, marksOf(node));
+      const next = ordered(active, marksOf(node), reach(index));
       close(next);
       open(next);
       out += '\n';
@@ -253,7 +262,7 @@ function serialiseParagraph(paragraph: JSONContent): string {
       continue;
     }
 
-    const next = ordered(active, marksOf(node));
+    const next = ordered(active, marksOf(node), reach(index));
     const lead = /^\s*/.exec(text)![0];
     const body = text.slice(lead.length).replace(/\s+$/, '');
     // Leading whitespace goes between whatever closes and whatever opens; the
@@ -268,10 +277,19 @@ function serialiseParagraph(paragraph: JSONContent): string {
   return out;
 }
 
-/** Marks already open first, in the order they were opened, then the new ones outermost first. */
-function ordered(active: readonly Mark[], marks: readonly Mark[]): Mark[] {
-  return [
-    ...active.filter((mark) => marks.includes(mark)),
-    ...MARK_ORDER.filter((mark) => marks.includes(mark) && !active.includes(mark)),
-  ];
+/**
+ * Marks already open first, in the order they were opened, then the new ones.
+ * Two marks opening on the same node open the one that runs furthest first:
+ * `***a** b*` is an action holding a bold word, and written bold-first it would
+ * come back as `***a*** *b*` — the same page, a different string. At a tie the
+ * schema's order decides, so `***both***` is still written bold outermost.
+ */
+function ordered(
+  active: readonly Mark[],
+  marks: readonly Mark[],
+  reach: (mark: Mark) => number = () => 0,
+): Mark[] {
+  const opening = MARK_ORDER.filter((mark) => marks.includes(mark) && !active.includes(mark));
+  opening.sort((a, b) => reach(b) - reach(a) || MARK_ORDER.indexOf(a) - MARK_ORDER.indexOf(b));
+  return [...active.filter((mark) => marks.includes(mark)), ...opening];
 }

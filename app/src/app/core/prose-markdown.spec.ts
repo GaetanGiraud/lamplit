@@ -35,6 +35,8 @@ const CORPUS = [
   '"I *do* mind." A quote around an action is two things, not one.',
   '*a *b* c*',
   '**a **b** c**',
+  '***a** b*',
+  '**a *b***',
   '',
 ];
 
@@ -138,6 +140,16 @@ describe('writing marks out', () => {
     expect(
       serialiseProse(doc([text('a ', 'bold'), text('b', 'bold', 'action'), text(' c', 'action')])),
     ).toBe('**a *b*** *c*');
+  });
+
+  it('opens the mark that runs furthest first when two open on the same word', () => {
+    expect(serialiseProse(doc([text('a', 'bold', 'action'), text(' b', 'action')]))).toBe(
+      '***a** b*',
+    );
+    expect(serialiseProse(doc([text('a', 'bold', 'action'), text(' b', 'bold')]))).toBe(
+      '***a* b**',
+    );
+    expect(serialiseProse(doc([text('both', 'bold', 'action')]))).toBe('***both***');
   });
 
   it('ignores speech, whose quotes are already in the text', () => {
