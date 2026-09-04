@@ -7,3 +7,7 @@ backups/
 test-results/
 playwright-report/
 build/
+
+# One contributor's IntelliJ IDEA project, which nobody else's checkout wants.
+.idea/
+*.iml
