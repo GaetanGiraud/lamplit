@@ -20,12 +20,15 @@ export function createApp({
   build = {},
   previousVersion = null,
   updates = createUpdateChecker({ version: build.version ?? '0.0.0', enabled: false }),
+  /** Names the API answers to besides the machine's own; see sameMachineOnly. */
+  hosts = [],
 }) {
   const store = new DocumentStore(dataDir);
   const app = express();
 
   app.disable('x-powered-by');
   app.use(localhostCors);
+  app.use('/api', sameMachineOnly(hosts));
   app.use('/api', express.json({ limit: '16mb' }));
 
   /**
@@ -149,6 +152,38 @@ function seqOf(request) {
 
 function notFound(response, error = 'not found') {
   response.status(404).json({ ok: false, error });
+}
+
+/**
+ * A page on the web cannot read this API through CORS, but it can point a
+ * domain of its own at 127.0.0.1 and then talk to "itself" — DNS rebinding —
+ * and the browser sees nothing cross-origin about it. What gives it away is
+ * the `Host` header, which names the attacker's domain: a request from this
+ * machine names the machine. Loopback by name, `*.localhost`, any IP literal
+ * (a phone on the LAN types one; an attacker's page cannot be served from one)
+ * and whatever the server was told to answer to. Anything else is misdirected.
+ */
+function sameMachineOnly(extra) {
+  const allowed = new Set(['localhost', '127.0.0.1', '::1', ...extra.map(String)]);
+  return (request, response, next) => {
+    const header = request.get('host');
+    // No Host at all is HTTP/1.0 on the command line, not a browser.
+    if (!header || isOwnHost(hostnameOf(header), allowed)) return next();
+    response.status(421).json({ ok: false, error: 'misdirected request' });
+  };
+}
+
+/** The name in a Host header, without its port or its IPv6 brackets. */
+function hostnameOf(header) {
+  const bracketed = /^\[([^\]]+)\](?::\d+)?$/.exec(header);
+  if (bracketed) return bracketed[1].toLowerCase();
+  return header.replace(/:\d+$/, '').toLowerCase();
+}
+
+function isOwnHost(hostname, allowed) {
+  if (allowed.has(hostname) || hostname.endsWith('.localhost')) return true;
+  // An IP literal: dotted v4, or the v6 that came in brackets.
+  return /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) || /^[0-9a-f:.]+$/.test(hostname);
 }
 
 /**

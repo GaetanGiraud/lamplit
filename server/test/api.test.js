@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { request as httpRequest } from 'node:http';
 import { describe, it } from 'node:test';
 import { createApp } from '../src/app.js';
 import { createUpdateChecker } from '../src/updates.js';
@@ -36,6 +37,7 @@ async function serve({ withApp = false, updates } = {}) {
   const base = `http://127.0.0.1:${server.address().port}`;
   return {
     dataDir,
+    base,
     close: () => new Promise((fulfil) => server.close(fulfil)),
     call: (path, init) => fetch(`${base}${path}`, init),
     put: (path, body, seq) =>
@@ -254,6 +256,78 @@ describe('serving the built app', () => {
     assert.equal(response.status, 200);
     assert.match(await response.text(), /API is running/);
     await api.close();
+  });
+});
+
+/**
+ * A request whose Host header says what the test wants. `fetch` will only ever
+ * send the URL's own, which is the one thing these tests are not about.
+ */
+function callAs(base, host, path, { method = 'GET', body, seq } = {}) {
+  const { hostname, port } = new URL(base);
+  const headers = {
+    host,
+    ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+    ...(seq === undefined ? {} : { 'x-doc-seq': String(seq) }),
+  };
+  return new Promise((fulfil, reject) => {
+    const request = httpRequest({ hostname, port, path, method, headers }, (response) => {
+      let text = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => (text += chunk));
+      response.on('end', () =>
+        fulfil({ status: response.statusCode, json: () => JSON.parse(text) }),
+      );
+    });
+    request.on('error', reject);
+    request.end(body === undefined ? undefined : JSON.stringify(body));
+  });
+}
+
+describe('the Host header', () => {
+  it('answers the machine it runs on, by any of its names', async () => {
+    const api = await serve();
+    const names = [
+      'localhost',
+      '127.0.0.1:1234',
+      '[::1]:4177',
+      'app.localhost',
+      '192.168.1.5:4177',
+    ];
+    for (const host of names) {
+      assert.equal((await callAs(api.base, host, '/api/health')).status, 200, host);
+    }
+    await api.close();
+  });
+
+  it('refuses a request that names somebody else’s domain, which is what DNS rebinding sends', async () => {
+    const api = await serve();
+    await api.put('/api/docs/stories/abc', { id: 'abc' }, 1);
+
+    const read = await callAs(api.base, 'evil.example', '/api/docs/stories');
+    assert.equal(read.status, 421);
+    assert.deepEqual(read.json(), { ok: false, error: 'misdirected request' });
+
+    const written = await callAs(api.base, 'evil.example:80', '/api/docs/stories/abc', {
+      method: 'PUT',
+      body: { id: 'abc', title: 'rebound' },
+      seq: 2,
+    });
+    assert.equal(written.status, 421);
+    assert.deepEqual(await (await api.call('/api/docs/stories/abc')).json(), { id: 'abc' });
+    await api.close();
+  });
+
+  it('answers to a name it was told to answer to', async () => {
+    const dataDir = await mkdtemp(join(tmpdir(), 'lamplit-api-'));
+    const app = createApp({ dataDir, hosts: ['study.lan'] });
+    const server = await new Promise((fulfil) => {
+      const instance = app.listen(0, '127.0.0.1', () => fulfil(instance));
+    });
+    const base = `http://127.0.0.1:${server.address().port}`;
+    assert.equal((await callAs(base, 'study.lan', '/api/health')).status, 200);
+    assert.equal((await callAs(base, 'other.lan', '/api/health')).status, 421);
+    await new Promise((fulfil) => server.close(fulfil));
   });
 });
 

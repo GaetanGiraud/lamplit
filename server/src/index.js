@@ -47,7 +47,9 @@ const updates = createUpdateChecker({
   enabled: process.env['LAMPLIT_UPDATE_CHECK'] !== '0',
 });
 
-const app = createApp({ dataDir, publicDir, build, previousVersion, updates });
+// A host it was told to bind to is a name it should answer to as well.
+const hosts = host === '0.0.0.0' ? [] : [host];
+const app = createApp({ dataDir, publicDir, build, previousVersion, updates, hosts });
 const store = app.locals['store'];
 
 await store.init();
