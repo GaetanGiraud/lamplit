@@ -1,5 +1,7 @@
+import { once } from 'node:events';
 import { createWriteStream } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
+import { finished } from 'node:stream/promises';
 import { join, posix, sep } from 'node:path';
 import { crc32, deflateRawSync } from 'node:zlib';
 
@@ -11,7 +13,8 @@ import { crc32, deflateRawSync } from 'node:zlib';
 
 const LOCAL_HEADER = 0x04034b50;
 const CENTRAL_HEADER = 0x02014b50;
-const END_OF_CENTRAL = 0x06054b50;
+/** The last four bytes but eighteen of every archive this writes. */
+export const END_OF_CENTRAL = 0x06054b50;
 /** Bit 11 says the name is UTF-8, which every name we write is. */
 const UTF8_FLAG = 0x0800;
 const DEFLATE = 8;
@@ -34,8 +37,15 @@ export async function writeZip(target, entries) {
   const central = [];
   let offset = 0;
 
+  // A folder that is not there or a disk that is full arrives as an event, and
+  // an event nobody listens for takes the process down. Remembered here, so the
+  // next write throws it; `once` throws it too if it lands while waiting.
+  let failed = null;
+  out.on('error', (error) => (failed = error));
+
   const put = async (buffer) => {
-    if (!out.write(buffer)) await new Promise((resolve) => out.once('drain', resolve));
+    if (failed) throw failed;
+    if (!out.write(buffer)) await once(out, 'drain');
     offset += buffer.length;
   };
 
@@ -95,10 +105,11 @@ export async function writeZip(target, entries) {
   end.writeUInt32LE(directoryOffset, 16);
   await put(end);
 
-  await new Promise((resolve, reject) => {
-    out.once('error', reject);
-    out.end(resolve);
-  });
+  out.end();
+  // Resolves on finish, rejects on an error that has already happened or is
+  // still to come; the callback form of `end` would have called back with the
+  // error and been mistaken for success.
+  await finished(out);
   return offset;
 }
 

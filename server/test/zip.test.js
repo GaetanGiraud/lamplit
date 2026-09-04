@@ -74,6 +74,18 @@ describe('writeZip', () => {
     assert.equal(entries.get('folder/small.txt').mode, 0o644);
   });
 
+  it('fails when the archive cannot be written, rather than reporting one that is not there', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'lamplit-zip-'));
+    const target = join(dir, 'missing', 'out.zip');
+    const small = [{ name: 'a.txt', data: Buffer.from('x'.repeat(100), 'utf8') }];
+    await assert.rejects(writeZip(target, small), /ENOENT/);
+    // Large enough to fill the stream's buffer and wait for a drain that never comes.
+    const large = [
+      { name: 'b.bin', data: Buffer.from(Array.from({ length: 200_000 }, (_, i) => i % 251)) },
+    ];
+    await assert.rejects(writeZip(target, large), /ENOENT/);
+  });
+
   it('is readable by whatever unzips archives on this machine', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'lamplit-zip-'));
     const target = join(dir, 'out.zip');
