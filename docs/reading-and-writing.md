@@ -40,6 +40,9 @@ chapter cannot be written into — instead you get the reason and the button tha
 **Stop** replaces **Send** while an answer streams, and keeps whatever arrived before you pressed
 it — a half-written passage is still a passage, and you can edit it or carry on from it.
 
+Scroll up to read back and a small **↓** appears in the margin, in the same column as the message
+actions: one click and you are at the end again. Streaming never drags you back on its own.
+
 ![An answer arriving, with Stop up](images/streaming.png)
 
 ### When a chapter outgrows the budget
@@ -51,9 +54,11 @@ mode** — see below.
 
 ## What each message can do
 
-Hover a message and its toolbar appears.
+Hover a message, or tab into it, and four small marks appear **in the margin** beside it — out
+past the edge of the text, never on top of it, so crossing the page with the pointer never takes a
+word away from you.
 
-![Edit, replay, regenerate, copy, delete](images/message-actions.png)
+![Edit, regenerate, copy, delete — out in the margin](images/message-actions.png)
 
 | | |
 |---|---|
@@ -62,6 +67,10 @@ Hover a message and its toolbar appears.
 | **Regenerate** *(answers)* | Drop this answer and everything after it, and ask again. |
 | **Copy** | The raw text, as written. |
 | **Delete** | Just that message. |
+
+Hovering each one says which it is. On a **narrow window or a touch screen** there is no margin to
+write in and no pointer to hover with, so the same actions sit behind a single **⋯** under the
+message, on the line that already carries the model and the token count.
 
 None of these are special paths. Because the prompt is rebuilt from the documents on every
 request, an edit or a regenerate goes down exactly the same road as a fresh send — there is no

@@ -1,7 +1,9 @@
+import type { Locator } from '@playwright/test';
 import { expect, test } from './fixtures';
 import {
   FAKE_MODEL,
   act,
+  actFromMenu,
   assistantMessages,
   composer,
   messages,
@@ -186,6 +188,62 @@ test.describe('writing a chapter', () => {
       expect((await state()).scrolling).toBe(false);
     }
     expect((await state()).height).toBeGreaterThan(resting.height);
+  });
+
+  /**
+   * The whole point of the move: a reader crossing the page with the pointer
+   * should never have a word taken away from them. Measured rather than looked
+   * at, because "it looks fine on my screen" is how it got there in the first
+   * place.
+   */
+  for (const width of [1280, 1440]) {
+    test(`at ${width}px the message actions sit outside the text`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await send(page, 'Two lines, please.');
+      await waitForTurn(page);
+
+      const message = assistantMessages(page).first();
+      await message.hover();
+
+      const rail = message.locator('.rail');
+      const prose = message.locator('.story-prose');
+      await expect(rail).toBeVisible();
+
+      /** How far the left edge of something is past the end of the text. */
+      const clearance = async (what: Locator) => {
+        const box = (await what.boundingBox())!;
+        const text = (await prose.boundingBox())!;
+        return Math.round(box.x - (text.x + text.width));
+      };
+
+      // The rail slides in over 120ms, so this is measured where it comes to
+      // rest. Touching the column's edge is the point — the rail bridges the
+      // gap so the pointer can reach it — but nothing of it is over a word.
+      await expect.poll(() => clearance(rail)).toBeGreaterThanOrEqual(0);
+
+      for (const name of ['Edit', 'Regenerate', 'Copy', 'Delete']) {
+        expect(await clearance(message.getByRole('button', { name }))).toBeGreaterThan(0);
+      }
+
+      // And the ⋯ is not doubling up on it at this width.
+      await expect(message.getByRole('button', { name: 'Message actions' })).toBeHidden();
+    });
+  }
+
+  test('at 390px nothing is over the text and the ⋯ opens the actions', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await send(page, 'Two lines, please.');
+    await waitForTurn(page);
+
+    const message = assistantMessages(page).first();
+    await message.hover();
+    // No margin to write in, so the rail is not drawn at all.
+    await expect(message.locator('.rail')).toBeHidden();
+
+    await actFromMenu(page, message, 'Copy');
+    // The menu closed on the action, which is all the app can promise about a
+    // clipboard a headless browser may refuse.
+    await expect(page.getByRole('menu')).toHaveCount(0);
   });
 
   test('the context pill reflects what will be sent', async ({ page, server }) => {

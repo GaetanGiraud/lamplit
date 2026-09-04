@@ -130,7 +130,21 @@ $palette: (
 
   --ms-reading-size: 18px;
   --ms-radius: 14px;
+
+  // The reading column, and the margin beside it.
+  //
+  // A page has margins so that the marks about the text are not on top of it.
+  // The message actions and Jump to latest both live in the right one, and both
+  // have to agree about where its left edge is — one of them is positioned from
+  // the column and the other from the middle of the scroller — so the
+  // arithmetic is written once, here.
+  //
+  // `--ms-column` is only correct on an element whose containing block is the
+  // full width of the scroller; that is what the `100%` in it means.
   --ms-measure: 34rem;
+  --ms-column: min(var(--ms-measure), 100% - 2.5rem);
+  --ms-rail: 2rem;
+  --ms-margin-gap: 0.7rem;
 }
 
 * {

@@ -12,6 +12,7 @@ import {
 import { DomSanitizer } from '@angular/platform-browser';
 import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChapterMessage } from '../../core/models';
 import { renderStoryHtml } from '../../core/formatting';
@@ -21,11 +22,17 @@ import { TextValue } from '../../shared/text-value';
 /**
  * One turn. The assistant's text is set as prose across the reading column;
  * the user's lines are marked with an accent rule so a page still reads as a
- * page. Actions live in a toolbar that only appears on hover or focus.
+ * page.
+ *
+ * Its actions live in the right margin, outside the column, and appear on hover
+ * or focus — a page has margins so that the marks about the text are not on top
+ * of it. Where there is no margin to write in, or no pointer to hover with,
+ * they collapse into one ⋯ under the message instead. Neither of them is ever
+ * over a word.
  */
 @Component({
   selector: 'ms-message-item',
-  imports: [MatButtonModule, MatTooltipModule, TextFieldModule, TextValue],
+  imports: [MatButtonModule, MatMenuModule, MatTooltipModule, TextFieldModule, TextValue],
   template: `
     <article
       class="message"
@@ -67,33 +74,120 @@ import { TextValue } from '../../shared/text-value';
           }
         }
 
-        @if (footer()) {
-          <footer class="meta">{{ footer() }}</footer>
-        }
+        <!-- The meta line, which is also where the actions go when there is no
+             margin to put them in: never over a word, at any width. -->
+        <footer class="meta" [class.bare]="!footer()">
+          @if (footer()) {
+            <span class="said">{{ footer() }}</span>
+          }
+          <button
+            class="more"
+            type="button"
+            [matMenuTriggerFor]="actions"
+            aria-label="Message actions"
+          >
+            <span aria-hidden="true">⋯</span>
+          </button>
+        </footer>
 
-        <div class="toolbar">
-          <button matButton (click)="startEdit()" matTooltip="Edit this message">Edit</button>
+        <mat-menu #actions="matMenu">
+          <button mat-menu-item (click)="startEdit()">Edit</button>
           @if (isUser()) {
-            <button
-              matButton
-              [disabled]="busy()"
-              (click)="replay.emit()"
-              matTooltip="Drop everything after this and send it again"
-            >
+            <button mat-menu-item [disabled]="busy()" (click)="replay.emit()">
               Replay from here
             </button>
           } @else if (!error()) {
-            <button
-              matButton
-              [disabled]="busy()"
-              (click)="regenerate.emit()"
-              matTooltip="Ask for a different answer"
-            >
+            <button mat-menu-item [disabled]="busy()" (click)="regenerate.emit()">
               Regenerate
             </button>
           }
-          <button matButton (click)="copy()">{{ copied() ? 'Copied' : 'Copy' }}</button>
-          <button matButton (click)="remove.emit()">Delete</button>
+          <button mat-menu-item (click)="copy()">Copy</button>
+          <button mat-menu-item (click)="remove.emit()">Delete</button>
+        </mat-menu>
+
+        <!-- The margin rail. Outside the reading column entirely, so moving the
+             pointer across the page to read never hides the words under it. -->
+        <div class="rail">
+          <button
+            class="act"
+            type="button"
+            (click)="startEdit()"
+            matTooltip="Edit this message"
+            matTooltipPosition="left"
+            aria-label="Edit"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M11.4 2.4a1.6 1.6 0 0 1 2.2 2.2L6 12.2l-3 .8.8-3z" />
+            </svg>
+          </button>
+
+          @if (isUser()) {
+            <button
+              class="act"
+              type="button"
+              [disabled]="busy()"
+              (click)="replay.emit()"
+              matTooltip="Drop everything after this and send it again"
+              matTooltipPosition="left"
+              aria-label="Replay from here"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.8" />
+                <path d="M2.6 2.2v3.4h3.4" />
+              </svg>
+            </button>
+          } @else if (!error()) {
+            <button
+              class="act"
+              type="button"
+              [disabled]="busy()"
+              (click)="regenerate.emit()"
+              matTooltip="Ask for a different answer"
+              matTooltipPosition="left"
+              aria-label="Regenerate"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M13.4 8a5.4 5.4 0 1 1-1.6-3.8" />
+                <path d="M13.4 2.2v3.4H10" />
+              </svg>
+            </button>
+          }
+
+          <button
+            class="act"
+            type="button"
+            (click)="copy()"
+            [matTooltip]="copied() ? 'Copied' : 'Copy the raw text'"
+            matTooltipPosition="left"
+            [attr.aria-label]="copied() ? 'Copied' : 'Copy'"
+          >
+            @if (copied()) {
+              <svg viewBox="0 0 16 16" aria-hidden="true" class="done">
+                <path d="M3.2 8.4 6.4 11.6 12.8 4.6" />
+              </svg>
+            } @else {
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="5.8" y="5.8" width="7.6" height="7.6" rx="1.4" />
+                <path
+                  d="M10.4 3.6V3a1.4 1.4 0 0 0-1.4-1.4H4A1.4 1.4 0 0 0 2.6 3v5A1.4 1.4 0 0 0 4 9.4h.6"
+                />
+              </svg>
+            }
+          </button>
+
+          <button
+            class="act"
+            type="button"
+            (click)="remove.emit()"
+            matTooltip="Delete this message"
+            matTooltipPosition="left"
+            aria-label="Delete"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M2.8 4.4h10.4M6.4 4.4V3a1 1 0 0 1 1-1h1.2a1 1 0 0 1 1 1v1.4" />
+              <path d="M4.4 4.4l.6 8.1a1.4 1.4 0 0 0 1.4 1.3h3.2a1.4 1.4 0 0 0 1.4-1.3l.6-8.1" />
+            </svg>
+          </button>
         </div>
       }
     </article>
@@ -124,6 +218,10 @@ import { TextValue } from '../../shared/text-value';
     }
 
     .meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
       margin-top: 0.55rem;
       font-family: var(--ms-sans);
       font-size: 0.7rem;
@@ -131,38 +229,120 @@ import { TextValue } from '../../shared/text-value';
       color: var(--ms-muted);
     }
 
-    .toolbar {
+    /* -- the actions ------------------------------------------------------
+       Two layouts, and the narrow one is the default: a page has no margin to
+       write in until it is wide enough, and a touch screen has no hover to
+       reveal anything with however wide it is. The rail is switched on where
+       both hold. Neither layout ever sits over the prose. */
+
+    .more {
+      flex: none;
+      /* Right of whatever the line says, and right of nothing when it says
+         nothing: the corner is where a reader looks for a message's own menu. */
+      margin-left: auto;
+      width: 1.6rem;
+      height: 1.4rem;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      background: none;
+      color: var(--ms-muted);
+      font: inherit;
+      font-size: 0.95rem;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0.45;
+      transition: opacity 120ms ease;
+    }
+
+    .message:hover .more,
+    .message:focus-within .more,
+    .more:focus-visible {
+      opacity: 1;
+      color: var(--ms-ink-soft);
+    }
+
+    .rail {
+      display: none;
       position: absolute;
-      top: 0.2rem;
-      right: 0;
-      display: flex;
+      top: 0.75rem;
+      /* Right of the column by the gap, and padded back across it, so the
+         pointer never leaves the message on its way to the icons. */
+      right: calc(-1 * (var(--ms-rail) + var(--ms-margin-gap)));
+      padding-left: var(--ms-margin-gap);
+      flex-direction: column;
       gap: 0.1rem;
-      padding: 0.1rem;
-      border: 1px solid var(--ms-border);
-      border-radius: 999px;
-      background: var(--ms-surface-raised);
-      box-shadow: 0 6px 18px light-dark(rgb(0 0 0 / 8%), rgb(0 0 0 / 35%));
       opacity: 0;
-      transform: translateY(-0.2rem);
+      transform: translateX(-0.2rem);
       transition:
         opacity 120ms ease,
         transform 120ms ease;
       pointer-events: none;
     }
 
-    .message:hover .toolbar,
-    .message:focus-within .toolbar {
+    .message:hover .rail,
+    .message:focus-within .rail {
       opacity: 1;
       transform: none;
       pointer-events: auto;
     }
 
-    .toolbar button {
-      --mat-button-text-label-text-size: 0.72rem;
-      min-width: 0;
-      padding: 0 0.55rem;
-      height: 1.75rem;
+    .act {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--ms-rail);
+      height: var(--ms-rail);
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      background: none;
       color: var(--ms-muted);
+      cursor: pointer;
+    }
+
+    .act:hover:not(:disabled),
+    .act:focus-visible {
+      color: var(--ms-ink);
+      background: color-mix(in srgb, var(--ms-ink) 8%, transparent);
+    }
+
+    .act:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .act svg {
+      width: 1rem;
+      height: 1rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .act svg.done {
+      stroke: light-dark(#2f8f5b, #6fd39b);
+      stroke-width: 1.8;
+    }
+
+    /* Wide enough for a margin, and a pointer that can hover into it: the
+       measure plus a rail and a gap on each side, with room to breathe. */
+    @media (min-width: 42rem) and (hover: hover) {
+      .rail {
+        display: flex;
+      }
+
+      .more {
+        display: none;
+      }
+
+      /* Nothing left in it: back to a line that only appears when it says
+         something, which is what it did before the actions moved. */
+      .meta.bare {
+        display: none;
+      }
     }
 
     .error {
@@ -249,7 +429,8 @@ import { TextValue } from '../../shared/text-value';
         opacity: 0.5;
       }
 
-      .toolbar {
+      .rail,
+      .more {
         transition: none;
       }
     }

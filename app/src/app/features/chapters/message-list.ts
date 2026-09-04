@@ -8,7 +8,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChapterStore } from '../../store/chapter-store';
 import { SettingsStore } from '../../store/settings-store';
 import { MessageItem } from './message-item';
@@ -18,7 +18,7 @@ const PINNED_SLACK = 96;
 
 @Component({
   selector: 'ms-message-list',
-  imports: [MatButtonModule, MessageItem],
+  imports: [MatTooltipModule, MessageItem],
   template: `
     <div #scroller class="scroller" (scroll)="onScroll()">
       <div class="column" [style.--ms-reading-size.px]="settings.ui().fontSize">
@@ -37,11 +37,28 @@ const PINNED_SLACK = 96;
         }
         <div class="tail"></div>
       </div>
-    </div>
 
-    @if (!pinned()) {
-      <button matButton="filled" class="jump" (click)="jumpToLatest()">Jump to latest ↓</button>
-    }
+      <!-- Inside the scroller, and the same width as the column, so the button
+           lands in the same margin the message actions use. Outside it, the
+           scrollbar would be counted in the middle and the two would be a few
+           pixels out of line. -->
+      @if (!pinned()) {
+        <div class="jump-dock">
+          <button
+            class="jump"
+            type="button"
+            (click)="jumpToLatest()"
+            matTooltip="Jump to latest"
+            matTooltipPosition="left"
+            aria-label="Jump to latest"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M8 2.8v9.4m0 0 3.6-3.6M8 12.2 4.4 8.6" />
+            </svg>
+          </button>
+        </div>
+      }
+    </div>
   `,
   styles: `
     :host {
@@ -68,12 +85,63 @@ const PINNED_SLACK = 96;
       height: 1.5rem;
     }
 
+    /* A strip of nothing, the width of the column, stuck a finger's width
+       above the foot of the scrollport. It carries no height of its own, so it
+       adds nothing to the story it is sitting at the end of. */
+    .jump-dock {
+      position: sticky;
+      bottom: 1rem;
+      width: var(--ms-column);
+      height: 0;
+      margin: 0 auto;
+      pointer-events: none;
+    }
+
+    /* In the margin, in the same column as a message's actions, rather than
+       over the last lines being read. Where there is no margin it tucks into
+       the corner of the scroller, on the column's own side padding, small
+       enough to cover at most the end of the longest line. */
     .jump {
       position: absolute;
-      bottom: 1rem;
-      left: 50%;
-      transform: translateX(-50%);
-      box-shadow: 0 8px 24px light-dark(rgb(0 0 0 / 15%), rgb(0 0 0 / 45%));
+      bottom: 0;
+      right: -1rem;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--ms-rail);
+      height: var(--ms-rail);
+      padding: 0;
+      border: 1px solid var(--ms-border);
+      border-radius: 50%;
+      background: var(--ms-surface-raised);
+      color: var(--ms-ink-soft);
+      cursor: pointer;
+      box-shadow: 0 6px 18px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
+    }
+
+    .jump:hover,
+    .jump:focus-visible {
+      color: var(--ms-ink);
+      border-color: color-mix(in srgb, var(--ms-accent) 55%, var(--ms-border));
+    }
+
+    .jump svg {
+      width: 1rem;
+      height: 1rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* The same margin the message actions ask for, so the two line up. */
+    @media (min-width: 42rem) {
+      .jump {
+        right: auto;
+        left: calc(100% + var(--ms-margin-gap));
+      }
     }
   `,
 })

@@ -245,10 +245,11 @@ async function theApp() {
   await page.waitForTimeout(400);
   await shot(page, 'reading-answered', 'the answer, with the model and its token count under it');
 
-  // What a message offers when the pointer is over it.
+  // What a message offers when the pointer is over it, out in the margin
+  // rather than over the first line of what it is about.
   await chapter.last().hover();
-  await page.waitForTimeout(200);
-  await shot(page, 'message-actions', 'edit, regenerate, replay, copy, delete');
+  await page.waitForTimeout(400);
+  await shot(page, 'message-actions', 'edit, regenerate, copy, delete — out in the margin');
 
   // The prompt preview is behind developer mode, so it is switched on for this
   // one picture and off again: every other shot is the app a writer sees, and

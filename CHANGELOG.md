@@ -7,6 +7,21 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**Nothing sits on top of the story any more.** A message's actions — edit,
+regenerate, replay, copy, delete — used to appear as a pill over the first line
+of the message they belonged to, so moving the pointer across the page to read
+hid the words under it. They are marks in the **right margin** now, out past
+the edge of the text, and they appear on hover or when you tab into a message
+exactly as before.
+
+- **Jump to latest** moves with them: a small round **↓** in the same column of
+  margin, rather than a filled button over the last lines you were reading.
+- **On a narrow window or a touch screen** there is no margin to write in and
+  no pointer to hover with, so the same actions sit behind a single **⋯**
+  *under* the message, on the line that already carries the model and the token
+  count. Neither layout is ever over a word, at any width.
+- The keyboard path is unchanged, and so is everything the actions do.
+
 **Lamplit tells you when there is a newer one, and what changed in it.** Once
 per start, the server asks GitHub which versions have been published. When one
 of them is newer than yours, the top bar says so — a small pill, *0.2.0

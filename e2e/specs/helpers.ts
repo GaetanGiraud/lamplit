@@ -203,10 +203,24 @@ export async function setBookStyle(page: Page, on: boolean): Promise<void> {
   await expect(toggle).toBeHidden();
 }
 
-/** Hovering is what reveals a message's toolbar. */
+/**
+ * Hovering is what reveals a message's actions. They live in the right margin
+ * at this width; below the measure, or on a touch screen, the same names are
+ * behind the ⋯ under the message, which `actFromMenu` reaches instead.
+ */
 export async function act(message: Locator, name: string | RegExp): Promise<void> {
   await message.hover();
   await message.getByRole('button', { name }).click();
+}
+
+/** The same actions, from the ⋯ the narrow layout puts under the message. */
+export async function actFromMenu(
+  page: Page,
+  message: Locator,
+  name: string | RegExp,
+): Promise<void> {
+  await message.getByRole('button', { name: 'Message actions' }).click();
+  await page.getByRole('menuitem', { name }).click();
 }
 
 /** Collects the request bodies the app sends, for prompt assertions. */
