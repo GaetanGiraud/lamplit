@@ -38,8 +38,8 @@ const DELIMITER: Record<Mark, string> = { bold: '**', action: '*', speech: '' };
  * with, in `formatting.ts`, applied to the same thing: one stretch of text
  * with one set of marks on it, so a quote is never matched across an action.
  */
-export function speechRuns(text: string): Array<[number, number]> {
-  const runs: Array<[number, number]> = [];
+export function speechRuns(text: string): [number, number][] {
+  const runs: [number, number][] = [];
   const quoted = /(["“])([^"“”]+)(["”])/g;
   for (let match = quoted.exec(text); match; match = quoted.exec(text)) {
     runs.push([match.index, match.index + match[0].length]);
@@ -132,7 +132,7 @@ function markSpeech(nodes: JSONContent[]): JSONContent[] {
     if (node.type !== 'text') {
       flush();
       out.push(node);
-    } else if (group.length && markKey(group[0]) !== markKey(node)) {
+    } else if (group[0] && markKey(group[0]) !== markKey(node)) {
       flush();
       group.push(node);
     } else {
@@ -213,7 +213,7 @@ function serialiseParagraph(paragraph: JSONContent): string {
   const close = (next: readonly Mark[]) => {
     let keep = 0;
     while (keep < active.length && keep < next.length && active[keep] === next[keep]) keep++;
-    for (let i = active.length - 1; i >= keep; i--) out += DELIMITER[active[i]];
+    for (let i = active.length - 1; i >= keep; i--) out += DELIMITER[active[i]!];
     out += pending;
     pending = '';
     active = active.slice(0, keep);
@@ -221,7 +221,7 @@ function serialiseParagraph(paragraph: JSONContent): string {
 
   /** Opens what `next` has beyond what is already open; `close` has made `active` a prefix of it. */
   const open = (next: Mark[]) => {
-    for (let i = active.length; i < next.length; i++) out += DELIMITER[next[i]];
+    for (let i = active.length; i < next.length; i++) out += DELIMITER[next[i]!];
     active = next;
   };
 

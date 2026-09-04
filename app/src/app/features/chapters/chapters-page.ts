@@ -262,7 +262,7 @@ export class ChaptersPage {
   private readonly growth = computed(() => {
     const messages = this.chapters.written();
     const last = messages[messages.length - 1];
-    return `${this.chapters.chapter()?.id}:${messages.length}:${last?.content.length ?? 0}`;
+    return `${this.chapters.chapter().id}:${messages.length}:${last?.content.length ?? 0}`;
   });
 
   constructor() {

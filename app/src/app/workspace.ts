@@ -83,23 +83,28 @@ export class Workspace {
       applyUi(document.documentElement, this.settings.ui(), this.chapters.palette());
     });
 
-    // What a fresh install is asked, in the order it is asked.
-    //
-    // The connection comes first and insists on an answer: there is no point
-    // writing a scene for a model the app cannot reach, and every other
-    // question is downstream of this one. It is skipped the moment there is an
-    // endpoint and a model, which is every run after the first.
-    //
-    // Then the story questions, on an install that has never been written in —
-    // mode and persona shape every request the chapter will make. Then the
-    // scene, because a chapter without one cannot be written into.
-    afterNextRender(async () => {
-      if (!this.settings.isConnected()) await this.dialogs.openConnection(true);
-      const chapter = this.chapters.chapter();
-      if (!chapter || chapter.scene.trim()) return;
-      if (this.neverWrittenIn()) await this.dialogs.setUpFirstStory();
-      await this.dialogs.openScene(this.chapters.chapter().id, true);
+    afterNextRender(() => {
+      void this.askWhatIsMissing();
     });
+  }
+
+  /**
+   * What a fresh install is asked, in the order it is asked.
+   *
+   * The connection comes first and insists on an answer: there is no point
+   * writing a scene for a model the app cannot reach, and every other
+   * question is downstream of this one. It is skipped the moment there is an
+   * endpoint and a model, which is every run after the first.
+   *
+   * Then the story questions, on an install that has never been written in —
+   * mode and persona shape every request the chapter will make. Then the
+   * scene, because a chapter without one cannot be written into.
+   */
+  private async askWhatIsMissing(): Promise<void> {
+    if (!this.settings.isConnected()) await this.dialogs.openConnection(true);
+    if (this.chapters.chapter().scene.trim()) return;
+    if (this.neverWrittenIn()) await this.dialogs.setUpFirstStory();
+    await this.dialogs.openScene(this.chapters.chapter().id, true);
   }
 
   /** One default story, one empty chapter, nothing typed anywhere yet. */

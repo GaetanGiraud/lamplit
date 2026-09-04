@@ -545,10 +545,10 @@ export class PreferencesDialog {
    * on screen, so a click here that quietly changed the story's instead would
    * look like it had done nothing at all.
    */
-  protected readonly editingChapter = computed(() => !!this.chapters.chapter()?.palette);
+  protected readonly editingChapter = computed(() => !!this.chapters.chapter().palette);
 
   protected readonly currentPalette = computed(
-    () => this.chapters.chapter()?.palette || this.ui().palette,
+    () => this.chapters.chapter().palette || this.ui().palette,
   );
 
   /** The presets, with the page as it ships in front of them. */

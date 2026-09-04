@@ -44,7 +44,7 @@ const PANEL_PUSH_WIDTH = 1100;
       <!-- Only when it is covering the page: something has to say the page is
            behind it, and be the click that gives the page back. -->
       @if (overlay()) {
-        <div class="scrim" (click)="close()"></div>
+        <div class="scrim" aria-hidden="true" (click)="close()"></div>
       }
 
       <aside class="panel" aria-label="This chapter">

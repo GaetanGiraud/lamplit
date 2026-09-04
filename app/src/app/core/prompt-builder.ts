@@ -175,7 +175,7 @@ export function buildPrompt(input: PromptInput): BuiltPrompt {
   let sent = 0;
   // Oldest messages drop out first, so the newest turns always survive.
   for (let i = usable.length - 1; i >= 0; i--) {
-    const { message, note } = usable[i];
+    const { message, note } = usable[i]!;
     const cost = estimator.countMessages([message]);
     if (historyTokens + cost > budget && (kept.length || draftContent)) break;
     kept.unshift(message);
@@ -554,6 +554,6 @@ function offLimits(story: Story): string[] {
 }
 
 function joinNames(names: readonly string[], conjunction = 'and'): string {
-  if (names.length === 1) return names[0];
-  return `${names.slice(0, -1).join(', ')} ${conjunction} ${names[names.length - 1]}`;
+  if (names.length === 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} ${conjunction} ${names[names.length - 1] ?? ''}`;
 }

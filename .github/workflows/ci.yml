@@ -1,0 +1,34 @@
+name: CI
+
+# Every push to main, and every pull request, runs the whole verify action:
+# lint, formatting, the docs and release-notes checks, unit tests, the build
+# and the end-to-end suite. Ubuntu only — Windows runs the same steps in the
+# release workflow, where a slow job costs nothing anyone is waiting for. Here
+# the point is a green tick within minutes of the push.
+#
+# The steps themselves live in .github/actions/verify, which release.yml calls
+# too; a check added there is added to both.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A second push while the first is still running makes the first run moot.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    # The whole thing takes about three minutes; ten is the promise made in
+    # issue #24, and well short of it is where a hang should be caught.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/verify

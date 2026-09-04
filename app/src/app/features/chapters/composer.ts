@@ -358,7 +358,7 @@ export class Composer {
   private readonly changes = inject(ChangeDetectorRef);
 
   /** The page is asked to bring its end into view; only it knows where that is. */
-  readonly startedTyping = output<void>();
+  readonly startedTyping = output();
 
   private readonly estimator = inject(TOKEN_ESTIMATOR);
 

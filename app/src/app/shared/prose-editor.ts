@@ -137,19 +137,20 @@ const Speech = Mark.create({
  */
 function respeak(state: EditorState, type: MarkType): Transaction | null {
   const tr = state.tr;
-  let changed = false;
+  let fixed = 0;
 
   state.doc.descendants((paragraph, pos) => {
     if (!paragraph.isTextblock) return true;
-    const wanted: Array<[number, number]> = [];
-    const current: Array<[number, number]> = [];
+    const wanted: [number, number][] = [];
+    const current: [number, number][] = [];
     let group: { from: number; text: string }[] = [];
     let groupKey = '';
     let offset = pos + 1;
 
     const flush = () => {
-      if (!group.length) return;
-      const base = group[0].from;
+      const first = group[0];
+      if (!first) return;
+      const base = first.from;
       const text = group.map((part) => part.text).join('');
       for (const [from, to] of speechRuns(text)) push(wanted, base + from, base + to);
       group = [];
@@ -174,25 +175,29 @@ function respeak(state: EditorState, type: MarkType): Transaction | null {
     flush();
 
     if (!sameRanges(wanted, current)) {
-      changed = true;
+      fixed++;
       tr.removeMark(pos + 1, pos + 1 + paragraph.content.size, type);
       for (const [from, to] of wanted) tr.addMark(from, to, type.create());
     }
     return false;
   });
 
-  return changed ? tr : null;
+  return fixed > 0 ? tr : null;
 }
 
 /** Appends a range, merging it into the last one when they touch. */
-function push(ranges: Array<[number, number]>, from: number, to: number): void {
+function push(ranges: [number, number][], from: number, to: number): void {
   const last = ranges[ranges.length - 1];
-  if (last && last[1] === from) last[1] = to;
+  if (last?.[1] === from) last[1] = to;
   else ranges.push([from, to]);
 }
 
-function sameRanges(a: Array<[number, number]>, b: Array<[number, number]>): boolean {
-  return a.length === b.length && a.every(([from, to], i) => from === b[i][0] && to === b[i][1]);
+function sameRanges(a: [number, number][], b: [number, number][]): boolean {
+  return (
+    a.length === b.length &&
+    // Once the first half has matched, `b[i]` is known to be there.
+    a.every(([from, to], i) => from === b[i]?.[0] && to === b[i][1])
+  );
 }
 
 /** Shift+Enter only: Ctrl+Enter is the page's, for regenerate and for save. */
@@ -276,7 +281,7 @@ export class ProseEditor {
 
   readonly valueChange = output<string>();
   /** Enter, when `submitOnEnter` is set. */
-  readonly enter = output<void>();
+  readonly enter = output();
 
   /** Whether the selection is in a run of each kind, for a toolbar to show. */
   readonly bold = signal(false);

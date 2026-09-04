@@ -25,11 +25,19 @@ electron/   the desktop shell: main process, preload, electron-builder config.
 tools/      dev.mjs (both halves at once), package.mjs (the runnable zip),
             desktop.mjs (the window, and the installers), smoke.mjs (a fresh
             install to walk by hand), screenshots.mjs (every picture in docs/),
-            icons.mjs (the raster icons), probe-providers.mjs (the CORS table)
+            icons.mjs (the raster icons), probe-providers.mjs (the CORS table),
+            check-docs.mjs (the links in docs/ survive becoming a website),
+            release-notes.mjs (docs/releases.md from CHANGELOG.md),
+            fetch-electron.mjs (Electron's binary, which npm ci does not fetch)
 e2e/        Playwright specs + a fake OpenAI endpoint
 docs/       these pages, and — served by GitHub Pages — the website
-.github/    release.yml: builds installers on a tag and publishes them
+.github/    ci.yml: every check, on every push to main; release.yml: the same
+            checks and then the installers, on a tag; actions/verify: the
+            checks themselves, so the two workflows share one list
 ```
+
+`eslint.config.mjs` at the root is the one lint configuration for all of it, and
+`.prettierrc` the one formatting configuration.
 
 `PLAN.md` at the root is the plan of record: four steps, what each one had to do, and — more
 usefully — why each decision went the way it did.
@@ -42,7 +50,8 @@ usefully — why each decision went the way it did.
 | `npm run server` | Just the server (and the built app, if there is one). The front end has no standalone mode: it reads its documents from the server or does not start |
 | `npm run build` | Angular production build into `app/dist` |
 | `npm run package` | The runnable zip — see [Running it anywhere](running-anywhere.md) |
-| `npm test` | Unit tests, both workspaces |
+| `npm test` | Unit tests, both workspaces; `npm run test:app` and `npm run test:server` run one of them |
+| `npm run lint` | ESLint over the whole tree: the type-aware rule sets on `app/`, the recommended ones on everything else. `npm run lint:fix` applies what can be applied |
 | `npm run e2e` | Builds the app, then the full Playwright suite |
 | `npm run e2e:quick` | Playwright without the build (skips the specs that need it) |
 | `npm run smoke` | Packages, unzips the archive into an empty folder, and starts it — a genuinely fresh install to walk by hand |
@@ -53,8 +62,9 @@ usefully — why each decision went the way it did.
 | `npm run desktop` | Opens the Electron window against the repository — no packaging, so a change to the app needs `npm run build` and a reload |
 | `npm run desktop:stage` | Stages the folder the installers wrap (`build/desktop-stage`), and stops |
 | `npm run desktop:dist` | Stages, then builds installers for the OS you are on, into `build/desktop` |
-| `npm run check:docs` | Every link in `docs/` resolves, and will survive being turned into a website. Offline, and in the release workflow |
-| `npm run format` | Prettier over everything |
+| `npm run check:docs` | Every link in `docs/` resolves, and will survive being turned into a website. Offline, and in CI |
+| `npm run notes` | Regenerates `docs/releases.md` from `CHANGELOG.md`, the release notes page of the website. `npm run check:notes` fails if the two have drifted apart, and is in CI |
+| `npm run format` | Prettier over everything. `npm run format:check` changes nothing and fails if it would have; that is the form CI runs |
 
 ## Tests
 
@@ -69,7 +79,11 @@ an upgrade is noticed).
 **End to end — `npm run e2e`.** Playwright drives the real app against
 `e2e/fake-openai-server.mjs`, a deterministic stand-in for an OpenAI-compatible endpoint. Both
 servers start automatically; no tokens are spent and no key is needed. The fake endpoint takes
-instructions from the message text: `!slow`, `!long`, `!error`, `!401`, `!prose`.
+instructions from the message text: `!slow`, `!long`, `!error`, `!401`, `!prose`, and `!nolore`,
+which fails the lore request alone and streams the reply as usual. The model id a spec seeds into
+the settings decides how well the endpoint speaks JSON: `fake/no-json-schema` refuses
+`response_format` with a 400 and answers inside a ```json fence, the way an endpoint that has
+never heard of schemas does; any other id takes the schema and answers with a bare object.
 
 **Every** spec runs against the real server serving the real production build, on its own port
 with its own empty data folder — the `server` fixture in `specs/fixtures.ts`. There is no dev
@@ -94,6 +108,13 @@ skips everything if there is nothing built.
 The human half of the same walk is `npm run smoke` plus the script in `e2e/LIVE-TEST.md` — every
 prompt written out, a table per stage with the expected result beside it, and a worksheet for the
 one thing a fake model cannot check: whether a real one tells a decent story, and what it costs.
+
+**On every push — CI.** `.github/workflows/ci.yml` runs on each push to `main` and on each pull
+request: `npm ci`, lint, the formatting check, the docs and release-notes checks, the unit tests,
+the production build and the end-to-end suite, on Ubuntu, in about three minutes. The steps are
+`.github/actions/verify`, and the release workflow runs the same action on both platforms before
+it builds an installer, so a tag cannot pass a check that `main` would fail. The badge at the top
+of the README is the last run on `main`.
 
 ## How the screenshots are made
 
@@ -131,6 +152,11 @@ A few things are worth knowing before reading it:
 ## Conventions
 
 - Prettier settings are in `.prettierrc`; `npm run format` before committing.
+- `npm run lint` before committing too. Every rule `eslint.config.mjs` turns off says why in a
+  comment beside it; a rule that fights a deliberate choice of the codebase is not one the codebase
+  wants, and a rule that is merely inconvenient stays on. The `app/` tsconfig has
+  `noUnusedLocals`, `noUnusedParameters` and `noUncheckedIndexedAccess` on;
+  `exactOptionalPropertyTypes` was tried and is not, and the file says why.
 - The repo is LF everywhere (`.gitattributes`), including on Windows.
 - Comments explain **why**, not what. If a comment restates the line under it, delete one of them.
 - `data/`, `backups/`, `build/` and `dist/` are ignored, and should stay that way.

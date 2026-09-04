@@ -84,7 +84,9 @@ export class ModelClient {
         messages: [{ role: 'user', content: 'Say OK.' }],
         params: { maxResponseTokens: 8, temperature: 0, stop: [] } as unknown as GenerationParams,
       },
-      () => {},
+      () => {
+        /* the probe wants the answer whole, not as it arrives */
+      },
     );
     return result.content.trim();
   }
@@ -242,7 +244,7 @@ export function buildBody(
   setIfNumber(body, 'min_p', p.minP);
   setIfNumber(body, 'repetition_penalty', p.repetitionPenalty);
   setIfNumber(body, 'top_a', p.topA);
-  if (p.stop?.length) body['stop'] = p.stop;
+  if (p.stop.length) body['stop'] = p.stop;
   if (p.reasoningEffort && p.reasoningEffort !== 'none') {
     body['reasoning_effort'] = p.reasoningEffort;
   }
@@ -266,49 +268,38 @@ export function parseChunk(payload: string): ParsedChunk | null {
     return null; // keep-alive noise or a line we can safely skip
   }
   if (!parsed || typeof parsed !== 'object') return null;
-  const root = parsed as Record<string, any>;
 
-  if (root['error']) {
-    const message = typeof root['error'] === 'string' ? root['error'] : root['error']?.message;
+  const error = field(parsed, 'error');
+  if (error) {
+    const message = typeof error === 'string' ? error : stringOrUndefined(field(error, 'message'));
     return { error: message || 'The provider reported an error mid-stream.' };
   }
 
   const chunk: ParsedChunk = {};
-  const choice = Array.isArray(root['choices']) ? root['choices'][0] : undefined;
-  const delta = choice?.delta ?? {};
-  if (typeof delta.content === 'string') chunk.content = delta.content;
+  const choices = field(parsed, 'choices');
+  const choice: unknown = Array.isArray(choices) ? choices[0] : undefined;
+  const delta = field(choice, 'delta');
+  const content = field(delta, 'content');
+  if (typeof content === 'string') chunk.content = content;
   // `reasoning_content` (DeepSeek-style) and `reasoning` (OpenRouter-style).
-  const reasoning = delta.reasoning_content ?? delta.reasoning;
+  const reasoning = field(delta, 'reasoning_content') ?? field(delta, 'reasoning');
   if (typeof reasoning === 'string') chunk.reasoning = reasoning;
-  if (typeof choice?.finish_reason === 'string') chunk.finishReason = choice.finish_reason;
+  const finishReason = field(choice, 'finish_reason');
+  if (typeof finishReason === 'string') chunk.finishReason = finishReason;
 
-  const usage = root['usage'];
-  if (usage && typeof usage === 'object') {
-    chunk.usage = {
-      promptTokens: numberOrUndefined(usage.prompt_tokens),
-      completionTokens: numberOrUndefined(usage.completion_tokens),
-      totalTokens: numberOrUndefined(usage.total_tokens),
-    };
-  }
+  const usage = usageOf(field(parsed, 'usage'));
+  if (usage) chunk.usage = usage;
   return chunk;
 }
 
 /** One non-streamed chat completion: the text of it, and what it cost. */
 export function readCompletion(payload: unknown): { content: string; usage?: TokenUsage } {
-  const root = (payload ?? {}) as Record<string, any>;
-  const message = Array.isArray(root['choices']) ? root['choices'][0]?.message : undefined;
-  const content = typeof message?.content === 'string' ? message.content : '';
-  const usage = root['usage'];
+  const choices = field(payload, 'choices');
+  const first: unknown = Array.isArray(choices) ? choices[0] : undefined;
+  const content = field(field(first, 'message'), 'content');
   return {
-    content,
-    usage:
-      usage && typeof usage === 'object'
-        ? {
-            promptTokens: numberOrUndefined(usage.prompt_tokens),
-            completionTokens: numberOrUndefined(usage.completion_tokens),
-            totalTokens: numberOrUndefined(usage.total_tokens),
-          }
-        : undefined,
+    content: typeof content === 'string' ? content : '',
+    usage: usageOf(field(payload, 'usage')),
   };
 }
 
@@ -363,20 +354,22 @@ function authHeaders(apiKey: string): Record<string, string> {
 }
 
 function toModelList(payload: unknown, stripPrefix?: string): ModelInfo[] {
-  const root = payload as Record<string, any> | null;
-  const raw = Array.isArray(root) ? root : Array.isArray(root?.['data']) ? root['data'] : [];
+  const data = field(payload, 'data');
+  const raw: unknown[] = Array.isArray(payload) ? payload : Array.isArray(data) ? data : [];
   const models: ModelInfo[] = [];
   for (const entry of raw) {
-    if (!entry || typeof entry !== 'object') continue;
-    let id = typeof entry.id === 'string' ? entry.id : undefined;
+    let id = stringOrUndefined(field(entry, 'id'));
     if (!id) continue;
     if (stripPrefix && id.startsWith(stripPrefix)) id = id.slice(stripPrefix.length);
+    const name = stringOrUndefined(field(entry, 'name'));
     models.push({
       id,
-      name: typeof entry.name === 'string' && entry.name !== id ? entry.name : undefined,
-      ownedBy: typeof entry.owned_by === 'string' ? entry.owned_by : undefined,
-      created: numberOrUndefined(entry.created),
-      contextLength: numberOrUndefined(entry.context_length ?? entry.context_window),
+      name: name !== undefined && name !== id ? name : undefined,
+      ownedBy: stringOrUndefined(field(entry, 'owned_by')),
+      created: numberOrUndefined(field(entry, 'created')),
+      contextLength: numberOrUndefined(
+        field(entry, 'context_length') ?? field(entry, 'context_window'),
+      ),
     });
   }
   models.sort((a, b) => a.id.localeCompare(b.id));
@@ -387,8 +380,33 @@ function setIfNumber(body: Record<string, unknown>, key: string, value: unknown)
   if (typeof value === 'number' && Number.isFinite(value)) body[key] = value;
 }
 
+/**
+ * One property of whatever JSON arrived, or undefined when there is no such
+ * thing to have a property. Everything the wire says comes in as `unknown` and
+ * leaves through here and the narrowers under it, so a provider that shapes
+ * its answer differently is a missing field, never a crash.
+ */
+function field(value: unknown, key: string): unknown {
+  return value !== null && typeof value === 'object'
+    ? (value as Record<string, unknown>)[key]
+    : undefined;
+}
+
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
 function numberOrUndefined(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function usageOf(value: unknown): TokenUsage | undefined {
+  if (value === null || typeof value !== 'object') return undefined;
+  return {
+    promptTokens: numberOrUndefined(field(value, 'prompt_tokens')),
+    completionTokens: numberOrUndefined(field(value, 'completion_tokens')),
+    totalTokens: numberOrUndefined(field(value, 'total_tokens')),
+  };
 }
 
 async function safeText(response: Response): Promise<string> {

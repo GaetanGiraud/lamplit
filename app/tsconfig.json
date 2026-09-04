@@ -8,6 +8,12 @@
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    /* exactOptionalPropertyTypes was tried (issue #24) and left off: the stores clear an
+       optional field by writing `field: undefined` into a patch, and the flag would want
+       `| undefined` added to two dozen document types to keep letting them. */
     "skipLibCheck": true,
     "isolatedModules": true,
     "experimentalDecorators": true,

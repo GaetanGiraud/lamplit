@@ -70,7 +70,7 @@ export type ColourKey =
   | 'danger';
 
 /** Overrides only. An absent name keeps the colour the stylesheet ships. */
-export type ThemeColours = { [K in ColourKey]?: string };
+export type ThemeColours = Partial<Record<ColourKey, string>>;
 
 /** The face the story is set in. All three come out of the system stack. */
 export type ReadingFont = 'serif' | 'sans' | 'mono';
@@ -87,7 +87,7 @@ export interface UiSettings {
   fontSize: number;
   showTokenCounts: boolean;
   /** Per theme, so the dark palette and the light one are edited separately. */
-  colours: { [T in ThemeName]?: ThemeColours };
+  colours: Partial<Record<ThemeName, ThemeColours>>;
   /**
    * A name from the page palettes, under the colours you set by hand. Empty is
    * the page as the stylesheet ships it, which is what every settings file
@@ -112,7 +112,7 @@ export interface UiSettings {
    * Folded-away sections only. An absent name is open, so the panel a fresh
    * install opens shows everything it has.
    */
-  sidebarSections: { [S in PanelSection]?: boolean };
+  sidebarSections: Partial<Record<PanelSection, boolean>>;
 }
 
 export interface Settings {

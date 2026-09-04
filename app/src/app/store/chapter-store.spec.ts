@@ -28,9 +28,9 @@ class FakeClient {
   answer: JsonChatResult<unknown> = { value: { palette: 'frost' }, raw: '{"palette":"frost"}' };
   readonly requests: JsonChatRequest[] = [];
 
-  chatJson = async <T>(request: JsonChatRequest): Promise<JsonChatResult<T>> => {
+  chatJson = <T>(request: JsonChatRequest): Promise<JsonChatResult<T>> => {
     this.requests.push(request);
-    return this.answer as JsonChatResult<T>;
+    return Promise.resolve(this.answer as JsonChatResult<T>);
   };
 }
 
@@ -75,7 +75,9 @@ describe('ChapterStore and the page palette', () => {
   beforeEach(() => {
     storage = new InMemoryStorage();
     client = new FakeClient();
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {
+      /* the store warns on purpose in these tests; the run need not */
+    });
     TestBed.configureTestingModule({
       providers: [
         { provide: STORAGE_BACKEND, useValue: storage },

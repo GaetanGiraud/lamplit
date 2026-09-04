@@ -163,7 +163,7 @@ export class ChaptersDialog {
   private readonly ref = inject(MatDialogRef<ChaptersDialog>);
 
   protected readonly rows = computed<Row[]>(() => {
-    const active = this.chapters.chapter()?.id;
+    const active = this.chapters.chapter().id;
     return this.chapters.chapters().map((chapter) => {
       // The records of the cast changing are in the list but are not of it:
       // a chapter's size is what was written in it.

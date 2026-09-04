@@ -43,13 +43,13 @@ export class StoryStore {
   readonly story = computed<Story>(() => {
     const stories = this.state();
     const active = this.settings.settings().activeStoryId;
-    return stories.find((s) => s.id === active) ?? stories[0];
+    return stories.find((s) => s.id === active) ?? stories[0]!;
   });
 
   constructor() {
     const active = this.settings.settings().activeStoryId;
     if (!this.state().some((s) => s.id === active)) {
-      this.settings.setActiveStory(this.state()[0].id);
+      this.settings.setActiveStory(this.state()[0]!.id);
     }
     // Only the documents that actually changed are rewritten.
     effect(() => {
@@ -115,7 +115,7 @@ export class StoryStore {
     if (!remaining.length) {
       this.create();
     } else if (this.settings.settings().activeStoryId === id) {
-      this.settings.setActiveStory(remaining[0].id);
+      this.settings.setActiveStory(remaining[0]!.id);
     }
   }
 

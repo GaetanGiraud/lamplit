@@ -546,9 +546,9 @@ export class MessageItem {
   readonly speaker = input<SpeakerLabel | null>(null);
 
   readonly edited = output<MessageEdit>();
-  readonly remove = output<void>();
-  readonly regenerate = output<void>();
-  readonly replay = output<void>();
+  readonly remove = output();
+  readonly regenerate = output();
+  readonly replay = output();
 
   private readonly sanitizer = inject(DomSanitizer);
 

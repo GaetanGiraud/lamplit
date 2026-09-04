@@ -65,6 +65,7 @@ async function main() {
     throw new Error(
       `${fresh} is locked — a server from an earlier smoke run is probably still ` +
         'going. Stop it (Ctrl+C in its window) and try again.',
+      { cause: error },
     );
   }
   extract(zip, fresh);

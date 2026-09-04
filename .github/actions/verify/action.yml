@@ -1,0 +1,99 @@
+name: Verify
+description: >
+  Everything a change has to pass before it is trusted: install, lint,
+  formatting, the docs and release-notes checks, unit tests, the production
+  build, and the end-to-end suite. ci.yml runs it on every push and release.yml
+  runs it before building installers, so the two cannot drift apart.
+
+# A composite action rather than a reusable workflow because the release job
+# needs the checkout, the install and the build to still be there afterwards —
+# the installers are made from them. A reusable workflow would run all of this
+# on a runner of its own and hand back nothing but a green tick.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+        cache: npm
+
+    # The committed lockfile pins registry.npmjs.org, which is what lets this
+    # run anywhere at all — see PLAN.md §0.
+    - name: Install
+      run: npm ci
+      shell: bash
+
+    # Playwright keeps its browsers outside the repository, in a different
+    # place per OS. One path under the workspace is one thing to cache, keyed
+    # on the Playwright version because that is what decides which build of
+    # Chromium it wants.
+    - name: Where Playwright keeps its browser
+      id: playwright
+      run: |
+        echo "PLAYWRIGHT_BROWSERS_PATH=${{ github.workspace }}/.cache/ms-playwright" >> "$GITHUB_ENV"
+        echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      shell: bash
+
+    - name: Restore the browser
+      id: browser
+      uses: actions/cache@v6
+      with:
+        path: ${{ github.workspace }}/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+    - name: Download the browser
+      if: steps.browser.outputs.cache-hit != 'true'
+      run: npx playwright install chromium
+      shell: bash
+
+    # The system libraries the browser leans on are not in the cache — the
+    # runner is new every time — and Ubuntu is the only runner that needs
+    # asking; on Windows the same request fails before anything has been built.
+    - name: Install the browser's system libraries
+      if: runner.os == 'Linux'
+      run: npx playwright install-deps chromium
+      shell: bash
+
+    - name: Lint
+      run: npm run lint
+      shell: bash
+
+    - name: Check the formatting
+      run: npm run format:check
+      shell: bash
+
+    # Cheap, offline, and catches the class of bug that only shows up when a
+    # visitor clicks: a docs link the website will serve as raw markdown.
+    - name: Check the docs links
+      run: npm run check:docs
+      shell: bash
+
+    # The release notes page on the website is generated from CHANGELOG.md,
+    # and the website serves what is committed. A changelog edited without
+    # regenerating it would put out a release whose notes page is the last
+    # version's, so this fails here rather than after anyone has read it.
+    - name: Check the release notes page
+      run: npm run check:notes
+      shell: bash
+
+    - name: Unit tests
+      run: npm test
+      shell: bash
+
+    - name: Build the app
+      run: npm run build
+      shell: bash
+
+    # Includes the desktop spec, which starts the Electron shell for real:
+    # its own server, its own port, its documents in a profile of their own.
+    # Linux runners have no display, hence xvfb.
+    - name: End-to-end tests
+      if: runner.os == 'Windows'
+      run: npm run e2e:quick
+      shell: bash
+
+    - name: End-to-end tests
+      if: runner.os == 'Linux'
+      run: xvfb-run --auto-servernum npm run e2e:quick
+      shell: bash

@@ -1,6 +1,10 @@
 <h1 align="center">Lamplit</h1>
 
 <p align="center">
+  <a href="https://github.com/GaetanGiraud/lamplit/actions/workflows/ci.yml"><img src="https://github.com/GaetanGiraud/lamplit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
+
+<p align="center">
   A quiet place to write a long story with a language model.<br>
   Runs on your own machine, talks to any OpenAI-compatible endpoint, and keeps your work as
   plain JSON files you can read without it.

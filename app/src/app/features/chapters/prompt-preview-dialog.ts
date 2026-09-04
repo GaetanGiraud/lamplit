@@ -398,7 +398,10 @@ export class PromptPreviewDialog {
     const order = movableOrder(this.stories.story());
     const slots = order.map((id, i) => [id, i] as const).filter(([id]) => shown.includes(id));
     const next = [...order];
-    slots.forEach(([, slot], i) => (next[slot] = shown[i]));
+    slots.forEach(([, slot], i) => {
+      const id = shown[i];
+      if (id) next[slot] = id;
+    });
     this.stories.setPromptOrder(next);
   }
 

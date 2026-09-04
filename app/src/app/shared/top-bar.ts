@@ -218,7 +218,6 @@ export class TopBar {
 
   protected readonly chapterLabel = computed(() => {
     const chapter = this.chapters.chapter();
-    if (!chapter) return '';
     const title = chapterTitle(chapter);
     return `Chapter ${chapter.number}${title ? ` — ${title}` : ''}`;
   });
@@ -231,7 +230,7 @@ export class TopBar {
   });
 
   protected readonly connectionTooltip = computed(
-    () => this.settings.connectionHint() || `${this.settings.connection().baseUrl}`,
+    () => this.settings.connectionHint() || this.settings.connection().baseUrl,
   );
 
   protected async rename(): Promise<void> {

@@ -143,11 +143,11 @@ export class DialogsService {
    */
   async newChapter(): Promise<void> {
     const chapter = this.chapters.chapter();
-    if (chapter && chapter.status === 'writing' && !this.chapters.isEmpty()) {
+    if (chapter.status === 'writing' && !this.chapters.isEmpty()) {
       await this.closeChapter();
       return;
     }
-    await this.startChapter(chapter?.scene ?? '');
+    await this.startChapter(chapter.scene);
   }
 
   /**
@@ -157,12 +157,11 @@ export class DialogsService {
   async closeChapter(): Promise<void> {
     const chapter = this.chapters.chapter();
     const { CloseChapterDialog } = await import('../features/chapters/close-chapter-dialog');
-    const ref = this.dialog.open(CloseChapterDialog, {
-      width: '42rem',
-      maxWidth: '95vw',
-      autoFocus: 'dialog',
-    });
-    const summary = await firstValueFrom<string | undefined>(ref.afterClosed());
+    const ref = this.dialog.open<InstanceType<typeof CloseChapterDialog>, undefined, string>(
+      CloseChapterDialog,
+      { width: '42rem', maxWidth: '95vw', autoFocus: 'dialog' },
+    );
+    const summary = await firstValueFrom(ref.afterClosed());
     // Backing out of the review leaves the chapter open and starts nothing. Any
     // empty answer is a back-out: the sheet will not confirm without a summary,
     // and closing a chapter on nothing would replace the story so far with it.
@@ -180,8 +179,11 @@ export class DialogsService {
 
   async askText(data: TextPromptData): Promise<string | undefined> {
     const { TextPromptDialog } = await import('./small-dialogs');
-    const ref = this.dialog.open(TextPromptDialog, { data, autoFocus: 'first-tabbable' });
-    return firstValueFrom<string | undefined>(ref.afterClosed());
+    const ref = this.dialog.open<InstanceType<typeof TextPromptDialog>, TextPromptData, string>(
+      TextPromptDialog,
+      { data, autoFocus: 'first-tabbable' },
+    );
+    return firstValueFrom(ref.afterClosed());
   }
 
   async confirm(data: ConfirmData): Promise<boolean> {
@@ -196,13 +198,11 @@ export class DialogsService {
    */
   private async askSetup(data: NewStoryData): Promise<StorySetup | undefined> {
     const { NewStoryDialog } = await import('../features/story/new-story-dialog');
-    const ref = this.dialog.open(NewStoryDialog, {
-      width: '34rem',
-      maxWidth: '95vw',
-      data,
-      autoFocus: 'first-tabbable',
-    });
-    return firstValueFrom<StorySetup | undefined>(ref.afterClosed());
+    const ref = this.dialog.open<InstanceType<typeof NewStoryDialog>, NewStoryData, StorySetup>(
+      NewStoryDialog,
+      { width: '34rem', maxWidth: '95vw', data, autoFocus: 'first-tabbable' },
+    );
+    return firstValueFrom(ref.afterClosed());
   }
 
   /**

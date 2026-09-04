@@ -128,7 +128,10 @@ function coloured(characters: Character[]): Character[] {
   return characters.map((character, i) =>
     character.colour
       ? character
-      : { ...character, colour: CHARACTER_COLOURS[i % CHARACTER_COLOURS.length].name },
+      : {
+          ...character,
+          colour: (CHARACTER_COLOURS[i % CHARACTER_COLOURS.length] ?? CHARACTER_COLOURS[0]).name,
+        },
   );
 }
 

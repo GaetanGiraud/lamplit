@@ -13,8 +13,8 @@ class FakeServer {
     if (this.failWith) throw new TypeError(this.failWith);
     const method = init.method ?? 'GET';
     const path = url.replace('/api', '');
-    const seq = Number((init.headers as Record<string, string>)?.['x-doc-seq'] ?? 0);
-    const body = init.body ? JSON.parse(init.body as string) : null;
+    const seq = Number((init.headers as Record<string, string> | undefined)?.['x-doc-seq'] ?? 0);
+    const body: unknown = init.body ? JSON.parse(init.body as string) : null;
     this.requests.push({ method, url, seq, body });
 
     const list = /^\/docs\/(settings|stories|chapters)$/.exec(path);

@@ -29,7 +29,7 @@ export interface CharacterColour {
   dark: string;
 }
 
-export const CHARACTER_COLOURS: readonly CharacterColour[] = [
+export const CHARACTER_COLOURS: readonly [CharacterColour, ...CharacterColour[]] = [
   { name: 'ember', label: 'Ember', light: '#ac4c39', dark: '#f09885' },
   { name: 'jade', label: 'Jade', light: '#01685b', dark: '#6de1cc' },
   { name: 'iris', label: 'Iris', light: '#6d50a3', dark: '#c7b0fd' },
@@ -56,7 +56,11 @@ export function paletteColour(name: string | undefined): CharacterColour {
  */
 export function nextColour(taken: readonly (string | undefined)[]): string {
   const free = CHARACTER_COLOURS.find((c) => !taken.includes(c.name));
-  return (free ?? CHARACTER_COLOURS[taken.length % CHARACTER_COLOURS.length]).name;
+  return (
+    free ??
+    CHARACTER_COLOURS[taken.length % CHARACTER_COLOURS.length] ??
+    CHARACTER_COLOURS[0]
+  ).name;
 }
 
 /**

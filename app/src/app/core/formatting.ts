@@ -101,7 +101,7 @@ const PURIFY_CONFIG = {
  */
 export function renderMarkdown(source: string): string {
   if (!source) return '';
-  return DOMPurify.sanitize(markedPlain.parse(source, { async: false }) as string, PURIFY_CONFIG);
+  return DOMPurify.sanitize(markedPlain.parse(source, { async: false }), PURIFY_CONFIG);
 }
 
 /**
@@ -111,7 +111,7 @@ export function renderMarkdown(source: string): string {
  */
 export function renderStoryHtml(source: string, options: RenderOptions): string {
   if (!source) return '';
-  const clean = DOMPurify.sanitize(marked.parse(source, { async: false }) as string, PURIFY_CONFIG);
+  const clean = DOMPurify.sanitize(marked.parse(source, { async: false }), PURIFY_CONFIG);
 
   const host = document.createElement('div');
   host.innerHTML = clean;
@@ -207,8 +207,8 @@ function hasContent(nodes: readonly Node[]): boolean {
  */
 function trimEdges(nodes: readonly Node[]): Node[] {
   const kept = [...nodes];
-  while (kept.length && isBlank(kept[0])) kept.shift();
-  while (kept.length && isBlank(kept[kept.length - 1])) kept.pop();
+  while (kept[0] && isBlank(kept[0])) kept.shift();
+  while (kept.length && isBlank(kept[kept.length - 1]!)) kept.pop();
   return kept;
 }
 

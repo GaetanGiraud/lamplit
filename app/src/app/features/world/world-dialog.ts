@@ -570,7 +570,8 @@ export class WorldDialog {
   protected toggle(id: string): void {
     this.expanded.update((open) => {
       const next = new Set(open);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }

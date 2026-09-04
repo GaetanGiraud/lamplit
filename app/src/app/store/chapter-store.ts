@@ -65,10 +65,10 @@ export class ChapterStore {
   readonly chapter = computed<Chapter>(() => {
     const chapters = this.state();
     const active = this.stories.story().activeChapterId;
-    return chapters.find((c) => c.id === active) ?? chapters[chapters.length - 1];
+    return chapters.find((c) => c.id === active) ?? chapters[chapters.length - 1]!;
   });
 
-  readonly messages = computed(() => this.chapter()?.messages ?? []);
+  readonly messages = computed(() => this.chapter().messages);
 
   /**
    * The page everything is drawn on: the open chapter's own, or the one chosen
@@ -76,14 +76,14 @@ export class ChapterStore {
    * `Workspace` hands it to `applyUi`, so switching chapters switches pages.
    */
   readonly palette = computed<PagePalette | null>(() =>
-    pagePalette(this.chapter()?.palette || this.settings.ui().palette),
+    pagePalette(this.chapter().palette || this.settings.ui().palette),
   );
 
   /** What the chapter reads as: the records of the cast changing are not it. */
   readonly written = computed(() => this.messages().filter((m) => m.kind !== 'cast'));
   readonly isEmpty = computed(() => this.written().length === 0);
-  readonly hasScene = computed(() => !!this.chapter()?.scene.trim());
-  readonly isClosed = computed(() => this.chapter()?.status === 'closed');
+  readonly hasScene = computed(() => !!this.chapter().scene.trim());
+  readonly isClosed = computed(() => this.chapter().status === 'closed');
 
   /**
    * The one compulsory step in the app: a chapter cannot be written into until
@@ -244,7 +244,7 @@ export class ChapterStore {
     const chapter = this.chapter();
     // Before the first word there is nothing for a record to sit between: the
     // mode block already opens by saying who is on stage.
-    if (!chapter || !chapter.messages.length) return;
+    if (!chapter.messages.length) return;
 
     this.patchChapter(chapter.id, (current) => {
       const messages = [...current.messages];
@@ -316,7 +316,7 @@ export class ChapterStore {
     if (!remaining.length) {
       this.createChapter();
     } else if (this.stories.story().activeChapterId === id) {
-      this.stories.setActiveChapter(remaining[remaining.length - 1].id);
+      this.stories.setActiveChapter(remaining[remaining.length - 1]!.id);
     }
   }
 
@@ -432,7 +432,7 @@ export class ChapterStore {
           model: connection.model,
           messages: buildLorePrompt(story, this.chapter()),
           params: this.settings.generation(),
-          schema: { name: LORE_SCHEMA.name, schema: LORE_SCHEMA.schema as Record<string, unknown> },
+          schema: { name: LORE_SCHEMA.name, schema: LORE_SCHEMA.schema },
         },
         signal,
       );
@@ -597,7 +597,7 @@ export class ChapterStore {
     this.state.set(chapters);
     if (!chapters.length) this.createChapter();
     else if (!chapters.some((c) => c.id === this.stories.story().activeChapterId)) {
-      this.stories.setActiveChapter(chapters[chapters.length - 1].id);
+      this.stories.setActiveChapter(chapters[chapters.length - 1]!.id);
     }
   }
 }

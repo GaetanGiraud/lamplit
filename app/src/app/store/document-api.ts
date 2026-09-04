@@ -55,7 +55,7 @@ export class DocumentApi {
     const documents = new Map<string, unknown>();
     const lists = await Promise.all(collections.map((collection) => this.list(collection)));
     collections.forEach((collection, index) => {
-      for (const document of lists[index]) {
+      for (const document of lists[index] ?? []) {
         const id = collection === 'settings' ? KEYS.settings : idOf(document);
         if (id) documents.set(keyOf({ collection, id }), document);
       }
@@ -97,7 +97,9 @@ export class DocumentApi {
         headers: { 'content-type': 'application/json', [SEQ_HEADER]: String(seq) },
         body: JSON.stringify(document),
         keepalive: true,
-      }).catch(() => {});
+      }).catch(() => {
+        /* the page is leaving; there is nobody left to tell */
+      });
     } catch {
       /* nothing left to do at this point in the page's life */
     }
@@ -118,13 +120,14 @@ export class DocumentApi {
 }
 
 function idOf(document: Record<string, unknown>): string {
-  return typeof document?.['id'] === 'string' ? (document['id'] as string) : '';
+  return typeof document['id'] === 'string' ? document['id'] : '';
 }
 
 async function failure(response: Response): Promise<Error> {
-  const detail = await response
-    .json()
-    .then((body) => body?.error)
-    .catch(() => '');
+  const body: unknown = await response.json().catch(() => undefined);
+  const detail =
+    typeof body === 'object' && body !== null && 'error' in body && typeof body.error === 'string'
+      ? body.error
+      : '';
   return new Error(detail || `${response.status} ${response.statusText}`);
 }

@@ -43,54 +43,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-
-      # The committed lockfile pins registry.npmjs.org, which is what lets this
-      # run anywhere at all — see PLAN.md §0.
-      - name: Install
-        run: npm ci
-
-      # --with-deps installs system libraries and is Ubuntu-only; asking for it
-      # on Windows is a way to fail before anything has been built.
-      - name: Install the browser Playwright drives
-        run: npx playwright install chromium
-        if: runner.os == 'Windows'
-
-      - name: Install the browser Playwright drives
-        run: npx playwright install --with-deps chromium
-        if: runner.os == 'Linux'
-
-      # Cheap, offline, and catches the class of bug that only shows up when a
-      # visitor clicks: a docs link the website will serve as raw markdown.
-      - name: Check the docs links
-        run: npm run check:docs
-
-      # The release notes page on the website is generated from CHANGELOG.md,
-      # and the website serves what is committed. A changelog edited without
-      # regenerating it would put out a release whose notes page is the last
-      # version's, so this fails here rather than after anyone has read it.
-      - name: Check the release notes page
-        run: npm run check:notes
-
-      - name: Unit tests
-        run: npm test
-
-      - name: Build the app
-        run: npm run build
-
-      # Includes the desktop spec, which starts the Electron shell for real:
-      # its own server, its own port, its documents in a profile of their own.
-      # Linux runners have no display, hence xvfb.
-      - name: End-to-end tests
-        run: npm run e2e:quick
-        if: runner.os == 'Windows'
-
-      - name: End-to-end tests
-        run: xvfb-run --auto-servernum npm run e2e:quick
-        if: runner.os == 'Linux'
+      # Install, lint, formatting, the docs and release-notes checks, unit
+      # tests, the build and the end-to-end suite — the same action ci.yml runs
+      # on every push, so a tag cannot pass a check that main would fail. On
+      # both platforms here, because the installers are made from what it
+      # leaves behind.
+      - uses: ./.github/actions/verify
 
       - name: Build the installers
         run: node tools/desktop.mjs --dist ${{ startsWith(github.ref, 'refs/tags/v') && '--publish' || '' }}

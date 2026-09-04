@@ -22,7 +22,10 @@ interface ModelGroup {
   models: ModelInfo[];
 }
 
-type Status = { kind: 'idle' | 'busy' | 'ok' | 'error'; message: string };
+interface Status {
+  kind: 'idle' | 'busy' | 'ok' | 'error';
+  message: string;
+}
 
 const IDLE: Status = { kind: 'idle', message: '' };
 
@@ -306,7 +309,8 @@ export class ConnectionDialog {
     for (const model of this.matches()) {
       const owner = model.ownedBy?.trim() || 'other';
       const bucket = byOwner.get(owner);
-      bucket ? bucket.push(model) : byOwner.set(owner, [model]);
+      if (bucket) bucket.push(model);
+      else byOwner.set(owner, [model]);
     }
     // Keep the selected model reachable even when the filter excludes it.
     const selected = this.connection().model;

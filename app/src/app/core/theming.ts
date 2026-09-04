@@ -131,11 +131,12 @@ export function contrastRatio(a: string, b: string): number {
 function luminance(colour: string): number {
   const rgb = parseHex(colour);
   if (!rgb) return NaN;
-  const [r, g, b] = rgb.map((channel) => {
+  const linear = (channel: number) => {
     const c = channel / 255;
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const [r, g, b] = rgb;
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 }
 
 /** `#rgb` and `#rrggbb`, which is everything a colour input ever produces. */
