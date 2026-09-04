@@ -69,8 +69,11 @@ function inlineNodes(tokens: Token[], marks: Mark[]): JSONContent[] {
         // Only the asterisk spelling is ours. `_like this_` renders the same
         // after sending, but it is not what the editor writes, so it is kept
         // as the text it was typed as rather than rewritten on the way out.
-        if (token.raw.startsWith('*')) {
-          const mark: Mark = token.type === 'em' ? 'action' : 'bold';
+        // So is emphasis inside the same emphasis: `*a *b* c*` lexes as an
+        // action holding an action, and a mark cannot be on a node twice, so
+        // the inner asterisks would go missing on the way out. They stay text.
+        const mark: Mark = token.type === 'em' ? 'action' : 'bold';
+        if (token.raw.startsWith('*') && !marks.includes(mark)) {
           out.push(...inlineNodes(token.tokens ?? [], [...marks, mark]));
         } else {
           out.push(...textNodes(token.raw, marks));

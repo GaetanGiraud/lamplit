@@ -33,6 +33,8 @@ const CORPUS = [
   'A [link](https://example.com), `code`, ~~struck~~, <b>html</b> and an escaped \\* star.',
   '[AUTHOR] The room is empty.',
   '"I *do* mind." A quote around an action is two things, not one.',
+  '*a *b* c*',
+  '**a **b** c**',
   '',
 ];
 
