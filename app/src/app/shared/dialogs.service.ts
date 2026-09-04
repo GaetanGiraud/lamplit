@@ -55,9 +55,19 @@ export class DialogsService {
     this.dialog.open(PreferencesDialog, { width: '42rem', maxWidth: '95vw', autoFocus: 'dialog' });
   }
 
-  async openStory(): Promise<void> {
+  /**
+   * The story sheet. Handed a character it opens on the cast with that one
+   * scrolled to and its name waiting — which is what the chapter panel's rows
+   * do, since a name and a paragraph are more than a row can hold.
+   */
+  async openStory(characterId?: string): Promise<void> {
     const { StoryDialog } = await import('../features/story/story-dialog');
-    this.dialog.open(StoryDialog, { width: '42rem', maxWidth: '95vw', autoFocus: 'dialog' });
+    this.dialog.open(StoryDialog, {
+      width: '42rem',
+      maxWidth: '95vw',
+      data: { characterId },
+      autoFocus: 'dialog',
+    });
   }
 
   async openWorld(): Promise<void> {

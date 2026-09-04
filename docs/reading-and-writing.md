@@ -79,6 +79,38 @@ conversation state to get out of step. See [The prompt](the-prompt.md).
 If a request fails, the answer is replaced by the provider's own words and two buttons,
 **Try again** and **Dismiss**. A rejected key reads as a rejected key.
 
+## The chapter panel
+
+The four things that shape the chapter being written — the **scene**, the **narrator's
+instructions**, your **persona** and the **cast** — used to be behind modals that covered the page.
+They are down the right-hand side now, beside the words rather than on top of them.
+
+![The scene, the narrator and the persona, beside the page](images/chapter-panel.png)
+
+It is a thin edge until you want it. Click the edge, or press **Ctrl+.**, and it slides open;
+either one shuts it again, and it opens the way you left it next time. Each section folds away on
+its own, and those stay folded too.
+
+- **Scene** — the chapter's own scene, edited where it is. The mark appears once the text differs
+  from what is stored, and leaving the field saves it; there is no Save button to hunt for. A
+  closed chapter shows its scene and will not take a change to it.
+- **Narrator** *(narrator mode)* — the instructions the model is given. The default sits in the box
+  greyed out; write into it and it becomes yours, with **Back to the default** to hand it back.
+  Your own text is kept either way, so switching between them loses nothing.
+- **Persona** — a name and a few lines. It belongs to the story rather than the chapter, and it is
+  sent with every request in both modes.
+- **Cast** *(role-play mode)* — one row per character: their name and the first line of their
+  description. The pencil at the end of a row opens them in the **Story** sheet, because a
+  character is a name and a paragraph and that is more than a row can hold.
+
+Nothing about the app is in here — no connection, no sampling parameters, no reading settings.
+Those are not chapter fields, and they stay behind their own sheets.
+
+**On a wide window** the panel takes its width out of the page: the reading column narrows and
+every word of it stays visible. **On a narrow one** there is nothing left to give, so it comes over
+the page instead, with **Escape** or a click on the page behind it to send it away. The composer is
+usable either way — the panel never takes the box you are writing in.
+
 ## Preferences
 
 **Preferences** in the top bar holds everything that changes how the story looks to you and

@@ -251,6 +251,17 @@ async function theApp() {
   await page.waitForTimeout(400);
   await shot(page, 'message-actions', 'edit, regenerate, copy, delete — out in the margin');
 
+  // The chapter's own fields, beside the page rather than over it. At this
+  // width it pushes the reading column aside, which is the whole point of it.
+  await page.getByRole('button', { name: 'Open the chapter panel' }).click();
+  await page.waitForTimeout(500);
+  await shot(page, 'chapter-panel', 'the scene, the narrator and the persona, beside the page');
+  await page.getByRole('button', { name: 'Close the chapter panel' }).click();
+  // Off the handle again: left under it, its tooltip covers the top bar and
+  // the next click lands on the tooltip instead of the button it wanted.
+  await page.mouse.move(40, 600);
+  await page.waitForTimeout(400);
+
   // The prompt preview is behind developer mode, so it is switched on for this
   // one picture and off again: every other shot is the app a writer sees, and
   // the context pill is not part of that.

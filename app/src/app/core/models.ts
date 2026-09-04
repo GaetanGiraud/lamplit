@@ -75,6 +75,12 @@ export type ThemeColours = { [K in ColourKey]?: string };
 /** The face the story is set in. All three come out of the system stack. */
 export type ReadingFont = 'serif' | 'sans' | 'mono';
 
+/**
+ * The panel's sections, top to bottom. Persisted as object keys, so a name is
+ * part of the file format: one this build does not know is ignored on load.
+ */
+export type PanelSection = 'scene' | 'narrator' | 'persona' | 'cast';
+
 export interface UiSettings {
   theme: ThemeName;
   bookStyleDialogue: boolean;
@@ -94,6 +100,13 @@ export interface UiSettings {
    * has been published. Off means it is not asked at all.
    */
   checkForUpdates: boolean;
+  /** The chapter panel down the right-hand side; a thin edge when it is off. */
+  sidebarOpen: boolean;
+  /**
+   * Folded-away sections only. An absent name is open, so the panel a fresh
+   * install opens shows everything it has.
+   */
+  sidebarSections: { [S in PanelSection]?: boolean };
 }
 
 export interface Settings {

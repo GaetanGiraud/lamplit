@@ -1,6 +1,6 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, ElementRef, computed, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -9,6 +9,11 @@ import { DEFAULT_NARRATOR_PROMPT } from '../../core/defaults';
 import { ReplyLength, StoryMode } from '../../core/models';
 import { StoryStore } from '../../store/story-store';
 import { EditorField } from '../../shared/editor-field';
+
+export interface StoryDialogData {
+  /** Opened from a cast row in the chapter panel: scroll to it and focus it. */
+  characterId?: string;
+}
 
 /** Who is telling the story, who the reader is, and how it should read. */
 @Component({
@@ -75,7 +80,7 @@ import { EditorField } from '../../shared/editor-field';
             } @else {
               <div class="cast">
                 @for (character of story().characters; track character.id) {
-                  <section class="character">
+                  <section class="character" [attr.data-character]="character.id">
                     <header>
                       <mat-form-field appearance="outline" class="name-field">
                         <mat-label>Name</mat-label>
@@ -272,6 +277,22 @@ export class StoryDialog {
   ];
 
   protected readonly persona = computed(() => this.story().persona);
+
+  constructor() {
+    const wanted = inject<StoryDialogData | null>(MAT_DIALOG_DATA, { optional: true })?.characterId;
+    if (!wanted) return;
+    // After the sheet has opened, not before: Material takes the focus itself
+    // once the opening animation is done, and anything focused ahead of that
+    // is focused and then let go of again.
+    const host = inject<ElementRef<HTMLElement>>(ElementRef);
+    inject(MatDialogRef)
+      .afterOpened()
+      .subscribe(() => {
+        const row = host.nativeElement.querySelector<HTMLElement>(`[data-character="${wanted}"]`);
+        row?.scrollIntoView({ block: 'center' });
+        row?.querySelector('input')?.focus();
+      });
+  }
 
   protected value(event: Event): string {
     return (event.target as HTMLInputElement).value;

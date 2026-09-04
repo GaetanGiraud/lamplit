@@ -13,20 +13,28 @@ import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TextValue } from './text-value';
 
+let nextId = 0;
+
 /**
  * A block of text that belongs to a document. The save mark appears only once
  * the text differs from what is stored; clicking it commits, and so does
  * leaving the field or closing the modal — Escape and backdrop save, never
  * discard.
+ *
+ * The label is tied to the box by id rather than by wrapping it: a `<label>`
+ * around all of this names the *first* labelable thing inside, which is the
+ * save mark, and leaves the box itself with no name at all.
  */
 @Component({
   selector: 'ms-editor-field',
   imports: [MatTooltipModule, TextFieldModule, TextValue],
   template: `
-    <label class="field">
+    <div class="field">
       <span class="head">
-        <span class="label">{{ label() }}</span>
-        @if (dirty()) {
+        @if (label()) {
+          <label class="label" [attr.for]="id">{{ label() }}</label>
+        }
+        @if (dirty() && !readOnly()) {
           <button
             type="button"
             class="save"
@@ -39,12 +47,16 @@ import { TextValue } from './text-value';
       </span>
 
       <textarea
+        [id]="id"
+        [attr.aria-label]="label() ? null : ariaLabel() || null"
         [class.serif]="serif()"
+        [class.dimmed]="dimmed()"
         cdkTextareaAutosize
         [cdkAutosizeMinRows]="rows()"
         [cdkAutosizeMaxRows]="rows() + 10"
         [msText]="draft()"
         [placeholder]="placeholder()"
+        [readOnly]="readOnly()"
         (input)="draft.set(text($event))"
         (blur)="commit()"
       ></textarea>
@@ -55,7 +67,7 @@ import { TextValue } from './text-value';
         }
         <span class="ms-hint count">{{ words() }} words</span>
       </span>
-    </label>
+    </div>
   `,
   styles: `
     .field {
@@ -78,6 +90,7 @@ import { TextValue } from './text-value';
     }
 
     .save {
+      margin-left: auto;
       border: 1px solid color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
       border-radius: 999px;
       background: color-mix(in srgb, var(--ms-accent) 12%, transparent);
@@ -106,6 +119,12 @@ import { TextValue } from './text-value';
       font-size: 1rem;
     }
 
+    /* Text that is not the writer's own yet — the narrator default, sitting in
+       the box it will be edited in. Typing over it is what adopts it. */
+    textarea.dimmed {
+      color: var(--ms-muted);
+    }
+
     textarea:focus {
       outline: none;
       border-color: color-mix(in srgb, var(--ms-accent) 65%, var(--ms-border));
@@ -125,14 +144,21 @@ import { TextValue } from './text-value';
 })
 export class EditorField {
   readonly label = input('');
+  /** A name for the box when what it holds is already written above it. */
+  readonly ariaLabel = input('');
   readonly value = input('');
   readonly placeholder = input('');
   readonly hint = input('');
   readonly rows = input(4);
   readonly serif = input(false, { transform: booleanAttribute });
+  /** Shown, never taken: a closed chapter's scene, and anything else settled. */
+  readonly readOnly = input(false, { transform: booleanAttribute });
+  /** Drawn as the muted text it is until somebody makes it theirs. */
+  readonly dimmed = input(false, { transform: booleanAttribute });
 
   readonly save = output<string>();
 
+  protected readonly id = `ms-editor-${++nextId}`;
   protected readonly draft = signal('');
 
   protected readonly dirty = computed(() => this.draft() !== this.value());
@@ -150,7 +176,7 @@ export class EditorField {
   }
 
   protected commit(): void {
-    if (this.dirty()) this.save.emit(this.draft());
+    if (this.dirty() && !this.readOnly()) this.save.emit(this.draft());
   }
 }
 

@@ -78,7 +78,11 @@ import { TextValue } from '../../shared/text-value';
     </div>
   `,
   styles: `
+    /* Above the chapter panel's scrim, so the panel covering the page at a
+       narrow width never takes the box away from whoever is writing in it. */
     .dock {
+      position: relative;
+      z-index: 2;
       border-top: 1px solid var(--ms-border);
       background: color-mix(in srgb, var(--ms-surface) 88%, transparent);
       backdrop-filter: blur(10px);

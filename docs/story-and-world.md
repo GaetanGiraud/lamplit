@@ -8,7 +8,9 @@ A **story** is one self-contained document: who tells it, who you play, how it s
 everything that is true in its world. Its chapters are separate documents; the story is the thing
 they all share.
 
-Two modals hold all of it: **Story** and **World**.
+Two modals hold all of it: **Story** and **World**. The scene, the narrator, the persona
+and the cast are also in the [chapter panel](reading-and-writing.md), beside the page, for
+the edits you want to make without leaving the story.
 
 ## Story → Mode
 

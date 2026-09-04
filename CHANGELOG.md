@@ -7,6 +7,24 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**The chapter's own fields are beside the page now, not on top of it.** The scene, the narrator's
+instructions, your persona and the cast each used to mean leaving the story for a modal and coming
+back. They are a panel down the right-hand side: a thin edge until you click it or press
+**Ctrl+.**, and it opens the way you left it next time.
+
+- **Everything in it is edited where it is**, and saved the way every other field in the app is
+  saved — the mark appears once the text differs from what is stored, and leaving the field commits
+  it. A closed chapter shows its scene and will not take a change to it.
+- **The narrator default sits in the box**, greyed, instead of behind a switch: write into it and it
+  becomes yours, and **Back to the default** hands it back with your own text kept.
+- **A cast row is a name and the first line of the description.** The pencil at the end of it opens
+  that character in the **Story** sheet, because a character is more than a row can hold.
+- **On a wide window it narrows the reading column** and covers nothing. On a narrow one it comes
+  over the page, and **Escape** or a click behind it sends it away. The composer stays usable in
+  both.
+- Nothing about the app is in it. The connection, the sampling parameters and the reading settings
+  are not chapter fields and stay where they were.
+
 **Nothing sits on top of the story any more.** A message's actions — edit,
 regenerate, replay, copy, delete — used to appear as a pill over the first line
 of the message they belonged to, so moving the pointer across the page to read

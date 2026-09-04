@@ -29,6 +29,8 @@ export const DEFAULT_SETTINGS: Settings = {
     font: 'serif',
     developerMode: false,
     checkForUpdates: true,
+    sidebarOpen: false,
+    sidebarSections: {},
   },
   activeStoryId: null,
   acknowledgedVersion: null,

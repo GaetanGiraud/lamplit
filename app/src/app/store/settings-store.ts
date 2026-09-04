@@ -4,6 +4,7 @@ import {
   ColourKey,
   ConnectionSettings,
   GenerationParams,
+  PanelSection,
   Settings,
   ThemeName,
   UiSettings,
@@ -64,6 +65,24 @@ export class SettingsStore {
     this.state.update((s) => ({ ...s, ui: { ...s.ui, ...patch } }));
   }
 
+  /** The chapter panel: open, or the thin edge. Ctrl+. and the handle both land here. */
+  setSidebarOpen(open: boolean): void {
+    this.patchUi({ sidebarOpen: open });
+  }
+
+  /**
+   * One section of the chapter panel, folded or unfolded. Only the folded ones
+   * are written down, so a section a later version adds arrives open.
+   */
+  setPanelSection(section: PanelSection, open: boolean): void {
+    this.state.update((s) => {
+      const sections = { ...s.ui.sidebarSections };
+      if (open) delete sections[section];
+      else sections[section] = false;
+      return { ...s, ui: { ...s.ui, sidebarSections: sections } };
+    });
+  }
+
   /**
    * One swatch, in one theme. Passing nothing puts the shipped colour back:
    * the palette is stored as overrides, so forgetting a name *is* the default.
@@ -108,7 +127,9 @@ export class SettingsStore {
       generation: { ...DEFAULT_SETTINGS.generation, ...stored.generation },
       // `colours` and `font` arrived after 0.1.0, so a settings file written by
       // it has neither and takes both from the defaults — an empty override set
-      // and the serif, which is the theme exactly as it shipped.
+      // and the serif, which is the theme exactly as it shipped. The chapter
+      // panel is later still: a file that predates it opens with the panel a
+      // thin edge and nothing folded away inside it.
       ui: { ...DEFAULT_SETTINGS.ui, ...stored.ui },
       activeStoryId: stored.activeStoryId ?? null,
       acknowledgedVersion: stored.acknowledgedVersion ?? null,

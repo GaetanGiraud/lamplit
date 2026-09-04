@@ -1,6 +1,7 @@
 import { Component, afterNextRender, effect, inject } from '@angular/core';
 import { DEFAULT_STORY_TITLE } from './core/defaults';
 import { applyUi } from './core/theming';
+import { ChapterPanel } from './features/chapters/chapter-panel';
 import { ChaptersPage } from './features/chapters/chapters-page';
 import { TopBar } from './shared/top-bar';
 import { UpgradeNotice } from './shared/upgrade-notice';
@@ -21,11 +22,14 @@ import { DialogsService } from './shared/dialogs.service';
  */
 @Component({
   selector: 'ms-workspace',
-  imports: [TopBar, UpgradeNotice, ChaptersPage],
+  imports: [TopBar, UpgradeNotice, ChapterPanel, ChaptersPage],
   template: `
     <ms-top-bar />
     <ms-upgrade-notice />
-    <ms-chapters-page />
+    <div class="body">
+      <ms-chapters-page />
+      <ms-chapter-panel />
+    </div>
   `,
   styles: `
     :host {
@@ -35,8 +39,19 @@ import { DialogsService } from './shared/dialogs.service';
       min-height: 0;
     }
 
+    /* The page and the panel beside it. Positioned, because the panel's scrim
+       covers this and nothing above it: the top bar is never taken away. */
+    .body {
+      position: relative;
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     ms-chapters-page {
       flex: 1;
+      min-width: 0;
       min-height: 0;
     }
   `,
@@ -105,6 +120,11 @@ export class Workspace {
     } else if (event.key.toLowerCase() === 'k') {
       event.preventDefault();
       void this.dialogs.openConnection();
+    } else if (event.key === '.') {
+      // The chapter panel, in and out. A shortcut rather than a trip to a menu
+      // because it is meant to be opened for one edit and shut again.
+      event.preventDefault();
+      this.settings.setSidebarOpen(!this.settings.ui().sidebarOpen);
     }
   }
 }

@@ -62,6 +62,10 @@ describe('SettingsStore', () => {
     expect(ui.developerMode).toBe(false);
     // On by default, so an upgrade is something an old install hears about.
     expect(ui.checkForUpdates).toBe(true);
+    // The chapter panel is later still: a thin edge, with nothing folded away
+    // inside it when it is opened for the first time.
+    expect(ui.sidebarOpen).toBe(false);
+    expect(ui.sidebarSections).toEqual({});
   });
 
   it('keeps developer mode once it is switched on', () => {
@@ -88,6 +92,21 @@ describe('SettingsStore', () => {
 
     settings.resetColours('dark');
     expect(settings.ui().colours).toEqual({ light: { page: '#fafafa' } });
+  });
+
+  it('writes down the folded panel sections and nothing else', () => {
+    const settings = store();
+    settings.setSidebarOpen(true);
+    settings.setPanelSection('cast', false);
+    settings.setPanelSection('scene', true);
+
+    // An open section is an absent one, so a section a later version adds
+    // arrives open rather than inheriting somebody's old answer.
+    expect(settings.ui().sidebarOpen).toBe(true);
+    expect(settings.ui().sidebarSections).toEqual({ cast: false });
+
+    settings.setPanelSection('cast', true);
+    expect(settings.ui().sidebarSections).toEqual({});
   });
 
   it('drops the override rather than storing the shipped colour', () => {
