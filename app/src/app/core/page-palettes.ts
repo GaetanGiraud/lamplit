@@ -456,7 +456,12 @@ export function readPaletteName(
     if (match) return match.name;
   }
   // A one-word answer, or a sentence with the word in it. Whole words only, so
-  // a name is never found inside a longer one a later version adds.
-  const words = new Set(raw.toLowerCase().match(/[a-z]+/g) ?? []);
-  return palettes.find((p) => words.has(p.name))?.name ?? '';
+  // a name is never found inside a longer one a later version adds — and the
+  // first name the *answer* uses wins, not the first the table happens to
+  // hold: "Tide, not Frost" is an answer of tide.
+  for (const word of raw.toLowerCase().match(/[a-z]+/g) ?? []) {
+    const match = palettes.find((p) => p.name === word);
+    if (match) return match.name;
+  }
+  return '';
 }

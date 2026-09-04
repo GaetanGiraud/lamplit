@@ -109,6 +109,12 @@ describe('reading the answer', () => {
     expect(readPaletteName(null, 'The scene is cold, so: frost.')).toBe('frost');
   });
 
+  it('takes the name the answer leads with, not the first one in the table', () => {
+    // Frost is earlier in the table than Tide, and beside the point here.
+    expect(readPaletteName(null, 'Tide. Not frost.')).toBe('tide');
+    expect(readPaletteName(null, 'hearth, not frost')).toBe('hearth');
+  });
+
   it('refuses a name that is not one of ours, however confidently offered', () => {
     expect(readPaletteName({ palette: 'moonlight' }, 'moonlight')).toBe('');
     expect(readPaletteName(null, 'frostbite')).toBe('');
