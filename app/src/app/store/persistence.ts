@@ -111,10 +111,11 @@ export class Persistence implements StorageBackend {
     window.addEventListener('beforeunload', (event) => {
       if (!this.pending.size) return;
       // One keepalive request per document is all the browser will still carry.
+      // Deletes go too: a chapter deleted and then closed on is a file still on
+      // disk, and the next start reads it back as a chapter that is there again.
       for (const [key, queued] of this.pending) {
-        if (queued.kind === 'write') {
-          this.api.sendBeacon(queued.ref, this.documents.get(key), this.nextSeq());
-        }
+        if (queued.kind === 'delete') this.api.sendBeaconRemove(queued.ref, this.nextSeq());
+        else this.api.sendBeacon(queued.ref, this.documents.get(key), this.nextSeq());
       }
       // Debounced writes almost always make it. A queue that is already failing
       // almost certainly will not, and that is worth stopping someone for.

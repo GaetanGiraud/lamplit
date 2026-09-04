@@ -174,6 +174,23 @@ describe('Persistence', () => {
     expect(server.documents.has('chapter:one')).toBe(false);
   });
 
+  it('sends a delete the tab was closed on, not only a write', async () => {
+    server.documents.set('chapter:one', { id: 'one' });
+    server.documents.set('story:abc', story('abc', 'The Lighthouse'));
+    await persistence.load();
+    persistence.listen();
+    server.requests.length = 0;
+
+    // Deleted, and the window closed inside the debounce: the queue never runs,
+    // so the request either leaves with the page or does not leave at all.
+    persistence.remove('chapter:one');
+    window.dispatchEvent(new Event('beforeunload', { cancelable: true }));
+
+    expect(server.requests.map((request) => request.method)).toEqual(['DELETE']);
+    await settle();
+    expect(server.documents.has('chapter:one')).toBe(false);
+  });
+
   it('keeps the session going while the server is away, and catches up after', async () => {
     await persistence.load();
     server.failWith = 'Failed to fetch';

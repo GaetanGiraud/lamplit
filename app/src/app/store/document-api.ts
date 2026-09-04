@@ -91,11 +91,23 @@ export class DocumentApi {
    * lets it outlive the page; it is fire-and-forget by nature.
    */
   sendBeacon(ref: DocRef, document: unknown, seq: number): void {
+    this.beacon(ref, seq, 'PUT', JSON.stringify(document));
+  }
+
+  /** The same, for a document the session deleted and then closed the tab on. */
+  sendBeaconRemove(ref: DocRef, seq: number): void {
+    this.beacon(ref, seq, 'DELETE');
+  }
+
+  private beacon(ref: DocRef, seq: number, method: 'PUT' | 'DELETE', body?: string): void {
     try {
       void fetch(this.urlOf(ref), {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json', [SEQ_HEADER]: String(seq) },
-        body: JSON.stringify(document),
+        method,
+        headers: {
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+          [SEQ_HEADER]: String(seq),
+        },
+        ...(body === undefined ? {} : { body }),
         keepalive: true,
       }).catch(() => {
         /* the page is leaving; there is nobody left to tell */
