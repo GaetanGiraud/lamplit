@@ -74,3 +74,25 @@ test.describe('choosing a provider', () => {
     await expect(dialog.getByRole('combobox', { name: 'Model' })).toContainText('Sonar Pro');
   });
 });
+
+/**
+ * Ctrl+K is the way to the Connection sheet, and one sheet is what it opens.
+ * A shortcut that answers while its own sheet is on screen stacks a second
+ * one over the first — and a key held down stacks one per repeat.
+ */
+test('opens one Connection sheet however many times it is asked for', async ({ page, server }) => {
+  await seedConnectedSettings(server);
+  await seedStory(server, { scene: 'A quiet room.' });
+  await page.goto(server.url);
+
+  await page.keyboard.press('Control+k');
+  await expect(page.locator('mat-dialog-container')).toHaveCount(1);
+
+  await page.keyboard.press('Control+k');
+  await page.keyboard.press('Control+k');
+
+  await expect(page.locator('mat-dialog-container')).toHaveCount(1);
+  // And one Escape puts the reader back on the page, not one sheet deeper.
+  await page.keyboard.press('Escape');
+  await expect(page.locator('mat-dialog-container')).toHaveCount(0);
+});

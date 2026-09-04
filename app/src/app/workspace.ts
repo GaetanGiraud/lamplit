@@ -1,4 +1,5 @@
 import { Component, afterNextRender, effect, inject } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { DEFAULT_STORY_TITLE } from './core/defaults';
 import { applyUi } from './core/theming';
 import { ChapterPanel } from './features/chapters/chapter-panel';
@@ -64,6 +65,7 @@ export class Workspace {
   private readonly chapters = inject(ChapterStore);
   private readonly stories = inject(StoryStore);
   private readonly dialogs = inject(DialogsService);
+  private readonly dialog = inject(MatDialog);
 
   constructor() {
     inject(Persistence).listen();
@@ -119,8 +121,20 @@ export class Workspace {
     );
   }
 
+  /**
+   * The shortcuts that belong to the page, and only while the page is what is
+   * being used.
+   *
+   * A sheet over the page is a different thing to be typing into: Ctrl+Enter in
+   * the scene box would regenerate the last reply behind it, and Ctrl+K would
+   * open a second Connection sheet on top of the first. Anything that has
+   * already been dealt with — a menu answering Escape, a dialog its own
+   * shortcut — is left alone for the same reason. And a key held down repeats
+   * dozens of times a second, which for these three is never what was meant.
+   */
   protected onKey(event: KeyboardEvent): void {
     if (!(event.ctrlKey || event.metaKey)) return;
+    if (event.repeat || event.defaultPrevented || this.dialog.openDialogs.length) return;
     if (event.key === 'Enter') {
       event.preventDefault();
       void this.chapters.retryLast();

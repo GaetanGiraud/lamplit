@@ -221,7 +221,7 @@ describe('ChapterStore and the page palette', () => {
     const written = storage.read<{ messages: { content: string; meta?: { aborted?: boolean } }[] }>(
       KEYS.chapter(CHAPTER_ID),
     );
-    const last = written!.messages[written!.messages.length - 1]!;
+    const last = written!.messages[written!.messages.length - 1];
     expect(last.content).toBe('The lantern room, ');
     expect(last.meta?.aborted).toBe(true);
   });

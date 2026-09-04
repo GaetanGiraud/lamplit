@@ -18,6 +18,8 @@ export class DialogsService {
   private readonly dialog = inject(MatDialog);
   private readonly chapters = inject(ChapterStore);
   private readonly stories = inject(StoryStore);
+  /** The Connection sheet while it is open, so a second ask joins the first. */
+  private connection: Promise<void> | null = null;
 
   /**
    * `insisting` is the first-run form: it opens before anything else, does not
@@ -26,6 +28,13 @@ export class DialogsService {
    * behind it can wait.
    */
   async openConnection(insisting = false): Promise<void> {
+    // Asked for twice — the shortcut pressed twice, or the first-run flow and a
+    // keypress at once — is one sheet, and both askers wait on that one.
+    this.connection ??= this.showConnection(insisting).finally(() => (this.connection = null));
+    return this.connection;
+  }
+
+  private async showConnection(insisting: boolean): Promise<void> {
     const { ConnectionDialog } = await import('../features/connection/connection-dialog');
     const ref = this.dialog.open(ConnectionDialog, {
       width: '34rem',

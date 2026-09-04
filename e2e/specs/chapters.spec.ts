@@ -385,3 +385,31 @@ test.describe('parameters', () => {
     await expect(page.getByText(/older message[s]? left out/)).toBeVisible();
   });
 });
+
+/**
+ * The page's own shortcuts stop at the edge of a sheet. Ctrl+Enter on the page
+ * asks the last turn again; inside the scene sheet it is a keystroke in a text
+ * box, and answering it there regenerates the chapter behind what is being
+ * edited, in a window the reader cannot see.
+ */
+test('leaves the page’s shortcuts alone while a sheet is open', async ({ page, server }) => {
+  await seedConnectedSettings(server);
+  await seedStory(server, { scene: SCENE });
+  await page.goto(server.url);
+
+  await send(page, 'I climb the stairs.');
+  await waitForTurn(page);
+  const written = await assistantMessages(page).first().textContent();
+
+  await page.getByRole('button', { name: 'Edit scene' }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.locator('textarea').first().click();
+  await page.keyboard.press('Control+Enter');
+
+  // Nothing was asked again: the sheet is still open over the same answer.
+  await expect(sheet).toBeVisible();
+  await expect(composer(page).locator('.stop')).toHaveCount(0);
+  await sheet.getByRole('button', { name: /Save the scene|Open the chapter/ }).click();
+  await expect(sheet).toBeHidden();
+  expect(await assistantMessages(page).first().textContent()).toBe(written);
+});
