@@ -1,6 +1,6 @@
-import { mkdir, readdir, rm, stat } from 'node:fs/promises';
+import { mkdir, open, readdir, rename, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { collectEntries, writeZip } from './zip.js';
+import { END_OF_CENTRAL, collectEntries, writeZip } from './zip.js';
 
 /** How many daily archives to keep before the oldest is dropped. */
 const KEEP = 14;
@@ -16,13 +16,23 @@ const KEEP = 14;
 export async function backupOnStartup(dataDir, backupsDir, today = new Date()) {
   const stamp = today.toISOString().slice(0, 10);
   const target = join(backupsDir, `data-${stamp}.zip`);
-  if (await exists(target)) return null;
+  if (await isArchive(target)) return null;
 
   const entries = await collectEntries(dataDir, 'data');
   if (!entries.some((entry) => entry.data?.length)) return null;
 
   await mkdir(backupsDir, { recursive: true });
-  await writeZip(target, entries);
+  // Written beside its name and moved onto it, the way the store writes a
+  // document: a run that dies half way leaves a `.tmp` the prune ignores, not
+  // a zip that is not one wearing today's name.
+  const temporary = `${target}.tmp`;
+  try {
+    await writeZip(temporary, entries);
+    await rename(temporary, target);
+  } catch (error) {
+    await rm(temporary, { force: true }).catch(() => {});
+    throw error;
+  }
   await prune(backupsDir);
   return target;
 }
@@ -37,9 +47,23 @@ async function prune(backupsDir) {
   }
 }
 
-async function exists(path) {
-  return stat(path).then(
-    () => true,
-    () => false,
-  );
+/**
+ * Whether a file is there *and* ends the way an archive ends. One that does
+ * not is a run that was interrupted, and is written again rather than kept as
+ * today's backup.
+ */
+async function isArchive(path) {
+  let handle = null;
+  try {
+    handle = await open(path, 'r');
+    const { size } = await handle.stat();
+    if (size < 22) return false;
+    const tail = Buffer.alloc(4);
+    await handle.read(tail, 0, 4, size - 22);
+    return tail.readUInt32LE(0) === END_OF_CENTRAL;
+  } catch {
+    return false;
+  } finally {
+    await handle?.close();
+  }
 }

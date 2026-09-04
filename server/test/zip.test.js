@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
@@ -142,5 +142,24 @@ describe('backupOnStartup', () => {
     assert.equal(entries.get('data/settings.json').data.toString(), '{"activeStoryId":"abc"}');
 
     assert.equal(await backupOnStartup(dataDir, backupsDir), null, 'already taken today');
+  });
+
+  it('writes today’s archive again when the one there is not an archive', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'lamplit-backup-'));
+    const dataDir = join(root, 'data');
+    const backupsDir = join(root, 'backups');
+    await mkdir(dataDir, { recursive: true });
+    await mkdir(backupsDir, { recursive: true });
+    await writeFile(join(dataDir, 'settings.json'), '{"activeStoryId":"abc"}', 'utf8');
+
+    // What an interrupted run used to leave behind: the name, and 25 bytes.
+    const today = `data-${new Date().toISOString().slice(0, 10)}.zip`;
+    await writeFile(join(backupsDir, today), Buffer.alloc(25, 1));
+
+    const made = await backupOnStartup(dataDir, backupsDir);
+    assert.equal(made, join(backupsDir, today));
+    const entries = readZip(await readFile(made));
+    assert.equal(entries.get('data/settings.json').data.toString(), '{"activeStoryId":"abc"}');
+    assert.deepEqual(await readdir(backupsDir), [today], 'nothing temporary left beside it');
   });
 });
