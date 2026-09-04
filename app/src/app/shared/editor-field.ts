@@ -1,10 +1,9 @@
 import {
   Component,
-  DestroyRef,
+  OnDestroy,
   booleanAttribute,
   computed,
   effect,
-  inject,
   input,
   output,
   signal,
@@ -124,7 +123,7 @@ let nextId = 0;
     }
   `,
 })
-export class EditorField {
+export class EditorField implements OnDestroy {
   readonly label = input('');
   /** A name for the box when what it holds is already written above it. */
   readonly ariaLabel = input('');
@@ -150,7 +149,23 @@ export class EditorField {
     // The document is the source of truth; an outside edit replaces the draft,
     // and [msText] puts it in the box when it lands.
     effect(() => this.draft.set(this.value()));
-    inject(DestroyRef).onDestroy(() => this.commit());
+  }
+
+  /**
+   * Closing the sheet saves what is in the box, which is the promise this
+   * field makes and the reason Escape is safe here.
+   *
+   * It has to be `ngOnDestroy` rather than a `DestroyRef` callback: an
+   * `output()` registers its own teardown on that same `DestroyRef` when the
+   * component is built, so it runs first, and by the time a callback
+   * registered afterwards asked it to emit, it had already stopped listening —
+   * the save went nowhere. Lifecycle hooks run before those callbacks. Until
+   * now the text was saved by accident instead: Chrome fires `blur` when a
+   * focused box is removed from the page, and the blur handler did the work.
+   * Firefox does not, so there the last thing typed was lost on Escape.
+   */
+  ngOnDestroy(): void {
+    this.commit();
   }
 
   protected text(event: Event): string {
