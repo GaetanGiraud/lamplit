@@ -187,6 +187,25 @@ test.describe('the world', () => {
     await expect(card).not.toHaveClass(/unwritten/);
   });
 
+  test('a new entry is on screen even when a search was in the way', async ({ page, server }) => {
+    await seedConnectedSettings(server);
+    await seedStory(server, { scene: SCENE, entries });
+    await page.goto(server.url);
+
+    await page.getByRole('button', { name: 'World', exact: true }).click();
+    const world = page.getByRole('dialog');
+    await world.getByRole('tab', { name: 'Lore' }).click();
+    await world.getByRole('textbox', { name: 'Search' }).fill('tomas');
+    await expect(world.locator('.entry')).toHaveCount(1);
+
+    await world.getByRole('button', { name: 'Add an entry' }).click();
+    await page.getByRole('menuitem', { name: 'Fact' }).click();
+
+    // It has no title and no keys, so no search could have matched it.
+    await expect(world.locator('.entry.open')).toHaveCount(1);
+    await expect(world.locator('.entry.open')).toHaveClass(/unwritten/);
+  });
+
   test('entries collapse to one line, and open one at a time', async ({ page, server }) => {
     await seedConnectedSettings(server);
     await seedStory(server, { scene: SCENE, entries });

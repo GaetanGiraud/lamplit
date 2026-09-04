@@ -581,6 +581,10 @@ export class WorldDialog {
   }
 
   protected add(category: LoreCategory): void {
+    // A new entry has no title and no keys yet, so it matches no search: with
+    // one in the box the row that was just created is filtered out of the list
+    // as it is made, and Add an entry looks like it did nothing at all.
+    this.filter.set('');
     this.open(this.stories.addLore(category).id);
   }
 
