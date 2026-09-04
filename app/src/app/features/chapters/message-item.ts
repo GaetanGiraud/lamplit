@@ -10,7 +10,6 @@ import {
   viewChild,
 } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -40,7 +39,7 @@ export interface MessageEdit {
  */
 @Component({
   selector: 'ms-message-item',
-  imports: [MatButtonModule, MatMenuModule, MatTooltipModule, TextFieldModule, TextValue],
+  imports: [MatButtonModule, MatMenuModule, MatTooltipModule, TextValue],
   template: `
     <article
       class="message"
@@ -61,9 +60,7 @@ export interface MessageEdit {
         <div class="editor">
           <textarea
             #editor
-            cdkTextareaAutosize
-            cdkAutosizeMinRows="4"
-            cdkAutosizeMaxRows="24"
+            style="--rows-min: 4; --rows-max: 24"
             class="story-prose"
             [msText]="draft()"
             (input)="draft.set(text($event))"
@@ -76,9 +73,7 @@ export interface MessageEdit {
             <label class="direction-edit">
               <span class="tag">author</span>
               <textarea
-                cdkTextareaAutosize
-                cdkAutosizeMinRows="2"
-                cdkAutosizeMaxRows="10"
+                style="--rows-min: 2; --rows-max: 10"
                 aria-label="The direction from the author"
                 [msText]="draftDirection()"
                 (input)="draftDirection.set(text($event))"
@@ -322,9 +317,6 @@ export interface MessageEdit {
     }
 
     .direction-edit textarea {
-      min-height: 3rem;
-      font-family: var(--ms-sans);
-      font-size: 0.9rem;
       font-style: italic;
     }
 
@@ -479,15 +471,9 @@ export interface MessageEdit {
       gap: 0.5rem;
     }
 
-    textarea {
-      width: 100%;
-      min-height: 6rem;
-      padding: 0.7rem 0.85rem;
-      border: 1px solid var(--ms-accent);
-      border-radius: 10px;
-      background: var(--ms-surface-raised);
-      color: var(--ms-ink);
-      resize: none;
+    /* The shared text field, with the border lit: a message is being edited. */
+    .editor textarea {
+      border-color: var(--ms-accent);
     }
 
     .editor-actions {

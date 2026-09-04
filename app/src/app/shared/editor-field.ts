@@ -9,7 +9,6 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TextValue } from './text-value';
 
@@ -27,7 +26,7 @@ let nextId = 0;
  */
 @Component({
   selector: 'ms-editor-field',
-  imports: [MatTooltipModule, TextFieldModule, TextValue],
+  imports: [MatTooltipModule, TextValue],
   template: `
     <div class="field">
       <span class="head">
@@ -51,9 +50,8 @@ let nextId = 0;
         [attr.aria-label]="label() ? null : ariaLabel() || null"
         [class.serif]="serif()"
         [class.dimmed]="dimmed()"
-        cdkTextareaAutosize
-        [cdkAutosizeMinRows]="rows()"
-        [cdkAutosizeMaxRows]="rows() + 10"
+        [style.--rows-min]="rows()"
+        [style.--rows-max]="rows() + 10"
         [msText]="draft()"
         [placeholder]="placeholder()"
         [readOnly]="readOnly()"
@@ -101,19 +99,8 @@ let nextId = 0;
       cursor: pointer;
     }
 
-    textarea {
-      width: 100%;
-      padding: 0.6rem 0.75rem;
-      border: 1px solid var(--ms-border);
-      border-radius: 10px;
-      background: var(--ms-surface-raised);
-      color: var(--ms-ink);
-      font: inherit;
-      font-size: 0.9rem;
-      line-height: 1.55;
-      resize: none;
-    }
-
+    /* The box itself is the shared text field from the global styles; only
+       what differs from it is said here. */
     textarea.serif {
       font-family: var(--ms-serif);
       font-size: 1rem;
@@ -123,11 +110,6 @@ let nextId = 0;
        the box it will be edited in. Typing over it is what adopts it. */
     textarea.dimmed {
       color: var(--ms-muted);
-    }
-
-    textarea:focus {
-      outline: none;
-      border-color: color-mix(in srgb, var(--ms-accent) 65%, var(--ms-border));
     }
 
     .foot {
@@ -166,7 +148,7 @@ export class EditorField {
 
   constructor() {
     // The document is the source of truth; an outside edit replaces the draft,
-    // and [msText] measures the box when it lands.
+    // and [msText] puts it in the box when it lands.
     effect(() => this.draft.set(this.value()));
     inject(DestroyRef).onDestroy(() => this.commit());
   }

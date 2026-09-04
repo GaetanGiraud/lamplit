@@ -9,7 +9,6 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { CdkTextareaAutosize, TextFieldModule } from '@angular/cdk/text-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChapterStore } from '../../store/chapter-store';
@@ -29,7 +28,7 @@ import { TextValue } from '../../shared/text-value';
  */
 @Component({
   selector: 'ms-composer',
-  imports: [MatButtonModule, MatTooltipModule, TextFieldModule, TextValue],
+  imports: [MatButtonModule, MatTooltipModule, TextValue],
   host: {
     '(document:keydown)': 'onDocumentKey($event)',
   },
@@ -48,9 +47,7 @@ import { TextValue } from '../../shared/text-value';
               <div class="field">
                 <textarea
                   #input
-                  cdkTextareaAutosize
-                  cdkAutosizeMinRows="3"
-                  cdkAutosizeMaxRows="14"
+                  style="--rows-min: 3; --rows-max: 14"
                   [msText]="draft()"
                   [placeholder]="placeholder()"
                   (input)="onInput($event)"
@@ -92,9 +89,7 @@ import { TextValue } from '../../shared/text-value';
                   <span class="tag">author</span>
                   <textarea
                     #directionInput
-                    cdkTextareaAutosize
-                    cdkAutosizeMinRows="1"
-                    cdkAutosizeMaxRows="8"
+                    style="--rows-min: 1; --rows-max: 8"
                     aria-label="A direction from the author"
                     placeholder="Where the story goes. The model follows it and never mentions it."
                     [msText]="direction()"
@@ -200,11 +195,11 @@ import { TextValue } from '../../shared/text-value';
     }
 
     .direction textarea {
+      --field-pad-y: 0px;
       font-family: var(--ms-sans);
       font-size: 0.9rem;
       font-style: italic;
       color: var(--ms-ink-soft);
-      padding: 0;
     }
 
     /* A quiet word beside Send, lit when the field is open. */
@@ -232,22 +227,19 @@ import { TextValue } from '../../shared/text-value';
       color: var(--ms-accent);
     }
 
+    /* Bare inside the box, which draws the frame for both fields: no border of
+       its own, no background, and the frame variables restated so the row
+       arithmetic in the shared rule counts what is actually there. */
     textarea {
+      --field-pad-y: 0.35rem;
+      --field-pad-x: 0;
+      --field-border: 0px;
       flex: 1;
       min-width: 0;
-      border: 0;
-      outline: none;
-      resize: none;
+      border-radius: 0;
       background: none;
-      color: var(--ms-ink);
       font-family: var(--ms-serif);
       font-size: 1rem;
-      line-height: 1.55;
-      padding: 0.35rem 0;
-    }
-
-    textarea::placeholder {
-      color: var(--ms-muted);
     }
 
     .send,
@@ -282,7 +274,6 @@ export class Composer {
   // document-wide key listener runs on those pages too.
   private readonly input = viewChild<ElementRef<HTMLTextAreaElement>>('input');
   private readonly directionInput = viewChild<ElementRef<HTMLTextAreaElement>>('directionInput');
-  private readonly autosize = viewChild(CdkTextareaAutosize);
   private readonly injector = inject(Injector);
 
   /** The page is asked to bring its end into view; only it knows where that is. */
@@ -430,17 +421,19 @@ export class Composer {
     this.direction.set('');
     this.authoring.set(false);
     // Clearing the signal alone does not push the empty value back into the
-    // DOM node on this path, and the box would stay as tall as what was sent.
+    // DOM node on this path, and the box would keep what was sent.
     this.setInput('');
     void this.chapters.send(text, said);
   }
 
-  /** The DOM node and the box's height, which the signal alone does not move. */
+  /**
+   * The DOM node, which the signal alone does not move: [msText] leaves a box
+   * that is being typed into alone, and this one is. The height follows the
+   * value by itself.
+   */
   private setInput(value: string): void {
     const field = this.input()?.nativeElement;
-    if (!field) return;
-    field.value = value;
-    this.autosize()?.resizeToFitContent(true);
+    if (field) field.value = value;
   }
 
   private focusDirection(): void {

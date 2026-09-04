@@ -399,11 +399,12 @@ it on first load so it can be filled in; the existing messages are left alone.
     commit); the modal commits everything on close as well. Escape / backdrop close = save,
     never discard. The scene sheet is the single exception, and only for the "does this chapter
     open yet" decision — the text itself is still saved as a draft.
-    Writing surface (fixed 2026-09-03, after review): every multi-line field autosizes through
-    the CDK, which needs `cdk.text-field-autosize()` in the global styles (without it the box is
-    measured at its current height and grows a line late) and assumes a content box (a border-box
-    textarea ends up short by its own padding and scrolls the line being written). Both are set
-    globally; a spec types into the composer and fails if the box ever scrolls its own text.
+    Writing surface (fixed 2026-09-03, after review; redone 2026-09-04, issue #18): every
+    multi-line field sizes itself to its text with the CSS `field-sizing: content`, bounded by
+    `--rows-min` / `--rows-max` on the element, in one global rule. It replaced the CDK's
+    autosize, which measured a frame late, needed a content box and a `flex: none` fix in every
+    flex dialog, and still had to be re-measured by hand whenever text arrived from code. A spec
+    types into the composer and fails if the box ever scrolls its own text.
     Text is written into a box only through `[msText]`, which never rewrites a field that is
     being typed into — a plain `[value]` binding moves the caret to the end and throws away the
     browser's undo stack whenever the document changes underneath.

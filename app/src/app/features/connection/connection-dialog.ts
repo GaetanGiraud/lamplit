@@ -223,13 +223,6 @@ export interface ConnectionData {
       padding-top: 0.5rem !important;
     }
 
-    /* A scrolling column, not a squashing one: without this the children are
-       shrunk to fit instead of the content scrolling, and an autosizing
-       textarea is drawn shorter than the height it asked for. */
-    mat-dialog-content > * {
-      flex: none;
-    }
-
     mat-form-field {
       width: 100%;
     }

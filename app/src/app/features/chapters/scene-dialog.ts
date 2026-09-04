@@ -1,5 +1,4 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -27,14 +26,7 @@ export interface SceneDialogData {
  */
 @Component({
   selector: 'ms-scene-dialog',
-  imports: [
-    MatButtonModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    TextFieldModule,
-    TextValue,
-  ],
+  imports: [MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule, TextValue],
   template: `
     <h2 mat-dialog-title class="ms-dialog-title">Chapter {{ chapter().number }} — the scene</h2>
 
@@ -47,9 +39,7 @@ export interface SceneDialogData {
       <textarea
         class="scene"
         cdkFocusInitial
-        cdkTextareaAutosize
-        cdkAutosizeMinRows="8"
-        cdkAutosizeMaxRows="22"
+        style="--rows-min: 8; --rows-max: 22"
         [msText]="scene()"
         (input)="scene.set(text($event))"
         placeholder="A lighthouse gallery. Dusk, the first night of autumn. Mara is alone, and the lamp is already lit."
@@ -88,34 +78,15 @@ export interface SceneDialogData {
       padding-top: 0.25rem !important;
     }
 
-    /* A scrolling column, not a squashing one: without this the children are
-       shrunk to fit instead of the content scrolling, and an autosizing
-       textarea is drawn shorter than the height it asked for. */
-    mat-dialog-content > * {
-      flex: none;
-    }
-
     .lead {
       margin: 0 0 0.2rem;
     }
 
     /* Prose, written at reading size, because that is what it is. */
     .scene {
-      width: 100%;
-      padding: 0.85rem 1rem;
-      border: 1px solid var(--ms-border);
-      border-radius: 10px;
-      background: var(--ms-surface-raised);
-      color: var(--ms-ink);
       font-family: var(--ms-serif);
       font-size: 1.02rem;
       line-height: 1.65;
-      resize: none;
-    }
-
-    .scene:focus {
-      outline: none;
-      border-color: color-mix(in srgb, var(--ms-accent) 65%, var(--ms-border));
     }
 
     mat-form-field {

@@ -4,23 +4,6 @@
 // Structural styles for everything that opens over the chat.
 @include cdk.overlay();
 @include cdk.a11y-visually-hidden();
-// Autosizing textareas measure themselves through a class that lives here.
-// Without it the measurement is taken at the box's current height, so a box
-// only notices it has to grow once the text already overflows — one line late.
-@include cdk.text-field-autosize();
-
-// The measurement is taken as a content box (the measuring class forces
-// `box-sizing: content-box` and strips the padding) and then written into
-// `height`. On a border-box textarea that height *contains* the padding, so
-// every box sits one padding short of its own text and scrolls while it is
-// written into. Match the box model the measurement assumes — and drop the
-// pinned width with it, since a content box at `width: 100%` would be 100%
-// *plus* its padding; every one of these is a flex item, so it stretches.
-// Material's own fields do their own arithmetic and are left alone.
-textarea.cdk-textarea-autosize:not(.mat-mdc-input-element) {
-  box-sizing: content-box;
-  width: auto;
-}
 @include mat.elevation-classes();
 
 // One theme, driven by the `color-scheme` property on <html>, which the
@@ -345,6 +328,70 @@ app-root {
 .hljs-variable,
 .hljs-template-variable {
   color: light-dark(#7a3f6d, #e0a0d8);
+}
+
+// ---------------------------------------------------------------------------
+// Text fields. Every multi-line box the app draws itself: the scene, the lore,
+// a persona, the composer, a message being edited.
+// ---------------------------------------------------------------------------
+//
+// A box sizes itself to its text. `field-sizing` grows it on the line that
+// needs it and shrinks it when text is deleted, whether the text was typed or
+// arrived from code, with nothing measuring anything. Its bounds come in as
+// row counts on the element, `--rows-min` and `--rows-max`, and are converted
+// to heights in `lh`, the line-height the box is actually set in, so that
+// "eight rows" is eight lines whether the face is the serif at reading size or
+// the sans of a note.
+//
+// The heights are border-box like everything else here, so the frame around
+// the text is counted in: `--field-pad-y` and `--field-border` are the vertical
+// padding and the border, written once and read back into the arithmetic. A
+// variant that draws a different frame (the composer, bare inside its own box)
+// restates them and the heights follow.
+//
+// A box never gives its height up to a flex column, either: in a dialog that
+// has run out of room the column scrolls, and the box stays the size of its
+// text. Without this a textarea, being a scroll container, is the first thing a
+// flex column squashes, and it is drawn short of what it asked for.
+//
+// A browser without `field-sizing` (Firefox before 152, Safari before 26.2)
+// gets a box `--rows-min` tall that scrolls inside itself. That is the whole of
+// the fallback.
+//
+// `:where()` keeps all of this at zero specificity, so a component's own rule
+// for its textarea wins by being one at all, and a `.story-prose` box keeps its
+// prose. Material's own fields do their own arithmetic and are left alone.
+textarea:where(:not(.mat-mdc-input-element)) {
+  --rows-min: 2;
+  --rows-max: 12;
+  --field-pad-y: 0.6rem;
+  --field-pad-x: 0.75rem;
+  --field-border: 1px;
+
+  field-sizing: content;
+  display: block;
+  width: 100%;
+  min-height: calc(var(--rows-min) * 1lh + 2 * (var(--field-pad-y) + var(--field-border)));
+  max-height: calc(var(--rows-max) * 1lh + 2 * (var(--field-pad-y) + var(--field-border)));
+  flex-shrink: 0;
+  padding: var(--field-pad-y) var(--field-pad-x);
+  border: var(--field-border) solid var(--ms-border);
+  border-radius: 10px;
+  background: var(--ms-surface-raised);
+  color: var(--ms-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  resize: none;
+
+  &::placeholder {
+    color: var(--ms-muted);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--ms-accent) 65%, var(--ms-border));
+  }
 }
 
 // ---------------------------------------------------------------------------

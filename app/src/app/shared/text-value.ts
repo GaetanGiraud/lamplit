@@ -1,5 +1,4 @@
 import { Directive, ElementRef, effect, inject, input } from '@angular/core';
-import { CdkTextareaAutosize } from '@angular/cdk/text-field';
 
 type TextElement = HTMLTextAreaElement | HTMLInputElement;
 
@@ -18,16 +17,14 @@ type TextElement = HTMLTextAreaElement | HTMLInputElement;
  * being written into — unless it is read-only, where nobody is typing and the
  * text is arriving from the model.
  *
- * Whoever writes the value is also the one who knows it changed, so this is
- * where an autosizing box gets re-measured: the CDK only listens for typing,
- * and text that arrives from code would otherwise leave the box a chunk short.
+ * The box's height is not this directive's concern: it follows the text by
+ * itself (`field-sizing`, in the global styles), typed or written.
  */
 @Directive({ selector: 'textarea[msText], input[msText]' })
 export class TextValue {
   readonly msText = input('');
 
   private readonly element = inject<ElementRef<TextElement>>(ElementRef);
-  private readonly autosize = inject(CdkTextareaAutosize, { optional: true, self: true });
 
   constructor() {
     effect(() => {
@@ -36,7 +33,6 @@ export class TextValue {
       if (node.value === value) return;
       if (node === document.activeElement && !node.readOnly) return;
       node.value = value;
-      this.autosize?.resizeToFitContent();
     });
   }
 }

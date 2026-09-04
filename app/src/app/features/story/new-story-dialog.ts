@@ -1,5 +1,4 @@
 import { Component, inject, signal } from '@angular/core';
-import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -27,14 +26,7 @@ export interface NewStoryData extends StorySetup {
  */
 @Component({
   selector: 'ms-new-story-dialog',
-  imports: [
-    MatButtonModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    TextFieldModule,
-    TextValue,
-  ],
+  imports: [MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule, TextValue],
   template: `
     <h2 mat-dialog-title class="ms-dialog-title">{{ data.heading }}</h2>
 
@@ -83,9 +75,7 @@ export interface NewStoryData extends StorySetup {
       </mat-form-field>
 
       <textarea
-        cdkTextareaAutosize
-        cdkAutosizeMinRows="3"
-        cdkAutosizeMaxRows="12"
+        style="--rows-min: 3; --rows-max: 12"
         [msText]="description()"
         (input)="description.set(text($event))"
         placeholder="A marine biologist, thirty-one, back on the island after nine years."
@@ -110,13 +100,6 @@ export interface NewStoryData extends StorySetup {
       padding-top: 0.5rem !important;
     }
 
-    /* A scrolling column, not a squashing one: without this the children are
-       shrunk to fit instead of the content scrolling, and an autosizing
-       textarea is drawn shorter than the height it asked for. */
-    mat-dialog-content > * {
-      flex: none;
-    }
-
     mat-form-field {
       width: 100%;
     }
@@ -125,24 +108,6 @@ export interface NewStoryData extends StorySetup {
       margin-top: 0.35rem;
       font-size: 0.82rem;
       color: var(--ms-ink);
-    }
-
-    textarea {
-      width: 100%;
-      padding: 0.6rem 0.75rem;
-      border: 1px solid var(--ms-border);
-      border-radius: 10px;
-      background: var(--ms-surface-raised);
-      color: var(--ms-ink);
-      font: inherit;
-      font-size: 0.9rem;
-      line-height: 1.55;
-      resize: none;
-    }
-
-    textarea:focus {
-      outline: none;
-      border-color: color-mix(in srgb, var(--ms-accent) 65%, var(--ms-border));
     }
   `,
 })

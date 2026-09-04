@@ -7,6 +7,13 @@ person who wrote the code. A section is written as the work happens, under
 
 ## Unreleased
 
+**Every text box grows on the line that needs it.** The scene, the lore, a persona, the summary
+of a chapter closing, the author's direction and the box you write in all size themselves to their
+text now, up to the height they were given, and shrink again when text is deleted. They used to
+grow a line late, jump when a summary streamed in, and open short in a sheet; the browser does the
+sizing itself now and none of that is left. A browser without the feature (Firefox before 152,
+Safari before 26.2) shows a box of the starting height that scrolls inside itself.
+
 **The composer is the end of the page now, not a dock under it.** The story, the chapter's two
 buttons and the box you write in are one scroll: reach the box and you have reached the end of the
 story so far.

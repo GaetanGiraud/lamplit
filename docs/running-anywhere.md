@@ -73,6 +73,10 @@ is from an unidentified developer"*, the quarantine flag every download carries.
 One call starts the server, opens <http://127.0.0.1:4177> in your browser, and creates `data/`
 beside itself. Close the window or press **Ctrl+C** to stop it.
 
+Any current browser will do. In one that does not yet size text boxes to their text (Firefox
+before 152, Safari before 26.2) the boxes keep their starting height and scroll inside themselves
+instead of growing; nothing else is different.
+
 If port 4177 is busy it takes the next free one and says so.
 
 ## Options

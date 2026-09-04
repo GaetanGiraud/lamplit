@@ -1,5 +1,4 @@
 import { Component, computed, inject } from '@angular/core';
-import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -25,7 +24,6 @@ import { ParamRow } from '../../shared/param-row';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    TextFieldModule,
     ParamRow,
   ],
   template: `
@@ -96,9 +94,6 @@ import { ParamRow } from '../../shared/param-row';
         <mat-label>Stop sequences</mat-label>
         <textarea
           matInput
-          cdkTextareaAutosize
-          cdkAutosizeMinRows="2"
-          cdkAutosizeMaxRows="8"
           [value]="stopText()"
           (change)="setStop(value($event))"
           placeholder="One per line"
@@ -199,11 +194,13 @@ import { ParamRow } from '../../shared/param-row';
       max-height: min(78vh, 46rem) !important;
     }
 
-    /* A scrolling column, not a squashing one: without this the children are
-       shrunk to fit instead of the content scrolling, and an autosizing
-       textarea is drawn shorter than the height it asked for. */
-    mat-dialog-content > * {
-      flex: none;
+    /* The one Material text box, sized to its lines like the plain ones: two
+       rows empty, eight at most, and scrolling past that. */
+    textarea[matInput] {
+      field-sizing: content;
+      min-height: 2lh;
+      max-height: 8lh;
+      resize: none;
     }
 
     /* Two columns where there is room: the whole panel then fits on screen. */
@@ -226,6 +223,10 @@ import { ParamRow } from '../../shared/param-row';
     }
 
     .advanced {
+      /* The panel clips its body for its own animation, and a flex column
+         squashes anything that clips when it runs out of room: it would be
+         folded to nothing at the bottom rather than scrolled to. */
+      flex-shrink: 0;
       margin: 0.6rem 0 0.2rem;
       background: transparent !important;
     }

@@ -1,5 +1,4 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -35,7 +34,6 @@ function cost(usage: TokenUsage | undefined): string {
     MatDialogModule,
     MatExpansionModule,
     MatProgressSpinnerModule,
-    TextFieldModule,
     EditorField,
     TextValue,
   ],
@@ -55,9 +53,7 @@ function cost(usage: TokenUsage | undefined): string {
       }
 
       <textarea
-        cdkTextareaAutosize
-        cdkAutosizeMinRows="8"
-        cdkAutosizeMaxRows="20"
+        style="--rows-min: 8; --rows-max: 20"
         [msText]="summary()"
         [readonly]="busy()"
         [placeholder]="
@@ -194,29 +190,11 @@ function cost(usage: TokenUsage | undefined): string {
       padding-top: 0.25rem !important;
     }
 
-    /* A scrolling column, not a squashing one: without this the children are
-       shrunk to fit instead of the content scrolling, and an autosizing
-       textarea is drawn shorter than the height it asked for. */
-    mat-dialog-content > * {
-      flex: none;
-    }
-
+    /* The story so far is prose, and set as prose. */
     textarea {
-      width: 100%;
-      padding: 0.8rem 0.95rem;
-      border: 1px solid var(--ms-border);
-      border-radius: 10px;
-      background: var(--ms-surface-raised);
-      color: var(--ms-ink);
       font-family: var(--ms-serif);
       font-size: 1rem;
       line-height: 1.6;
-      resize: none;
-    }
-
-    textarea:focus {
-      outline: none;
-      border-color: color-mix(in srgb, var(--ms-accent) 65%, var(--ms-border));
     }
 
     .foot {
@@ -359,6 +337,10 @@ function cost(usage: TokenUsage | undefined): string {
     }
 
     .instruction {
+      /* The panel clips its body for its own animation, and a flex column
+         squashes anything that clips when it runs out of room: it would be
+         folded to nothing under a long summary rather than scrolled to. */
+      flex-shrink: 0;
       background: transparent !important;
       border: 1px solid var(--ms-border);
       border-radius: 12px !important;
