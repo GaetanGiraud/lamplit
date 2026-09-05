@@ -7,6 +7,24 @@ import { describe, it } from 'node:test';
 import { createApp } from '../src/app.js';
 import { createUpdateChecker } from '../src/updates.js';
 
+/**
+ * Shuts a test server down and does not wait on the sockets to agree.
+ *
+ * Both `fetch` and `node:http`'s default agent keep their connections alive,
+ * and `server.close` waits for every one of them — so a file that has finished
+ * asserting sits there holding the event loop open until the idle timeout, and
+ * `node --test` over a glob leaves the child process behind for good. That is
+ * exactly what it did: two orphaned test runs, on two different days, both
+ * stuck in this file. Dropping the sockets is what makes close mean closed.
+ */
+function stop(server) {
+  return new Promise((fulfil) => {
+    server.close(fulfil);
+    server.closeIdleConnections();
+    server.closeAllConnections();
+  });
+}
+
 /** Starts the real app on a free port and hands back a `fetch` bound to it. */
 async function serve({ withApp = false, updates, devCors = false } = {}) {
   const dataDir = await mkdtemp(join(tmpdir(), 'lamplit-api-'));
@@ -39,7 +57,7 @@ async function serve({ withApp = false, updates, devCors = false } = {}) {
   return {
     dataDir,
     base,
-    close: () => new Promise((fulfil) => server.close(fulfil)),
+    close: () => stop(server),
     call: (path, init) => fetch(`${base}${path}`, init),
     put: (path, body, rev) =>
       fetch(`${base}${path}`, {
@@ -108,7 +126,7 @@ describe('GET /api/health', () => {
     assert.equal(body.version, '0.0.0');
     assert.equal(body.channel, 'dev');
     assert.equal(body.previousVersion, null);
-    await new Promise((fulfil) => server.close(fulfil));
+    await stop(server);
   });
 });
 
@@ -423,7 +441,7 @@ describe('the Host header', () => {
     const base = `http://127.0.0.1:${server.address().port}`;
     assert.equal((await callAs(base, 'study.lan', '/api/health')).status, 200);
     assert.equal((await callAs(base, 'other.lan', '/api/health')).status, 421);
-    await new Promise((fulfil) => server.close(fulfil));
+    await stop(server);
   });
 });
 
