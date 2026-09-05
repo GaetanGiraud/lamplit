@@ -4,8 +4,15 @@ import { join } from 'node:path';
 import { COLLECTIONS, DocumentStore, isCollection, isId } from './store.js';
 import { createUpdateChecker } from './updates.js';
 
-/** The header the client stamps each write with. See DocumentStore. */
-const SEQ_HEADER = 'x-doc-seq';
+/**
+ * The revision a write says it was based on. Absent means "unconditionally",
+ * which is a command line or a test fixture; the app always sends one. See
+ * DocumentStore for what the server does with it.
+ */
+const REV_HEADER = 'x-doc-rev';
+
+/** What a 409 says. In one place: the client shows it and a test asserts on it. */
+const CONFLICT = 'changed on another device';
 
 /**
  * What the page is allowed to load, and from where. Nothing here is load-bearing
@@ -63,6 +70,12 @@ export function createApp({
   hosts = [],
   /** Whether another page on this machine may call the API; see devCors. */
   devCors = false,
+  /**
+   * The second listener and the lock on it, when something owns one. Left out
+   * — by a test, and by anything that only wants the API — the three routes
+   * below are simply not there, and the app hides the switch that reads them.
+   */
+  sharing = null,
 }) {
   const store = new DocumentStore(dataDir);
   const app = express();
@@ -104,8 +117,9 @@ export function createApp({
       previousVersion,
       // Where the writing is kept — a path that on Windows carries the account
       // name — so About can show it under developer mode. To the app itself
-      // and to a command line, not to another page that happened to ask.
-      ...(sameOrigin(request) ? { dataDir } : {}),
+      // and to a command line, not to another page that happened to ask, and
+      // not to a phone: the folder is on the computer and is no use over there.
+      ...(sameOrigin(request) && !request.lamplitShared ? { dataDir } : {}),
     });
   });
 
@@ -153,7 +167,16 @@ export function createApp({
       return response.status(400).json({ ok: false, error: 'body must be a JSON document' });
     }
     try {
-      response.json(await store.write(collection, id, request.body, seqOf(request)));
+      const result = await store.write(collection, id, request.body, revOf(request));
+      // Not an error the client did anything wrong to deserve: the document
+      // moved on somewhere else. It comes back with the answer, so reloading
+      // it is not a second request.
+      if (result.conflict) {
+        return response
+          .status(409)
+          .json({ ok: false, error: CONFLICT, rev: result.rev, document: result.document });
+      }
+      response.json(result);
     } catch (error) {
       next(error);
     }
@@ -163,11 +186,59 @@ export function createApp({
     const { collection, id } = request.params;
     if (!isCollection(collection) || !isId(collection, id)) return notFound(response);
     try {
-      response.json(await store.remove(collection, id, seqOf(request)));
+      response.json(await store.remove(collection, id));
     } catch (error) {
       next(error);
     }
   });
+
+  /**
+   * Sharing: read it, change it, and the picture that pairs a phone with it.
+   *
+   * All three are the computer's own business and are refused on the shared
+   * listener, paired or not. The switch belongs to whoever is sitting at the
+   * machine — a phone that could turn sharing off would be a phone that could
+   * lock the computer out of its own setting, and a phone that could ask for
+   * the QR code would be a phone that could pass the lock on to another one.
+   */
+  if (sharing) {
+    app.get('/api/server/share', computerOnly, (request, response) => {
+      response.json(sharing.status());
+    });
+
+    app.put('/api/server/share', computerOnly, async (request, response, next) => {
+      const body = request.body ?? {};
+      try {
+        // Rotating first, so "off, and a new code" leaves nothing listening
+        // that is still answering to the old one for the moment in between.
+        if (body.rotate === true) await sharing.rotate();
+        if (typeof body.share === 'boolean') await sharing.set(body.share);
+        response.json(sharing.status());
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    app.get('/api/server/share/qr', computerOnly, async (request, response, next) => {
+      if (!sharing.on) return response.status(409).json({ ok: false, error: 'sharing is off' });
+      const { addresses } = sharing.status();
+      const asked = request.query['address'];
+      // Only an address this machine actually has: the token is about to be
+      // drawn into a picture, and a query string must not choose whose.
+      const address = addresses.includes(asked) ? asked : addresses[0];
+      if (!address) {
+        return response.status(409).json({ ok: false, error: 'no network address to share on' });
+      }
+      try {
+        const svg = await sharing.qr(address);
+        // The pairing URL is the secret, so the picture of it is too: nothing
+        // between here and the screen may keep a copy.
+        response.type('image/svg+xml').set('Cache-Control', 'no-store').send(svg);
+      } catch (error) {
+        next(error);
+      }
+    });
+  }
 
   app.use('/api', (request, response) => notFound(response, 'no such endpoint'));
 
@@ -220,9 +291,20 @@ export function createApp({
 
 export { COLLECTIONS };
 
-function seqOf(request) {
-  const raw = Number(request.get(SEQ_HEADER));
-  return Number.isFinite(raw) ? raw : undefined;
+/** What the client says it read. The empty string is a document it is creating. */
+function revOf(request) {
+  const raw = request.get(REV_HEADER);
+  return raw === undefined ? undefined : String(raw);
+}
+
+/**
+ * A route the machine's own listener answers and the shared one does not.
+ * `lamplitShared` is set by the wrapper in share.js, before Express sees the
+ * request at all, so there is nothing a header can say to get out of it.
+ */
+function computerOnly(request, response, next) {
+  if (!request.lamplitShared) return next();
+  response.status(403).json({ ok: false, error: 'that is the computer’s own setting' });
 }
 
 /** One JSON object: not a string, not a number, not a list, not nothing. */
@@ -312,7 +394,7 @@ function localhostCors(request, response, next) {
     response.set('Access-Control-Allow-Origin', origin);
     response.set('Vary', 'Origin');
     response.set('Access-Control-Allow-Methods', 'GET,PUT,DELETE,OPTIONS');
-    response.set('Access-Control-Allow-Headers', `Content-Type,${SEQ_HEADER}`);
+    response.set('Access-Control-Allow-Headers', `Content-Type,${REV_HEADER}`);
     response.set('Access-Control-Max-Age', '600');
   }
   if (request.method === 'OPTIONS') return response.sendStatus(204);

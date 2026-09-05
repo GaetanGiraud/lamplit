@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -19,6 +19,7 @@ import { characterColour, characterColourLabel } from '../../core/character-colo
 import { PAGE_PALETTES, paletteLabel } from '../../core/page-palettes';
 import { ChapterStore } from '../../store/chapter-store';
 import { SettingsStore } from '../../store/settings-store';
+import { ShareStore } from '../../store/share-store';
 import { StoryStore } from '../../store/story-store';
 import { UpdatesStore } from '../../store/updates-store';
 import { DialogsService } from '../../shared/dialogs.service';
@@ -230,6 +231,99 @@ import { DialogsService } from '../../shared/dialogs.service';
               bar says so if one of them is newer. Switched off, it is not asked at all. Your
               stories never leave this machine either way.
             </p>
+
+            @if (share.available()) {
+              <hr />
+
+              <mat-slide-toggle
+                [checked]="share.on()"
+                [disabled]="share.busy()"
+                (change)="setShare($event.checked)"
+              >
+                Share on this network
+              </mat-slide-toggle>
+              <p class="li-hint">
+                Open the story on your phone while it is on the same Wi-Fi. Lamplit keeps answering
+                on this computer exactly as it did; sharing adds a second door, and the code below
+                is the key to it. Switch it off and that door is gone.
+              </p>
+
+              @if (share.error()) {
+                <p class="warning" role="status">{{ share.error() }}</p>
+              }
+
+              @if (share.on()) {
+                @if (share.addresses().length) {
+                  <div class="share">
+                    @if (share.addresses().length > 1) {
+                      <!-- More than one adapter is the ordinary case on Windows,
+                           and there is no way from here to tell which one the
+                           phone is on. Offering all of them beats guessing. -->
+                      <div class="addresses" role="group" aria-label="Addresses to share on">
+                        @for (option of share.addresses(); track option) {
+                          <button
+                            type="button"
+                            class="address"
+                            [class.on]="option === shownAddress()"
+                            (click)="chosenAddress.set(option)"
+                          >
+                            {{ option }}
+                          </button>
+                        }
+                      </div>
+                    }
+
+                    <img
+                      class="qr"
+                      [src]="share.qrUrl(shownAddress())"
+                      alt="Point your phone's camera at this to pair it with Lamplit"
+                      width="176"
+                      height="176"
+                    />
+
+                    <div class="share-side">
+                      <p class="li-hint">
+                        Point your phone's camera at the code. It opens Lamplit once and is
+                        remembered afterwards, so this is a thing you do on a phone once.
+                      </p>
+                      <p class="url">
+                        Afterwards the phone is at <code>{{ share.urlFor(shownAddress()) }}</code>
+                      </p>
+                      <button matButton [disabled]="share.busy()" (click)="newCode()">
+                        New code
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <p class="warning" role="status">
+                    This computer has no network address at the moment, so there is nothing for a
+                    phone to open. Join a Wi-Fi network and switch this off and on again.
+                  </p>
+                }
+
+                <p class="warning">
+                  <strong>A phone that has scanned the code can do everything you can here</strong>
+                  — read and change every story, and read your API key, which Lamplit keeps as plain
+                  text. The traffic between them is plain HTTP across your own network and is not
+                  encrypted. Share on a network you trust, and use <em>New code</em> to lock out
+                  every phone that has ever been paired.
+                </p>
+
+                @if (modelIsHere()) {
+                  <p class="warning">
+                    Your endpoint is <code>{{ connection().baseUrl }}</code
+                    >, which is this computer. The story is sent to the model by the browser showing
+                    it, so a phone will reach Lamplit but not the model, and writing will fail
+                    there. Use an endpoint the phone can reach as well.
+                  </p>
+                }
+
+                <p class="li-hint">
+                  The first time you switch this on, Windows asks whether to allow Lamplit through
+                  the firewall. Say yes for private networks, or the phone gets nothing.
+                </p>
+              }
+            }
 
             @if (isDesktop) {
               <hr />
@@ -524,6 +618,70 @@ import { DialogsService } from '../../shared/dialogs.service';
       margin-top: 0.75rem;
     }
 
+    /* The code and what to do with it, side by side, and stacked when the
+       dialog is too narrow for that to leave room for either. */
+    .share {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 1rem;
+      margin: 0.4rem 0 0.2rem;
+    }
+
+    .share-side {
+      flex: 1 1 14rem;
+      min-width: 0;
+    }
+
+    .qr {
+      flex: none;
+      display: block;
+      padding: 0.4rem;
+      border: 1px solid var(--li-border);
+      border-radius: 10px;
+      /* White behind it whatever the theme: a phone camera reads a QR code by
+         its contrast, and the dark page would invert it. */
+      background: #ffffff;
+    }
+
+    .addresses {
+      flex-basis: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .address {
+      padding: 0.15rem 0.55rem;
+      border: 1px solid var(--li-border);
+      border-radius: 999px;
+      background: none;
+      color: var(--li-muted);
+      font: inherit;
+      font-size: 0.78rem;
+      cursor: pointer;
+
+      &.on {
+        border-color: color-mix(in srgb, var(--li-accent) 60%, transparent);
+        color: var(--li-ink);
+      }
+    }
+
+    .url {
+      margin: 0 0 0.6rem;
+      font-size: 0.8rem;
+      color: var(--li-muted);
+
+      code {
+        color: var(--li-ink);
+        word-break: break-all;
+      }
+    }
+
+    .warning code {
+      word-break: break-all;
+    }
+
     hr {
       border: 0;
       border-top: 1px solid var(--li-border);
@@ -540,10 +698,49 @@ export class PreferencesDialog {
   protected readonly settings = inject(SettingsStore);
   protected readonly stories = inject(StoryStore);
   protected readonly chapters = inject(ChapterStore);
+  protected readonly share = inject(ShareStore);
   private readonly updates = inject(UpdatesStore);
   private readonly dialogs = inject(DialogsService);
 
   protected readonly ui = this.settings.ui;
+  protected readonly connection = this.settings.connection;
+
+  constructor() {
+    // Asked for when the dialog opens rather than at startup: it is the
+    // server's own state, it can have been changed from a second window, and
+    // nothing outside this panel shows it.
+    void this.share.load();
+  }
+
+  /**
+   * Which address the code is drawn for. Empty until somebody picks one, so
+   * that the first of whatever the server found is what is on screen without
+   * this having to be kept in step with it.
+   */
+  protected readonly chosenAddress = signal('');
+
+  protected readonly shownAddress = computed(() => {
+    const addresses = this.share.addresses();
+    const chosen = this.chosenAddress();
+    return addresses.includes(chosen) ? chosen : (addresses[0] ?? '');
+  });
+
+  /**
+   * Whether the model is on this computer. If it is, a phone cannot reach it:
+   * the browser showing the story is what calls the endpoint (see
+   * `model-client.ts`), so `localhost` on the phone is the phone. Proxying the
+   * model through Lamplit's own server would fix it and is not this change.
+   */
+  protected readonly modelIsHere = computed(() => {
+    const url = this.connection().baseUrl.trim();
+    if (!url) return false;
+    try {
+      const { hostname } = new URL(url);
+      return /^(localhost|127\.\d+\.\d+\.\d+|\[?::1\]?|0\.0\.0\.0)$/i.test(hostname);
+    } catch {
+      return false;
+    }
+  });
   /** Only the desktop shell has a proxy to switch; in a tab it is the browser's. */
   protected readonly isDesktop = desktop() !== null;
   protected readonly fonts = READING_FONTS;
@@ -644,6 +841,9 @@ export class PreferencesDialog {
 
   protected readonly advancedSummary = computed(() => {
     const ui = this.ui();
+    // Sharing first: it is the only thing in here that changes who can reach
+    // the writing, so it is the one worth reading off a folded panel.
+    if (this.share.on()) return 'shared on this network';
     if (ui.developerMode) return 'developer mode on';
     return ui.checkForUpdates ? 'checking for new versions' : 'not checking for new versions';
   });
@@ -677,6 +877,24 @@ export class PreferencesDialog {
       `body text. Nothing stops you — but this is the one pair the whole story is read in.`
     );
   });
+
+  /**
+   * Opens or closes the second listener now, not at the next start: the switch
+   * is about a door, and a door that opens later is not one anybody trusts.
+   */
+  protected setShare(on: boolean): void {
+    void this.share.set(on);
+  }
+
+  protected async newCode(): Promise<void> {
+    const ok = await this.dialogs.confirm({
+      title: 'Make a new code?',
+      message:
+        'Every phone that has been paired stops working straight away and has to scan the new code. Nothing you have written is touched.',
+      confirm: 'Make a new code',
+    });
+    if (ok) void this.share.newCode();
+  }
 
   protected setColour(key: ColourKey, event: Event): void {
     const colour = (event.target as HTMLInputElement).value;

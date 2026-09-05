@@ -102,6 +102,39 @@ And by environment variable:
 | `LAMPLIT_BACKUP=0` | skip the daily backup |
 | `LAMPLIT_BACKUP_DIR` | put backups somewhere else |
 | `LAMPLIT_HOST` | bind somewhere other than `127.0.0.1` — think before you do |
+| `LAMPLIT_SHARE_PORT` | the port sharing uses, instead of 4177 |
+| `LAMPLIT_SHARE_HOST` | which interface sharing opens on, instead of all of them |
+
+## From your phone
+
+Lamplit is a web app served by its own server, so a phone on the same Wi-Fi only needs to be let
+in. Open **Preferences → Advanced** and switch on **Share on this network**.
+
+A second listener opens on port 4177 — the one on `127.0.0.1` never moves, and the tab already open
+on the computer does not notice. Under the switch is a QR code. Point your phone's camera at it: it
+opens Lamplit once, the phone is remembered, and after that the story is simply there. If the
+computer has more than one network address, which is usual on Windows, pick the one your phone is
+likely to be on and scan that code; the wrong one simply will not load.
+
+**New code** makes a fresh code and unpairs every phone that has ever scanned one. Use it if a
+phone goes missing, or if you shared on a network you would rather not have.
+
+Two things are worth being plain about:
+
+- **A phone that has scanned the code can do everything you can.** Read and change every story, and
+  read your API key, which Lamplit keeps as plain text. There is no second password.
+- **It is plain HTTP.** The traffic between the phone and the computer is not encrypted. HTTPS
+  needs a certificate that a phone will trust, which needs a domain name, which is not something
+  a folder on your laptop has.
+
+So: a network you trust, and switch it off when you are done. Switching it off closes the listener
+at once; the setting is remembered, so a machine that was sharing when you shut it down is sharing
+again when it starts.
+
+One thing sharing cannot fix: **a model running on the computer.** The story is sent to the model
+by the browser showing it, so if your endpoint is `http://localhost:...`, the phone will reach
+Lamplit and then try to reach the model on the *phone*, and fail. Preferences says so when it
+notices. Give Lamplit an endpoint the phone can reach as well, and both work.
 
 ## Moving it
 

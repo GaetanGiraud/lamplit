@@ -369,6 +369,35 @@ the download page at [lamplit-app.github.io/lamplit](https://lamplit-app.github.
   OpenRouter among them — are told where Lamplit lives with every request. That line used to carry
   the author's own site. It carries the project's now.
 
+**Read the story on your phone.** Lamplit is a web app served by its own server, so a phone on the
+same Wi-Fi only needed letting in. **Preferences → Advanced → Share on this network** does it:
+a second listener opens, and under the switch is a QR code. Point a phone's camera at it once and
+the story is there — the same story, the same files, saved back to the same computer.
+
+- **The computer's own door does not move.** Lamplit still answers on `127.0.0.1` exactly as
+  before, and the tab already open on the desk does not notice. Switching sharing off closes the
+  second listener and nothing else; switching it on again does not make anyone scan twice.
+- **Nothing gets in without the code.** A phone that has not scanned it — or anything else on the
+  network that goes looking — gets a page saying to scan the code on the computer, and nothing
+  more. **New code** makes a fresh one and unpairs every phone at once.
+- **Said plainly, because it matters:** a phone that has scanned the code can read and change
+  everything you can, your API key included, and the traffic across your network is plain HTTP and
+  is not encrypted. Share on a network you trust. The dialog says so too.
+- **Windows will ask** whether to allow Lamplit through the firewall the first time. It has to be
+  allowed for a private network, or the phone gets nothing.
+- **A model running on this computer stays on this computer.** The story is sent to the model by
+  the browser reading it, so a `localhost` endpoint is unreachable from a phone. Preferences says
+  so when it notices, rather than letting the writing fail over there.
+- The setting lives in `data/server.json`, which the server owns, so a machine that was sharing
+  when you shut it down is sharing when it starts. It works the same in the zip and in the desktop
+  app.
+
+**Two devices writing one story no longer lose one of them.** Every document now carries a
+revision, and a save says which revision it was based on. A save based on one that has moved on is
+refused rather than applied, the page reloads that document and says **"Changed on another device;
+reloaded"** — and coming back to a tab that was in the background fetches whatever changed while
+you were away. Before this, the second writer's saves were quietly dropped and reported as saved.
+
 ## 0.1.0 — the first release
 
 The first version anyone can install without a terminal.

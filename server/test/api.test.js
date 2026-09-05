@@ -41,12 +41,12 @@ async function serve({ withApp = false, updates, devCors = false } = {}) {
     base,
     close: () => new Promise((fulfil) => server.close(fulfil)),
     call: (path, init) => fetch(`${base}${path}`, init),
-    put: (path, body, seq) =>
+    put: (path, body, rev) =>
       fetch(`${base}${path}`, {
         method: 'PUT',
         headers: {
           'content-type': 'application/json',
-          ...(seq === undefined ? {} : { 'x-doc-seq': String(seq) }),
+          ...(rev === undefined ? {} : { 'x-doc-rev': String(rev) }),
         },
         body: JSON.stringify(body),
       }),
@@ -204,13 +204,18 @@ describe('/api/docs', () => {
     const api = await serve();
     const story = { id: 'abc', title: 'The Lighthouse', updatedAt: '2026-01-01T00:00:00.000Z' };
 
-    const written = await api.put('/api/docs/stories/abc', story, 1);
-    assert.deepEqual(await written.json(), { ok: true, seq: 1, skipped: false });
+    const written = await api.put('/api/docs/stories/abc', story, '');
+    const { ok, rev } = await written.json();
+    assert.equal(ok, true);
+    assert.match(rev, /^[0-9a-f]{16}$/);
 
-    assert.deepEqual(await (await api.call('/api/docs/stories')).json(), [story]);
-    assert.deepEqual(await (await api.call('/api/docs/stories/abc')).json(), story);
+    // Every copy of the document carries the revision the server stamped, so
+    // whoever is holding one knows what a later write would be based on.
+    const stamped = { ...story, rev };
+    assert.deepEqual(await (await api.call('/api/docs/stories')).json(), [stamped]);
+    assert.deepEqual(await (await api.call('/api/docs/stories/abc')).json(), stamped);
     assert.deepEqual(await (await api.call('/api/docs/stories?index')).json(), [
-      { id: 'abc', updatedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'abc', updatedAt: '2026-01-01T00:00:00.000Z', rev },
     ]);
 
     const removed = await api.call('/api/docs/stories/abc', { method: 'DELETE' });
@@ -230,12 +235,33 @@ describe('/api/docs', () => {
     await api.close();
   });
 
-  it('drops a write that arrives out of order', async () => {
+  it('answers 409 with the document as it stands when the write is stale', async () => {
     const api = await serve();
-    await api.put('/api/docs/stories/abc', { title: 'newer' }, 200);
-    const stale = await api.put('/api/docs/stories/abc', { title: 'older' }, 100);
-    assert.deepEqual(await stale.json(), { ok: true, seq: 200, skipped: true });
-    assert.deepEqual(await (await api.call('/api/docs/stories/abc')).json(), { title: 'newer' });
+    const first = await (await api.put('/api/docs/stories/abc', { title: 'first' }, '')).json();
+    await api.put('/api/docs/stories/abc', { title: 'from the phone' }, first.rev);
+
+    const stale = await api.put('/api/docs/stories/abc', { title: 'from the laptop' }, first.rev);
+    assert.equal(stale.status, 409);
+    const refusal = await stale.json();
+    assert.equal(refusal.ok, false);
+    assert.equal(refusal.error, 'changed on another device');
+    // Everything the laptop needs to reload, in the refusal itself.
+    assert.equal(refusal.document.title, 'from the phone');
+    assert.equal(refusal.document.rev, refusal.rev);
+
+    // And the retry, based on what came back, lands.
+    const retried = await api.put('/api/docs/stories/abc', { title: 'again' }, refusal.rev);
+    assert.equal(retried.status, 200);
+    await api.close();
+  });
+
+  it('takes a write that says nothing about what it was based on', async () => {
+    const api = await serve();
+    // A command line, a seeded fixture, a copy of the folder from elsewhere.
+    await api.put('/api/docs/stories/abc', { title: 'first' });
+    const over = await api.put('/api/docs/stories/abc', { title: 'second' });
+    assert.equal(over.status, 200);
+    assert.equal((await (await api.call('/api/docs/stories/abc')).json()).title, 'second');
     await api.close();
   });
 
@@ -256,22 +282,25 @@ describe('/api/docs', () => {
 
   it('refuses an empty body and a list, and leaves the document as it was', async () => {
     const api = await serve();
-    await api.put('/api/docs/stories/abc', { id: 'abc', title: 'kept' }, 1);
+    const first = await (
+      await api.put('/api/docs/stories/abc', { id: 'abc', title: 'kept' }, '')
+    ).json();
 
     const empty = await api.call('/api/docs/stories/abc', {
       method: 'PUT',
-      headers: { 'content-type': 'application/json', 'x-doc-seq': '2' },
+      headers: { 'content-type': 'application/json', 'x-doc-rev': first.rev },
       body: '',
     });
     assert.equal(empty.status, 400);
     assert.deepEqual(await empty.json(), { ok: false, error: 'body must be a JSON document' });
 
-    const list = await api.put('/api/docs/stories/abc', [1, 2, 3], 3);
+    const list = await api.put('/api/docs/stories/abc', [1, 2, 3], first.rev);
     assert.equal(list.status, 400);
 
     assert.deepEqual(await (await api.call('/api/docs/stories/abc')).json(), {
       id: 'abc',
       title: 'kept',
+      rev: first.rev,
     });
     await api.close();
   });
@@ -327,12 +356,12 @@ describe('serving the built app', () => {
  * A request whose Host header says what the test wants. `fetch` will only ever
  * send the URL's own, which is the one thing these tests are not about.
  */
-function callAs(base, host, path, { method = 'GET', body, seq } = {}) {
+function callAs(base, host, path, { method = 'GET', body, rev } = {}) {
   const { hostname, port } = new URL(base);
   const headers = {
     host,
     ...(body === undefined ? {} : { 'content-type': 'application/json' }),
-    ...(seq === undefined ? {} : { 'x-doc-seq': String(seq) }),
+    ...(rev === undefined ? {} : { 'x-doc-rev': String(rev) }),
   };
   return new Promise((fulfil, reject) => {
     const request = httpRequest({ hostname, port, path, method, headers }, (response) => {
@@ -366,7 +395,7 @@ describe('the Host header', () => {
 
   it('refuses a request that names somebody else’s domain, which is what DNS rebinding sends', async () => {
     const api = await serve();
-    await api.put('/api/docs/stories/abc', { id: 'abc' }, 1);
+    const first = await (await api.put('/api/docs/stories/abc', { id: 'abc' }, '')).json();
 
     const read = await callAs(api.base, 'evil.example', '/api/docs/stories');
     assert.equal(read.status, 421);
@@ -375,10 +404,13 @@ describe('the Host header', () => {
     const written = await callAs(api.base, 'evil.example:80', '/api/docs/stories/abc', {
       method: 'PUT',
       body: { id: 'abc', title: 'rebound' },
-      seq: 2,
+      rev: first.rev,
     });
     assert.equal(written.status, 421);
-    assert.deepEqual(await (await api.call('/api/docs/stories/abc')).json(), { id: 'abc' });
+    assert.deepEqual(await (await api.call('/api/docs/stories/abc')).json(), {
+      id: 'abc',
+      rev: first.rev,
+    });
     await api.close();
   });
 

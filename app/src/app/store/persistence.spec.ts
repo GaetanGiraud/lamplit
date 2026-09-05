@@ -3,47 +3,106 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { keyOf, refOf } from './document-api';
 import { Persistence } from './persistence';
 
-/** A stand-in for the server, answering from a set of documents it holds. */
+/**
+ * A stand-in for the server, answering from a set of documents it holds.
+ *
+ * Revisions are kept beside the documents rather than inside them, so that
+ * `documents` stays exactly what was written and an assertion about a document
+ * is about the document. A document seeded straight into the map has no
+ * revision at all, which is what a file written by an older version is, and
+ * the client's first write of it goes through unconditionally.
+ */
 class FakeServer {
   readonly documents = new Map<string, unknown>();
-  readonly requests: { method: string; url: string; seq: number; body: unknown }[] = [];
+  readonly requests: { method: string; url: string; rev: string; body: unknown }[] = [];
   failWith: string | null = null;
   /** Takes the request and never answers: a server mid-restart, or a stalled disk. */
   hang = false;
   /** Keys the server answers with a status and a reason instead of taking them. */
   readonly refuse = new Map<string, { status: number; error: string }>();
-  /** Keys the server answers 200 to and then drops, as a newer write has won. */
-  readonly skip = new Set<string>();
+  private readonly revs = new Map<string, string>();
+  private stamped = 0;
 
   readonly fetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
     if (this.failWith) throw new TypeError(this.failWith);
     const method = init.method ?? 'GET';
-    const path = url.replace('/api', '');
-    const seq = Number((init.headers as Record<string, string> | undefined)?.['x-doc-seq'] ?? 0);
+    const [path, query = ''] = url.replace('/api', '').split('?');
+    const rev = (init.headers as Record<string, string> | undefined)?.['x-doc-rev'];
     const body: unknown = init.body ? JSON.parse(init.body as string) : null;
-    this.requests.push({ method, url, seq, body });
+    this.requests.push({ method, url, rev: rev ?? '', body });
     if (this.hang) await new Promise(() => undefined);
 
     const list = /^\/docs\/(settings|stories|chapters)$/.exec(path);
-    if (list) return this.json(this.of(list[1]));
+    if (list) return this.json(query === 'index' ? this.index(list[1]) : this.of(list[1]));
 
     const one = /^\/docs\/(settings|stories|chapters)\/(.+)$/.exec(path);
     if (!one) return this.json({ ok: false }, 404);
     const key = keyOf({ collection: one[1] as 'stories', id: decodeURIComponent(one[2]) });
     const refusal = this.refuse.get(key);
     if (refusal) return this.json({ ok: false, error: refusal.error }, refusal.status);
-    if (this.skip.has(key)) return this.json({ ok: true, seq, skipped: true });
-    if (method === 'PUT') this.documents.set(key, body);
-    if (method === 'DELETE') this.documents.delete(key);
-    return this.json({ ok: true, seq, skipped: false });
+
+    if (method === 'GET') {
+      const document = this.served(key);
+      return document === null ? this.json({ ok: false }, 404) : this.json(document);
+    }
+    if (method === 'DELETE') {
+      this.documents.delete(key);
+      this.revs.delete(key);
+      return this.json({ ok: true });
+    }
+    // A write that says what it was based on is checked against what is here.
+    const current = this.revs.get(key) ?? '';
+    if (rev !== undefined && rev !== current) {
+      return this.json(
+        { ok: false, error: 'changed on another device', rev: current, document: this.served(key) },
+        409,
+      );
+    }
+    this.documents.set(key, body);
+    this.revs.set(key, this.nextRev());
+    return this.json({ ok: true, rev: this.revs.get(key) });
   };
+
+  /** Another device writing a document, behind this session's back. */
+  elsewhere(key: string, document: unknown): void {
+    this.documents.set(key, document);
+    this.revs.set(key, this.nextRev());
+  }
+
+  /** And another device deleting one. */
+  goneElsewhere(key: string): void {
+    this.documents.delete(key);
+    this.revs.delete(key);
+  }
+
+  private nextRev(): string {
+    this.stamped += 1;
+    return `r${this.stamped}`;
+  }
+
+  private served(key: string): unknown {
+    const document = this.documents.get(key);
+    if (document === undefined) return null;
+    const rev = this.revs.get(key);
+    return rev === undefined ? document : { ...(document as object), rev };
+  }
 
   private of(collection: string): unknown[] {
     const held: unknown[] = [];
-    for (const [key, document] of this.documents) {
-      if (refOf(key)?.collection === collection) held.push(document);
+    for (const key of this.documents.keys()) {
+      if (refOf(key)?.collection === collection) held.push(this.served(key));
     }
     return held;
+  }
+
+  private index(collection: string): unknown[] {
+    const entries: unknown[] = [];
+    for (const key of this.documents.keys()) {
+      const ref = refOf(key);
+      if (ref?.collection !== collection) continue;
+      entries.push({ id: ref.id, updatedAt: null, rev: this.revs.get(key) ?? '' });
+    }
+    return entries;
   }
 
   private json(body: unknown, status = 200): Promise<Response> {
@@ -172,21 +231,20 @@ describe('Persistence', () => {
     expect(writes[0].body).toEqual({ id: 'one', turn: 5 });
   });
 
-  it('stamps every write with a sequence number that only goes up', async () => {
+  it('says what each write was based on, and takes the revision it is given', async () => {
     await persistence.load();
     server.requests.length = 0;
 
+    // Nothing was there, so the first write says so and creates it.
     persistence.write('story:abc', story('abc', 'One'));
     await settle();
-    persistence.write('chapter:one', { id: 'one' });
-    await settle();
-    persistence.remove('story:abc');
-    await settle();
+    expect(server.requests[0].rev).toBe('');
 
-    const seqs = server.requests.map((request) => request.seq);
-    expect(seqs).toHaveLength(3);
-    expect(seqs).toEqual([...seqs].sort((a, b) => a - b));
-    expect(new Set(seqs).size).toBe(3);
+    // And the second is based on what the first came back with.
+    persistence.write('story:abc', story('abc', 'Two'));
+    await settle();
+    expect(server.requests[1].rev).not.toBe('');
+    expect(server.documents.get('story:abc')).toEqual(story('abc', 'Two'));
   });
 
   it('says it is saving from the moment there is something to save', async () => {
@@ -245,8 +303,9 @@ describe('Persistence', () => {
 
     expect(server.requests).toHaveLength(2);
     expect(server.requests[1].body).toEqual({ id: 'one', turn: 1 });
-    // The later one wins wherever the two land: the server drops the older seq.
-    expect(server.requests[1].seq).toBeGreaterThan(server.requests[0].seq);
+    // Both say the same thing about what they were based on, so whichever
+    // lands first lands, and the second is refused rather than doubled.
+    expect(server.requests[1].rev).toBe(server.requests[0].rev);
   });
 
   it('says a chapter is unsaved rather than posting it into a refusal', async () => {
@@ -395,18 +454,67 @@ describe('Persistence', () => {
     expect(server.documents.get('chapter:one')).toEqual({ id: 'one', title: 'The Long Scene' });
   });
 
-  it('does not call a write saved that the server took and dropped', async () => {
+  it('takes the other device’s document rather than writing over it', async () => {
+    server.documents.set('story:abc', story('abc', 'The Lighthouse'));
     await persistence.load();
-    // Another window got there first with a higher sequence number, so this
-    // write never reached the disk however cheerful the 200 looked.
-    server.skip.add('story:abc');
 
-    persistence.write('story:abc', story('abc', 'Written here'));
+    // The phone renamed it while this session had it open.
+    server.elsewhere('story:abc', story('abc', 'Renamed on the phone'));
+
+    persistence.write('story:abc', story('abc', 'Renamed here'));
     await settle();
 
-    expect(persistence.status()).toBe('refused');
-    expect(persistence.error()).toContain('newer version');
-    expect(server.documents.has('story:abc')).toBe(false);
+    // What is on screen is what is on disk, and what was typed here is gone —
+    // which is what the notice is for.
+    expect(persistence.read<{ title: string }>('story:abc')?.title).toBe('Renamed on the phone');
+    expect(server.documents.get('story:abc')).toEqual(story('abc', 'Renamed on the phone'));
+    expect(persistence.notice()).toContain('another device');
+    expect(persistence.changed()).toBe(1);
+    // Not "refused": there is nothing left unsaved and nothing to try again.
+    expect(persistence.status()).toBe('saved');
+  });
+
+  it('writes again afterwards, on top of the document it took', async () => {
+    server.documents.set('story:abc', story('abc', 'The Lighthouse'));
+    await persistence.load();
+    server.elsewhere('story:abc', story('abc', 'Renamed on the phone'));
+    persistence.write('story:abc', story('abc', 'Renamed here'));
+    await settle();
+
+    persistence.write('story:abc', story('abc', 'Renamed here, this time on purpose'));
+    await settle();
+
+    expect(server.documents.get('story:abc')).toEqual(
+      story('abc', 'Renamed here, this time on purpose'),
+    );
+    expect(persistence.status()).toBe('saved');
+  });
+
+  it('drops a write onto a document another device deleted, rather than resurrecting it', async () => {
+    server.documents.set('chapter:one', { id: 'one', turn: 1 });
+    await persistence.load();
+    // The other device has to have written it once for this session to be
+    // holding a revision at all; then it deletes it.
+    server.elsewhere('chapter:one', { id: 'one', turn: 1 });
+    await persistence.refresh();
+    server.goneElsewhere('chapter:one');
+
+    persistence.write('chapter:one', { id: 'one', turn: 2 });
+    await settle();
+
+    expect(persistence.read('chapter:one')).toBeNull();
+    expect(server.documents.has('chapter:one')).toBe(false);
+  });
+
+  it('dismisses the notice, and says nothing until the next time', async () => {
+    server.documents.set('story:abc', story('abc', 'The Lighthouse'));
+    await persistence.load();
+    server.elsewhere('story:abc', story('abc', 'Renamed on the phone'));
+    persistence.write('story:abc', story('abc', 'Renamed here'));
+    await settle();
+
+    persistence.dismissNotice();
+    expect(persistence.notice()).toBe('');
   });
 
   it('warns on close about a document the server refused, not only a queue', async () => {

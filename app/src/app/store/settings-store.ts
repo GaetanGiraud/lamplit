@@ -20,6 +20,12 @@ import { STORAGE_BACKEND } from './storage';
 export class SettingsStore {
   private readonly storage = inject(STORAGE_BACKEND);
   private readonly state = signal<Settings>(this.load());
+  /**
+   * The document as it was last read or written. A state that differs from
+   * this is a change worth a request; one that matches is the document coming
+   * back from where it already is.
+   */
+  private written = JSON.stringify(this.state());
 
   readonly settings = this.state.asReadonly();
   readonly connection = computed(() => this.state().connection);
@@ -55,13 +61,24 @@ export class SettingsStore {
     // document came off disk a tick ago and putting it straight back is a
     // request that says nothing. The story and chapter stores do the same with
     // their `written` maps.
-    let written = JSON.stringify(this.state());
     effect(() => {
       const next = JSON.stringify(this.state());
-      if (next === written) return;
-      written = next;
+      if (next === this.written) return;
+      this.written = next;
       this.storage.write(KEYS.settings, this.state());
     });
+  }
+
+  /**
+   * Reads the document again, for a session whose copy was replaced by one
+   * written on another device. `written` is primed with it for the same reason
+   * the constructor primes it: what has just been read is not a change, and
+   * sending it straight back would be a request that says nothing.
+   */
+  reload(): void {
+    const settings = this.load();
+    this.written = JSON.stringify(settings);
+    this.state.set(settings);
   }
 
   patchConnection(patch: Partial<ConnectionSettings>): void {

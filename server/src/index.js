@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 import { backupOnStartup } from './backup.js';
+import { DEFAULT_SHARE_PORT, createSharing, localAddresses } from './share.js';
 import { readBuildInfo, recordRun } from './version.js';
 import { createUpdateChecker } from './updates.js';
 
@@ -52,10 +53,32 @@ const hosts = host === '0.0.0.0' ? [] : [host];
 // Off unless asked for: the app calls its own origin, and `npm start` proxies
 // rather than calling across. See corsFor in app.js.
 const devCors = process.env['LAMPLIT_DEV_CORS'] === '1';
-const app = createApp({ dataDir, publicDir, build, previousVersion, updates, hosts, devCors });
+
+// Made before the app because the app registers the routes that read it, and
+// handed the app straight after because it is the app it puts behind the lock.
+// Off until somebody turns it on, or until `server.json` says it already is.
+const sharing = createSharing({
+  dataDir,
+  port: Number(process.env['LAMPLIT_SHARE_PORT'] ?? DEFAULT_SHARE_PORT),
+  // Every interface, which is the point of sharing. Narrower is for a machine
+  // with a reason to offer one adapter, and for this project's own e2e suite.
+  ...(process.env['LAMPLIT_SHARE_HOST'] ? { host: process.env['LAMPLIT_SHARE_HOST'] } : {}),
+});
+const app = createApp({
+  dataDir,
+  publicDir,
+  build,
+  previousVersion,
+  updates,
+  hosts,
+  devCors,
+  sharing,
+});
 const store = app.locals['store'];
+sharing.serve(app);
 
 await store.init();
+const shared = await sharing.init();
 
 const server = await listen(app, host, wanted);
 const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${server.address().port}/`;
@@ -69,6 +92,16 @@ console.log(
 
 if (!updates.enabled) console.log('  updates    not checked (LAMPLIT_UPDATE_CHECK=0)');
 
+// Said out loud at every start, because it is the one setting that changes who
+// can reach the writing, and nobody should have to open a dialog to find out.
+if (shared.share) {
+  const addresses = localAddresses();
+  console.log(`  shared     on this network at :${sharing.port} — pair a phone in Preferences`);
+  for (const address of addresses) console.log(`             http://${address}:${sharing.port}/`);
+} else if (shared.error) {
+  console.warn(`  sharing was on, but could not be opened: ${shared.error}`);
+}
+
 if (process.env['LAMPLIT_BACKUP'] !== '0') {
   backupOnStartup(dataDir, backupsDir).then(
     (made) => made && console.log(`  backup     ${made}`),
@@ -80,7 +113,11 @@ if (process.env['LAMPLIT_BACKUP'] !== '0') {
 if (shouldOpen) openBrowser(url);
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.on(signal, () => server.close(() => process.exit(0)));
+  process.on(signal, () => {
+    // The shared listener first: a phone holding a socket open must not be
+    // what keeps the process alive after somebody has asked it to stop.
+    void sharing.close().finally(() => server.close(() => process.exit(0)));
+  });
 }
 
 /** Takes the next free port when the wanted one is in use. */

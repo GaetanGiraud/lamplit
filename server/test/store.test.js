@@ -12,6 +12,18 @@ async function freshStore() {
   return store;
 }
 
+/**
+ * A document as its writer wrote it, without the revision the store stamped on
+ * it. Every read has one and none of them is predictable, so the assertions
+ * that are about the writing say so by leaving it out.
+ */
+function written(document) {
+  if (document === null) return null;
+  const copy = { ...document };
+  delete copy.rev;
+  return copy;
+}
+
 describe('paths', () => {
   it('knows the three collections and nothing else', () => {
     assert.ok(isCollection('settings'));
@@ -37,9 +49,10 @@ describe('paths', () => {
 describe('DocumentStore', () => {
   it('round-trips a document and lists it', async () => {
     const store = await freshStore();
-    await store.write('stories', 'one', { id: 'one', title: 'A' });
-    assert.deepEqual(await store.read('stories', 'one'), { id: 'one', title: 'A' });
-    assert.deepEqual(await store.list('stories'), [{ id: 'one', title: 'A' }]);
+    const { rev } = await store.write('stories', 'one', { id: 'one', title: 'A' });
+    assert.deepEqual(await store.read('stories', 'one'), { id: 'one', title: 'A', rev });
+    assert.deepEqual(written(await store.read('stories', 'one')), { id: 'one', title: 'A' });
+    assert.deepEqual((await store.list('stories')).map(written), [{ id: 'one', title: 'A' }]);
   });
 
   it('reads a missing document as null rather than throwing', async () => {
@@ -60,7 +73,7 @@ describe('DocumentStore', () => {
     const store = await freshStore();
     await store.write('settings', 'settings', { activeStoryId: 'x' });
     assert.ok(store.pathOf('settings', 'settings').endsWith('settings.json'));
-    assert.deepEqual(await store.list('settings'), [{ activeStoryId: 'x' }]);
+    assert.deepEqual((await store.list('settings')).map(written), [{ activeStoryId: 'x' }]);
   });
 
   it('writes in arrival order, whoever comes first', async () => {
@@ -68,27 +81,106 @@ describe('DocumentStore', () => {
     const writes = [];
     for (let i = 0; i < 25; i++) writes.push(store.write('chapters', 'c', { turn: i }));
     await Promise.all(writes);
-    assert.deepEqual(await store.read('chapters', 'c'), { turn: 24 });
+    assert.deepEqual(written(await store.read('chapters', 'c')), { turn: 24 });
   });
 
-  it('drops a write older than the last one applied', async () => {
+  it('writes unconditionally when nothing says what it was based on', async () => {
     const store = await freshStore();
-    await store.write('stories', 'one', { title: 'first' }, 100);
-    const stale = await store.write('stories', 'one', { title: 'stale' }, 60);
-    assert.deepEqual(stale, { ok: true, seq: 100, skipped: true });
-    assert.deepEqual(await store.read('stories', 'one'), { title: 'first' });
-
-    const newer = await store.write('stories', 'one', { title: 'newer' }, 101);
-    assert.equal(newer.skipped, false);
-    assert.deepEqual(await store.read('stories', 'one'), { title: 'newer' });
+    await store.write('stories', 'one', { title: 'first' });
+    const over = await store.write('stories', 'one', { title: 'second' });
+    assert.equal(over.ok, true);
+    assert.deepEqual(written(await store.read('stories', 'one')), { title: 'second' });
   });
 
-  it('applies the sequence guard to deletes, so a stale write cannot resurrect', async () => {
+  it('stamps a fresh revision on every write', async () => {
     const store = await freshStore();
-    await store.write('stories', 'one', { title: 'here' }, 10);
-    await store.remove('stories', 'one', 20);
-    await store.write('stories', 'one', { title: 'back from the dead' }, 15);
+    const first = await store.write('stories', 'one', { title: 'first' });
+    const second = await store.write('stories', 'one', { title: 'second' }, first.rev);
+    assert.match(first.rev, /^[0-9a-f]{16}$/);
+    assert.notEqual(second.rev, first.rev);
+    assert.equal((await store.read('stories', 'one')).rev, second.rev);
+  });
+
+  it('creates a document for a writer that says it was based on nothing', async () => {
+    const store = await freshStore();
+    const made = await store.write('stories', 'one', { title: 'new' }, '');
+    assert.equal(made.ok, true);
+    // And refuses the same claim a second time: there is something here now.
+    const again = await store.write('stories', 'one', { title: 'also new' }, '');
+    assert.equal(again.conflict, true);
+    assert.deepEqual(written(await store.read('stories', 'one')), { title: 'new' });
+  });
+
+  it('refuses a write based on a revision the document has moved past', async () => {
+    const store = await freshStore();
+    const first = await store.write('stories', 'one', { title: 'first' }, '');
+    await store.write('stories', 'one', { title: 'from the phone' }, first.rev);
+
+    const stale = await store.write('stories', 'one', { title: 'from the laptop' }, first.rev);
+    assert.equal(stale.ok, false);
+    assert.equal(stale.conflict, true);
+    // The document comes back with the refusal, so reloading it is not a
+    // second request the phone could win again in between.
+    assert.deepEqual(written(stale.document), { title: 'from the phone' });
+    assert.equal(stale.rev, (await store.read('stories', 'one')).rev);
+    assert.deepEqual(written(await store.read('stories', 'one')), { title: 'from the phone' });
+  });
+
+  it('lets the writer that reloaded try again, and this time it lands', async () => {
+    const store = await freshStore();
+    const first = await store.write('stories', 'one', { title: 'first' }, '');
+    const theirs = await store.write('stories', 'one', { title: 'theirs' }, first.rev);
+    const refused = await store.write('stories', 'one', { title: 'mine' }, first.rev);
+    assert.equal(refused.conflict, true);
+    const retried = await store.write('stories', 'one', { title: 'mine' }, theirs.rev);
+    assert.equal(retried.ok, true);
+    assert.deepEqual(written(await store.read('stories', 'one')), { title: 'mine' });
+  });
+
+  it('refuses a stale write onto a deleted document rather than resurrecting it', async () => {
+    const store = await freshStore();
+    const first = await store.write('stories', 'one', { title: 'here' }, '');
+    await store.remove('stories', 'one');
+    const zombie = await store.write('stories', 'one', { title: 'back from the dead' }, first.rev);
+    assert.equal(zombie.conflict, true);
+    assert.equal(zombie.rev, '');
+    assert.equal(zombie.document, null);
     assert.equal(await store.read('stories', 'one'), null);
+  });
+
+  it('deletes whatever the caller last saw, because deleting is somebody saying so', async () => {
+    const store = await freshStore();
+    const first = await store.write('stories', 'one', { title: 'here' }, '');
+    await store.write('stories', 'one', { title: 'changed elsewhere' }, first.rev);
+    // No revision is asked for and none is compared: a story taking its
+    // chapters with it deletes chapters nobody has looked at.
+    assert.equal((await store.remove('stories', 'one')).ok, true);
+    assert.equal(await store.read('stories', 'one'), null);
+  });
+
+  it('holds the guard across a restart, because the revision is on the disk', async () => {
+    const store = await freshStore();
+    const first = await store.write('stories', 'one', { title: 'first' }, '');
+    const second = await store.write('stories', 'one', { title: 'second' }, first.rev);
+
+    // A new store over the same folder is what the next start is.
+    const restarted = new DocumentStore(store.dataDir);
+    assert.equal(
+      (await restarted.write('stories', 'one', { title: 'x' }, first.rev)).conflict,
+      true,
+    );
+    assert.equal((await restarted.write('stories', 'one', { title: 'x' }, second.rev)).ok, true);
+  });
+
+  it('notices a file that was changed behind its back', async () => {
+    const store = await freshStore();
+    const first = await store.write('stories', 'one', { title: 'first' }, '');
+    // A hand edit, or a restored backup: the revision on disk is not the one
+    // this writer was given, and that is exactly what the guard is for.
+    await writeFile(store.pathOf('stories', 'one'), '{ "title": "by hand" }\n', 'utf8');
+    const refused = await store.write('stories', 'one', { title: 'over the top' }, first.rev);
+    assert.equal(refused.conflict, true);
+    assert.deepEqual(refused.document, { title: 'by hand' });
   });
 
   it('leaves no temporary files behind', async () => {
@@ -102,15 +194,17 @@ describe('DocumentStore', () => {
     assert.deepEqual(files.sort(), ['a.json', 'b.json']);
   });
 
-  it('treats two spellings of one id as the one document the disk makes them', async () => {
+  it('queues two spellings of one id on the chain the disk makes them share', async () => {
     const store = await freshStore();
-    await store.write('stories', 'abc', { title: 'newer' }, 200);
-    // On a case-insensitive filesystem this is the same file; on a sensitive
-    // one it is a different document, and dropping the write is still correct
-    // because the client never sends two spellings of an id it generated.
-    const stale = await store.write('stories', 'ABC', { title: 'older' }, 100);
-    assert.equal(stale.skipped, true);
-    assert.deepEqual(await store.read('stories', 'abc'), { title: 'newer' });
+    // On a case-insensitive filesystem these are one file, and the point of
+    // folding the key is that the two writes are ordered rather than racing.
+    const [first, second] = await Promise.all([
+      store.write('stories', 'abc', { title: 'first' }),
+      store.write('stories', 'ABC', { title: 'second' }),
+    ]);
+    assert.equal(first.ok, true);
+    assert.equal(second.ok, true);
+    assert.deepEqual(written(await store.read('stories', 'abc')), { title: 'second' });
   });
 
   it('leaves no temporary file behind when the rename itself fails', async () => {
@@ -128,7 +222,7 @@ describe('DocumentStore', () => {
     const warn = console.warn;
     console.warn = () => {};
     try {
-      assert.deepEqual(await store.list('stories'), [{ id: 'good' }]);
+      assert.deepEqual((await store.list('stories')).map(written), [{ id: 'good' }]);
     } finally {
       console.warn = warn;
     }
@@ -148,7 +242,7 @@ describe('DocumentStore', () => {
     circular.self = circular;
     await assert.rejects(store.write('stories', 'one', circular));
     await store.write('stories', 'one', { title: 'fine' });
-    assert.deepEqual(await store.read('stories', 'one'), { title: 'fine' });
+    assert.deepEqual(written(await store.read('stories', 'one')), { title: 'fine' });
   });
 
   it('removes a document, and does not mind removing it twice', async () => {
@@ -159,13 +253,19 @@ describe('DocumentStore', () => {
     assert.equal(await store.read('stories', 'one'), null);
   });
 
-  it('indexes a collection by id and freshness', async () => {
+  it('indexes a collection by id, freshness and revision', async () => {
     const store = await freshStore();
-    await store.write('chapters', 'a', { id: 'a', updatedAt: '2026-01-02T00:00:00.000Z' });
+    const a = await store.write('chapters', 'a', {
+      id: 'a',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
     await store.write('chapters', 'b', { id: 'b', updatedAt: '2026-01-03T00:00:00.000Z' });
     const index = await store.index('chapters');
     assert.deepEqual(index.map((entry) => entry.id).sort(), ['a', 'b']);
     assert.ok(index.every((entry) => typeof entry.updatedAt === 'string'));
+    // The revision is what makes coming back to a tab a comparison rather
+    // than a download of everything.
+    assert.equal(index.find((entry) => entry.id === 'a').rev, a.rev);
   });
 });
 

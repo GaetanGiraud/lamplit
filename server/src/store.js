@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 /**
  * The three document kinds the app persists, and where each one lives.
@@ -35,13 +35,23 @@ export function isId(collection, id) {
  * both Windows and POSIX — a reader sees the old document or the new one, and
  * a crash mid-write leaves the old one intact.
  *
- * A client-supplied `seq` (monotonic per document) guards against the wire
- * reordering two requests: a write older than the last one applied is dropped.
+ * Two writers are what the third rule is for. Every document carries a `rev`
+ * the server stamps on it, and a conditional write says which `rev` it was
+ * based on: the same one the file has now, and the write lands; a different
+ * one, and it is refused with the document as it actually stands, for the
+ * client to reload. Nothing is silently dropped and nothing is silently
+ * overwritten — which is what the sequence number this replaced did, and why
+ * a phone and a laptop editing one story would have lost the phone's writing.
+ *
+ * The current `rev` is read off the disk on every conditional write rather
+ * than remembered here. It costs one read of a file that is about to be
+ * rewritten anyway, and it buys two things worth more than that: the guard
+ * still holds after a restart, and it still holds when the file was changed by
+ * something that is not this process at all — a hand edit, a restored backup.
  */
 export class DocumentStore {
   #dataDir;
   #chains = new Map();
-  #seqs = new Map();
 
   constructor(dataDir) {
     this.#dataDir = dataDir;
@@ -89,12 +99,18 @@ export class DocumentStore {
     return documents;
   }
 
-  /** The light listing: enough to know what is there and how fresh it is. */
+  /**
+   * The light listing: enough to know what is there, how fresh it is, and
+   * whether the copy in a browser is still the copy on disk. `rev` is what
+   * makes the last of those a comparison rather than a download — the app asks
+   * for this when its tab is looked at again and fetches only what moved.
+   */
   async index(collection) {
     const documents = await this.list(collection);
     return documents.map((document, position) => ({
       id: document?.id ?? COLLECTIONS[collection].single ?? String(position),
       updatedAt: document?.updatedAt ?? null,
+      rev: revisionOf(document),
     }));
   }
 
@@ -111,13 +127,31 @@ export class DocumentStore {
   }
 
   /**
-   * Overwrites the document. Returns the sequence number now in force, and
-   * whether this write was dropped for being older than one already applied.
+   * Overwrites the document and stamps it with a new `rev`.
+   *
+   * `basedOn` is the `rev` the writer last saw. Leave it out and the write is
+   * unconditional, which is what a command line and a test fixture are. Give
+   * it, and a document that has moved on since is not overwritten: the answer
+   * is `{ conflict: true }` carrying the document as it stands, which is
+   * everything the client needs to reload it without a second request. A
+   * document that is not there has no revision, so `''` is the `basedOn` that
+   * creates one — and a real `rev` against a missing file is a conflict, which
+   * is how a stale write cannot resurrect a chapter somebody deleted.
    */
-  async write(collection, id, document, seq) {
-    return this.#enqueue(collection, id, seq, async (path) => {
+  async write(collection, id, document, basedOn) {
+    return this.#enqueue(collection, id, async (path) => {
+      if (basedOn !== undefined) {
+        const current = await this.#current(path);
+        if (current.rev !== basedOn) {
+          return { ok: false, conflict: true, rev: current.rev, document: current.document };
+        }
+      }
+      const rev = newRevision();
+      // Spread first, so a `rev` the client echoed back inside the document it
+      // is sending cannot be the one that ends up written down.
+      const stamped = { ...document, rev };
       const temporary = `${path}.${randomUUID().slice(0, 8)}.tmp`;
-      await writeFile(temporary, `${JSON.stringify(document, null, 2)}\n`, 'utf8');
+      await writeFile(temporary, `${JSON.stringify(stamped, null, 2)}\n`, 'utf8');
       try {
         await rename(temporary, path);
       } catch (error) {
@@ -127,32 +161,47 @@ export class DocumentStore {
         await rm(temporary, { force: true }).catch(() => {});
         throw error;
       }
+      return { ok: true, rev };
     });
   }
 
-  async remove(collection, id, seq) {
-    return this.#enqueue(collection, id, seq, async (path) => {
+  /**
+   * Unconditional, unlike a write, and on purpose: deleting is a person saying
+   * so about a whole document, and a story taking its chapters with it deletes
+   * chapters nobody has looked at. Refusing that because a phone had touched
+   * one of them would leave half a story on disk. What a guard here would be
+   * for — a stale write landing on top of a delete — is caught on the writing
+   * side instead, where the missing file is a revision nothing can match.
+   */
+  async remove(collection, id) {
+    return this.#enqueue(collection, id, async (path) => {
       await rm(path, { force: true });
+      return { ok: true, rev: '' };
     });
   }
 
-  /** Serialises work on one document and applies the sequence guard. */
-  #enqueue(collection, id, seq, work) {
+  /** The revision on disk now, and the document it belongs to. */
+  async #current(path) {
+    let document;
+    try {
+      document = JSON.parse(await readFile(path, 'utf8'));
+    } catch {
+      // Missing, truncated, hand-edited into something that will not parse:
+      // all three are "there is nothing here to have been based on".
+      return { rev: '', document: null };
+    }
+    return { rev: revisionOf(document), document };
+  }
+
+  /** Serialises work on one document, whoever asked first. */
+  #enqueue(collection, id, work) {
     // Lower-cased, because Windows and macOS give `abc.json` and `ABC.json`
-    // the same file: two chains and two sequence guards over one document
-    // would order neither. Ids are UUIDs, so nothing is lost by folding them.
+    // the same file: two chains over one document would order neither. Ids are
+    // UUIDs, so nothing is lost by folding them.
     const key = `${collection}/${String(id).toLowerCase()}`;
     const path = this.pathOf(collection, id);
     const previous = this.#chains.get(key) ?? Promise.resolve();
-    const run = previous.then(async () => {
-      const applied = this.#seqs.get(key);
-      if (seq !== undefined && applied !== undefined && seq <= applied) {
-        return { ok: true, seq: applied, skipped: true };
-      }
-      await work(path);
-      if (seq !== undefined) this.#seqs.set(key, seq);
-      return { ok: true, seq: seq ?? applied ?? 0, skipped: false };
-    });
+    const run = previous.then(() => work(path));
     // The chain must survive a failed write, or the document jams for good.
     this.#chains.set(
       key,
@@ -160,4 +209,19 @@ export class DocumentStore {
     );
     return run;
   }
+}
+
+/**
+ * Eight random bytes rather than a counter: a revision has to be unique across
+ * a restart, and a counter starting again at one would hand the second run's
+ * first write the number the first run's first write already used.
+ */
+function newRevision() {
+  return randomBytes(8).toString('hex');
+}
+
+/** The `rev` a document carries, or `''` for one written before there were any. */
+function revisionOf(document) {
+  const rev = document?.['rev'];
+  return typeof rev === 'string' ? rev : '';
 }

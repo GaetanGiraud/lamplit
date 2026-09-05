@@ -116,6 +116,15 @@ if (!app.requestSingleInstanceLock()) {
 
 /** @type {import('node:http').Server | null} */
 let server = null;
+/**
+ * The second listener, when the person has asked for one. The shell owns its
+ * lifetime and nothing else: what it is, why it is locked and when it opens are
+ * all in `server/src/share.js`, and the window is no more able to reach it than
+ * a browser tab is.
+ *
+ * @type {{ close(): Promise<void> } | null}
+ */
+let sharing = null;
 let finished = false;
 /** @type {BrowserWindow | null} */
 let window = null;
@@ -168,14 +177,30 @@ async function start() {
     enabled: process.env['LAMPLIT_UPDATE_CHECK'] !== '0',
   });
 
+  // The same second listener the zip has, on the same port. The window's own
+  // port is whatever the operating system handed out and changes every start;
+  // the shared one is fixed at 4177 precisely because a person may read it off
+  // the screen and type it into a phone.
+  const { DEFAULT_SHARE_PORT, createSharing } = await import(
+    pathToFileURL(join(SERVER, 'share.js')).href
+  );
+  sharing = createSharing({ dataDir: DATA_DIR, port: DEFAULT_SHARE_PORT });
+
   const expressApp = createApp({
     dataDir: DATA_DIR,
     publicDir: PUBLIC_DIR,
     build,
     previousVersion,
     updates,
+    sharing,
   });
   await expressApp.locals['store'].init();
+  sharing.serve(expressApp);
+  // Honoured, not thrown: a machine that was sharing when it was shut down
+  // should be sharing again, and a port that is busy this morning must still
+  // leave a window that opens.
+  const shared = await sharing.init();
+  if (shared.error) console.warn(`sharing was on, but could not be opened: ${shared.error}`);
 
   server = await listen(expressApp);
   const url = `http://127.0.0.1:${server.address().port}/`;
@@ -460,6 +485,11 @@ app.on('will-quit', (event) => {
   event.preventDefault();
   const closing = server;
   server = null;
+  // A phone still holding a socket open is not a reason for Quit not to quit,
+  // and `close` there drops the sockets rather than waiting on them.
+  const shared = sharing;
+  sharing = null;
+  void shared?.close().catch(() => {});
 
   const finish = () => {
     if (finished) return;

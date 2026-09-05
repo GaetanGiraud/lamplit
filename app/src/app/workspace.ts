@@ -1,9 +1,10 @@
-import { Component, afterNextRender, effect, inject } from '@angular/core';
+import { Component, afterNextRender, effect, inject, untracked } from '@angular/core';
 import { DEFAULT_STORY_TITLE } from './core/defaults';
 import { desktop } from './core/desktop';
 import { applyUi } from './core/theming';
 import { ChapterPanel } from './features/chapters/chapter-panel';
 import { ChaptersPage } from './features/chapters/chapters-page';
+import { ReloadNotice } from './shared/reload-notice';
 import { TopBar } from './shared/top-bar';
 import { UpgradeNotice } from './shared/upgrade-notice';
 import { SettingsStore } from './store/settings-store';
@@ -23,10 +24,11 @@ import { DialogsService } from './shared/dialogs.service';
  */
 @Component({
   selector: 'li-workspace',
-  imports: [TopBar, UpgradeNotice, ChapterPanel, ChaptersPage],
+  imports: [TopBar, UpgradeNotice, ReloadNotice, ChapterPanel, ChaptersPage],
   template: `
     <li-top-bar />
     <li-upgrade-notice />
+    <li-reload-notice />
     <div class="body">
       <li-chapters-page />
       <li-chapter-panel />
@@ -65,9 +67,11 @@ export class Workspace {
   private readonly chapters = inject(ChapterStore);
   private readonly stories = inject(StoryStore);
   private readonly dialogs = inject(DialogsService);
+  private readonly persistence = inject(Persistence);
 
   constructor() {
-    inject(Persistence).listen();
+    this.persistence.listen();
+    this.watchForOtherDevices();
 
     // Once, at start, and only when the reader has left it on — off means the
     // server is never asked, so GitHub is never asked either. Nothing waits
@@ -100,6 +104,44 @@ export class Workspace {
 
     afterNextRender(() => {
       void this.askWhatIsMissing();
+    });
+  }
+
+  /**
+   * Coming back to this tab after writing somewhere else.
+   *
+   * Only sharing makes this possible at all — a phone on the same network, or
+   * a second tab — and there is no live push, so the moment to look is the
+   * moment somebody looks at this window again. `Persistence` fetches what
+   * moved; the stores read at construction and have to be told to read again,
+   * which is this, because only here is it known whether that is safe.
+   *
+   * Never mid-turn. Reloading the chapters under a streaming reply would
+   * throw away the words arriving in it, and there is no hurry: the effect
+   * depends on `isStreaming`, so the moment the turn ends it runs and the
+   * catching-up happens then.
+   */
+  private watchForOtherDevices(): void {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      if (this.chapters.isStreaming()) return;
+      void this.persistence.refresh();
+    });
+
+    let handled = 0;
+    effect(() => {
+      const changed = this.persistence.changed();
+      if (changed === handled || this.chapters.isStreaming()) return;
+      handled = changed;
+      // Settings first, because the open story is named in it, and stories
+      // before chapters, because which chapters are read depends on which
+      // story is open. Untracked: these read documents, not signals, and an
+      // effect that depended on what they set would run itself again.
+      untracked(() => {
+        this.settings.reload();
+        this.stories.reload();
+        this.chapters.reload();
+      });
     });
   }
 

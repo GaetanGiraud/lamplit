@@ -3,8 +3,8 @@ import { KEYS } from './documents';
 
 /**
  * The wire side of persistence: where a storage key lives on the server, and
- * the four calls that move a document across. Nothing here knows what is in a
- * document — the server does not either.
+ * the calls that move a document across. Nothing here knows what is in a
+ * document — the server does not either, beyond the `rev` it stamps on one.
  */
 
 export type Collection = 'settings' | 'stories' | 'chapters';
@@ -16,8 +16,11 @@ export interface DocRef {
 
 const REQUEST_TIMEOUT = 10_000;
 
-/** The header the server compares against the last write it applied. */
-const SEQ_HEADER = 'x-doc-seq';
+/** The revision a write says it was based on. See the server's DocumentStore. */
+const REV_HEADER = 'x-doc-rev';
+
+/** Every collection there is, in the order the bootstrap read asks for them. */
+export const COLLECTIONS: Collection[] = ['settings', 'stories', 'chapters'];
 
 /**
  * The server's considered no, as opposed to its silence.
@@ -27,9 +30,7 @@ const SEQ_HEADER = 'x-doc-seq';
  * answer to. Sending it again changes nothing, so whatever is holding it has
  * to stop and say so rather than retry for ever.
  *
- * `status` is the code, or 0 for a write the server took and then dropped for
- * being older than one it had already applied (`skipped`) — nothing is wrong
- * with the document, but it is not on disk.
+ * `status` is the code the server answered with.
  */
 export class Refused extends Error {
   constructor(
@@ -39,6 +40,40 @@ export class Refused extends Error {
     super(message);
     this.name = 'Refused';
   }
+}
+
+/**
+ * The document was written somewhere else between this session reading it and
+ * writing it back — the phone, or a second tab.
+ *
+ * Carries the document as the server actually holds it, because the server
+ * sends it with the refusal: reloading is therefore something the client can
+ * simply do, rather than a second request that could itself be overtaken.
+ * `document` is null when the answer is that there is no document any more,
+ * which is what a stale write on top of a delete gets.
+ */
+export class Conflict extends Error {
+  constructor(
+    readonly rev: string,
+    readonly document: unknown,
+  ) {
+    super('changed on another device');
+    this.name = 'Conflict';
+  }
+}
+
+/** One line of a collection's index: what is there, and whether it moved. */
+export interface IndexEntry {
+  id: string;
+  updatedAt: string | null;
+  rev: string;
+}
+
+/** The `rev` the server stamped a document with, or '' for one it has not. */
+export function revIn(document: unknown): string {
+  if (typeof document !== 'object' || document === null) return '';
+  const rev = (document as Record<string, unknown>)['rev'];
+  return typeof rev === 'string' ? rev : '';
 }
 
 /** Where a storage key lives on the server, or null if it lives nowhere. */
@@ -70,10 +105,9 @@ export class DocumentApi {
 
   /** Every document the server holds, keyed the way the client files them. */
   async snapshot(): Promise<Snapshot> {
-    const collections: Collection[] = ['settings', 'stories', 'chapters'];
     const documents = new Map<string, unknown>();
-    const lists = await Promise.all(collections.map((collection) => this.list(collection)));
-    collections.forEach((collection, index) => {
+    const lists = await Promise.all(COLLECTIONS.map((collection) => this.list(collection)));
+    COLLECTIONS.forEach((collection, index) => {
       for (const document of lists[index] ?? []) {
         const id = collection === 'settings' ? KEYS.settings : idOf(document);
         if (id) documents.set(keyOf({ collection, id }), document);
@@ -87,47 +121,75 @@ export class DocumentApi {
     return (await response.json()) as Record<string, unknown>[];
   }
 
-  async put(ref: DocRef, document: unknown, seq: number): Promise<void> {
-    const response = await this.request(this.urlOf(ref), {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json', [SEQ_HEADER]: String(seq) },
-      body: JSON.stringify(document),
-    });
-    await applied(response);
+  /** What is there now and whether it has moved, without fetching any of it. */
+  async index(collection: Collection): Promise<IndexEntry[]> {
+    const response = await this.request(`${this.base}/docs/${collection}?index`);
+    return (await response.json()) as IndexEntry[];
   }
 
-  async remove(ref: DocRef, seq: number): Promise<void> {
+  async get(ref: DocRef): Promise<unknown> {
+    const response = await fetch(this.urlOf(ref), {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+    });
+    // Not an error: something else deleted it, and that is an answer.
+    if (response.status === 404) return null;
+    if (!response.ok) throw await failure(response);
+    return await response.json();
+  }
+
+  /**
+   * Writes the document, saying which revision it was based on, and answers
+   * with the revision it now has. `''` is "there was nothing here", which is
+   * both a fresh document and the honest thing to say when this session has
+   * never seen one.
+   */
+  async put(ref: DocRef, document: unknown, basedOn: string): Promise<string> {
+    const response = await fetch(this.urlOf(ref), {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', [REV_HEADER]: basedOn },
+      body: JSON.stringify(document),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+    });
+    if (response.status === 409) throw await conflict(response);
+    if (!response.ok) throw await failure(response);
+    return revIn(await response.json().catch(() => null));
+  }
+
+  /**
+   * Unconditional, as it is on the server: deleting is a person saying so, and
+   * a story takes chapters with it that nobody has looked at. See the comment
+   * on `DocumentStore.remove`.
+   */
+  async remove(ref: DocRef): Promise<void> {
     const response = await fetch(this.urlOf(ref), {
       method: 'DELETE',
-      headers: { [SEQ_HEADER]: String(seq) },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT),
     });
     // A document that is already gone is the outcome we wanted.
     if (response.status === 404) return;
     if (!response.ok) throw await failure(response);
-    await applied(response);
   }
 
   /**
    * The last write of a session, sent from `beforeunload`. `keepalive` is what
    * lets it outlive the page; it is fire-and-forget by nature.
    */
-  sendBeacon(ref: DocRef, body: string, seq: number): void {
-    this.beacon(ref, seq, 'PUT', body);
+  sendBeacon(ref: DocRef, body: string, basedOn: string): void {
+    this.beacon(ref, 'PUT', basedOn, body);
   }
 
   /** The same, for a document the session deleted and then closed the tab on. */
-  sendBeaconRemove(ref: DocRef, seq: number): void {
-    this.beacon(ref, seq, 'DELETE');
+  sendBeaconRemove(ref: DocRef): void {
+    this.beacon(ref, 'DELETE');
   }
 
-  private beacon(ref: DocRef, seq: number, method: 'PUT' | 'DELETE', body?: string): void {
+  private beacon(ref: DocRef, method: 'PUT' | 'DELETE', basedOn?: string, body?: string): void {
     try {
       void fetch(this.urlOf(ref), {
         method,
         headers: {
           ...(body === undefined ? {} : { 'content-type': 'application/json' }),
-          [SEQ_HEADER]: String(seq),
+          ...(basedOn === undefined ? {} : { [REV_HEADER]: basedOn }),
         },
         ...(body === undefined ? {} : { body }),
         keepalive: true,
@@ -169,15 +231,9 @@ async function failure(response: Response): Promise<Error> {
   return response.status < 500 ? new Refused(text, response.status) : new Error(text);
 }
 
-/**
- * The server answers 200 to a write it decided not to apply, saying so with
- * `skipped`. It cannot happen between two writes of one tab — they are
- * serialised and their sequence numbers rise — but it can between two tabs,
- * and a write that never reached the disk must not be reported as saved.
- */
-async function applied(response: Response): Promise<void> {
+/** A 409 and the document it came with, which is the whole of the recovery. */
+async function conflict(response: Response): Promise<Conflict> {
   const body: unknown = await response.json().catch(() => undefined);
-  if (typeof body === 'object' && body !== null && 'skipped' in body && body.skipped === true) {
-    throw new Refused('another window has saved a newer version', 0);
-  }
+  const answer = (body ?? {}) as { rev?: unknown; document?: unknown };
+  return new Conflict(typeof answer.rev === 'string' ? answer.rev : '', answer.document ?? null);
 }

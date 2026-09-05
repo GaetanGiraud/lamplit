@@ -407,7 +407,9 @@ Your API key
 ------------
 The key you paste into Connection is stored in plain text in data/settings.json,
 on this machine. That is deliberate for a single-user local tool. The server
-listens on 127.0.0.1 only, so nothing on your network can reach it. Do not run
+listens on 127.0.0.1 only, so nothing on your network can reach it, unless you
+turn on Preferences > Advanced > Share on this network, which opens a second
+listener for a phone that has scanned the code it shows. Do not run
 this on a machine you share.
 `;
 }

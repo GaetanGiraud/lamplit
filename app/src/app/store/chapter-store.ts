@@ -127,6 +127,16 @@ export class ChapterStore {
     });
   }
 
+  /**
+   * Reads the open story's chapters again, for a session whose copies were
+   * replaced by ones written on another device. The same path a story switch
+   * takes, because it is the same question — what are this story's chapters —
+   * asked of a folder that has changed rather than of a different folder.
+   */
+  reload(): void {
+    this.loadFor(this.stories.story().id);
+  }
+
   /** Everything the next request will carry, for the pill and the preview. */
   preview(draft = '', draftDirection = ''): BuiltPrompt {
     return buildPrompt({

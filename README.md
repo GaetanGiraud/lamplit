@@ -124,9 +124,11 @@ builds the desktop installers for whatever OS you are on. See
 
 Your key is stored in plain text, in `data/settings.json` on your own machine. That is deliberate:
 Lamplit is a single-user tool on your own computer, and a local file you control beats a
-secret store you have to unlock every time. The server listens on `127.0.0.1` only, so nothing
-else on your network can reach it. Don't run it on a machine you share, and don't put it on the
-open internet.
+secret store you have to unlock every time. The server listens on `127.0.0.1` only — nothing else
+on your network can reach it — unless you turn sharing on under **Preferences → Advanced**, which
+opens a second listener your phone can reach after it has scanned a code. A phone that has scanned
+it can read the key, so share on a network you trust. Don't run Lamplit on a machine you share, and
+don't put it on the open internet.
 
 ## Status
 

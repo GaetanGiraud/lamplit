@@ -108,3 +108,10 @@ The server listens on `127.0.0.1` only, so nothing else on your network can reac
 authorises no cross-origin request at all — a page open on another port of your own machine cannot
 read your stories or your key either. Don't run it on a shared machine, don't put it behind a
 public port, and don't commit your `data` folder to a public repo.
+
+That first sentence stops being true if you turn on **Preferences → Advanced → Share on this
+network**, which is how you read a story on your phone; see
+[From your phone](running-anywhere.md). Lamplit's own listener does not move, but a second one
+opens that anything on your network can knock at — and a phone that has scanned the code can read
+this file, key and all. The traffic is plain HTTP and is not encrypted. It is off until you turn
+it on, and switching it off closes the door again.

@@ -87,7 +87,12 @@ next launch opens at the default size.
   this computer’s proxy**. It is off by default because finding that proxy can take twenty seconds
   on some networks, and the window would spend them blank before it ever opened.
 - **The server is the same one.** It runs inside the app, on the loopback address and on a port it
-  picks for itself, so it never collides with anything and nothing on your network can reach it.
+  picks for itself, so it never collides with anything and nothing on your network can reach it —
+  unless you switch on **Preferences → Advanced → Share on this network**, which opens a second
+  listener on port 4177 for your phone. The first time you do, Windows asks whether to allow
+  Lamplit through the firewall; say yes for private networks, or the phone gets nothing.
+  [From your phone](running-anywhere.md) is the whole of it, and it works the same here as in the
+  zip.
 - **The files are the same files.** A story written in the desktop app opens in the zip, and the
   other way round.
 

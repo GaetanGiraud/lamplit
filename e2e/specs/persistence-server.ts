@@ -28,18 +28,32 @@ export class PersistenceServer {
   readonly dataDir: string;
   readonly port: number;
   readonly url: string;
+  /**
+   * The port the second listener takes when sharing is switched on. Its own,
+   * and free, because the suite runs several servers over a run and 4177 is
+   * only the default a person would see.
+   */
+  readonly sharePort: number;
+  /**
+   * Where a paired phone would go. The listener is bound to the loopback here
+   * rather than to every interface — it is the same listener either way, and
+   * binding every interface raises the Windows firewall prompt on `npm run e2e`.
+   */
+  readonly sharedUrl: string;
   private child: ChildProcess | null = null;
 
-  private constructor(dataDir: string, port: number) {
+  private constructor(dataDir: string, port: number, sharePort: number) {
     this.dataDir = dataDir;
     this.port = port;
+    this.sharePort = sharePort;
     this.url = `http://127.0.0.1:${port}`;
+    this.sharedUrl = `http://127.0.0.1:${sharePort}`;
   }
 
   /** A fresh folder and a free port, so nothing carries over between tests. */
   static async create(): Promise<PersistenceServer> {
     const dataDir = await mkdtemp(join(tmpdir(), 'lamplit-e2e-'));
-    return new PersistenceServer(dataDir, await freePort());
+    return new PersistenceServer(dataDir, await freePort(), await freePort());
   }
 
   async start(): Promise<void> {
@@ -50,11 +64,55 @@ export class PersistenceServer {
         LAMPLIT_DATA_DIR: this.dataDir,
         LAMPLIT_PUBLIC_DIR: BUILT_APP,
         LAMPLIT_PORT: String(this.port),
+        LAMPLIT_SHARE_PORT: String(this.sharePort),
+        LAMPLIT_SHARE_HOST: '127.0.0.1',
         LAMPLIT_BACKUP: '0',
       },
       stdio: 'ignore',
     });
     await this.waitFor(true);
+  }
+
+  /**
+   * The pairing token, from the file the server keeps it in. The app is never
+   * told it — the server draws it into the QR code and nothing else — so this
+   * is the only place a test can read it, which is the point.
+   */
+  async shareToken(): Promise<string> {
+    const saved = JSON.parse(await readFile(join(this.dataDir, 'server.json'), 'utf8')) as {
+      token?: string;
+    };
+    return saved.token ?? '';
+  }
+
+  /** What the app's own switch does, for a test that is not about the switch. */
+  async setShare(on: boolean): Promise<void> {
+    const response = await fetch(`${this.url}/api/server/share`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ share: on }),
+    });
+    if (!response.ok) throw new Error(`could not set sharing: ${response.status}`);
+  }
+
+  /**
+   * A write from somewhere that is not the browser under test: the phone, or
+   * the second tab. Reads the document to find the revision it is based on, so
+   * it is exactly the request another copy of the app would send.
+   */
+  async writeAs(
+    collection: 'settings' | 'stories' | 'chapters',
+    id: string,
+    change: (document: Record<string, unknown>) => Record<string, unknown>,
+  ): Promise<void> {
+    const url = `${this.url}/api/docs/${collection}/${id}`;
+    const current = (await (await fetch(url)).json()) as Record<string, unknown>;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', 'x-doc-rev': String(current['rev'] ?? '') },
+      body: JSON.stringify(change(current)),
+    });
+    if (!response.ok) throw new Error(`the other device's write failed: ${response.status}`);
   }
 
   async stop(): Promise<void> {

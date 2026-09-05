@@ -66,6 +66,22 @@ export class StoryStore {
     });
   }
 
+  /**
+   * Reads every story again, for a session whose copies were replaced by ones
+   * written on another device. The open story may be among the ones that went;
+   * `story()` insists there is always one, so a story that is no longer there
+   * has to be stood down here rather than found missing later.
+   */
+  reload(): void {
+    const stories = this.load();
+    this.written.clear();
+    for (const story of stories) this.written.set(story.id, story);
+    this.state.set(stories);
+    if (!stories.some((story) => story.id === this.settings.settings().activeStoryId)) {
+      this.settings.setActiveStory(stories[0]!.id);
+    }
+  }
+
   patch(patch: Partial<Story>, id = this.story().id): void {
     this.state.update((stories) =>
       stories.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: now() } : s)),

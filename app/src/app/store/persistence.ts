@@ -1,5 +1,14 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { DocRef, DocumentApi, Refused, refOf } from './document-api';
+import {
+  COLLECTIONS,
+  Conflict,
+  DocRef,
+  DocumentApi,
+  Refused,
+  keyOf,
+  refOf,
+  revIn,
+} from './document-api';
 import { StorageBackend } from './storage';
 
 /**
@@ -28,6 +37,15 @@ const LOAD_RETRY = 400;
  * rather than dropped. The rest of the allowance is headers.
  */
 const BEACON_BUDGET = 60 * 1024;
+
+/**
+ * What the one-line notice says when a document under this session turned out
+ * to have been written somewhere else. The same words either way — a write that
+ * was refused, or a tab that was looked at again after the phone had been busy
+ * — because it is the same fact, and two wordings for it would only invite the
+ * reader to work out which is which.
+ */
+const RELOADED = 'Changed on another device; reloaded.';
 
 interface Queued {
   ref: DocRef;
@@ -67,21 +85,48 @@ interface Rejection {
  * one. A refused document leaves the queue instead of standing at the head of
  * it for ever: everything behind it still saves, and the indicator names the
  * document and repeats what the server said, rather than blaming the network.
+ *
+ * Since a phone can be looking at the same documents (Preferences → Advanced),
+ * there is a third answer: the document moved. Every document carries the
+ * `rev` the server stamped it with, every write says which `rev` it was based
+ * on, and a write based on one the document has moved past comes back refused
+ * with the document as it now stands. This session takes that copy — losing
+ * whatever it had typed over it, which is the honest outcome and is why the
+ * notice says so — and `refresh` does the same thing the other way round, for
+ * the tab that was in the background while the phone was being written in.
+ *
+ * There is no live push, and that is a choice rather than a gap. The use this
+ * was built for is one person moving between a desk and an armchair, not two
+ * people writing at once, and a socket held open for the second case would
+ * have to be held open for the first as well.
  */
 @Injectable({ providedIn: 'root' })
 export class Persistence implements StorageBackend {
   private readonly api = inject(DocumentApi);
 
   private readonly documents = new Map<string, unknown>();
+  /** The revision each document was at when this session last saw it. */
+  private readonly revs = new Map<string, string>();
   private readonly statusState = signal<SaveStatus>('saved');
   private readonly errorState = signal('');
   private readonly readyState = signal(false);
+  private readonly changedState = signal(0);
+  private readonly noticeState = signal('');
 
   readonly status = this.statusState.asReadonly();
   readonly error = this.errorState.asReadonly();
   /** False until the server has handed over its documents. Nothing runs before. */
   readonly ready = this.readyState.asReadonly();
   readonly isOffline = computed(() => this.statusState() === 'offline');
+  /**
+   * Bumped whenever a document in the map was replaced by one from the server
+   * rather than by this session. Nothing here can put it on screen — the stores
+   * read at construction — so `Workspace` watches this and tells them to read
+   * again, which it can do at a moment it knows is safe.
+   */
+  readonly changed = this.changedState.asReadonly();
+  /** The one line to show for it, or nothing. Dismissed, not timed out. */
+  readonly notice = this.noticeState.asReadonly();
 
   private readonly pending = new Map<string, Queued>();
   /** Documents the server refused, kept so they can be named and tried again. */
@@ -90,8 +135,7 @@ export class Persistence implements StorageBackend {
   private draining = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private retryDelay = 0;
-  /** Wall-clock based, so it keeps rising across reloads as the server needs. */
-  private lastSeq = 0;
+  private refreshing = false;
 
   // -- startup ---------------------------------------------------------------
 
@@ -106,7 +150,11 @@ export class Persistence implements StorageBackend {
       try {
         const { documents } = await this.api.snapshot();
         this.documents.clear();
-        for (const [key, document] of documents) this.documents.set(key, document);
+        this.revs.clear();
+        for (const [key, document] of documents) {
+          this.documents.set(key, document);
+          this.revs.set(key, revIn(document));
+        }
         this.readyState.set(true);
         this.errorState.set('');
         return;
@@ -146,7 +194,7 @@ export class Persistence implements StorageBackend {
       let tooBig = false;
       for (const [key, queued] of this.pending) {
         if (queued.kind === 'delete') {
-          this.api.sendBeaconRemove(queued.ref, this.nextSeq());
+          this.api.sendBeaconRemove(queued.ref);
           continue;
         }
         const body = JSON.stringify(this.documents.get(key));
@@ -157,7 +205,7 @@ export class Persistence implements StorageBackend {
           tooBig = true;
           continue;
         }
-        this.api.sendBeacon(queued.ref, body, this.nextSeq());
+        this.api.sendBeacon(queued.ref, body, this.revs.get(key) ?? '');
       }
       // Debounced writes almost always make it. A queue that is already failing
       // almost certainly will not, and neither will a chapter too long to carry
@@ -165,6 +213,62 @@ export class Persistence implements StorageBackend {
       if (tooBig || this.rejected.size || this.statusState() === 'offline') event.preventDefault();
     });
     window.addEventListener('online', () => this.retryNow());
+  }
+
+  /**
+   * Catches this session up with the disk: what is there now, and which of it
+   * has moved since this session last looked. Only the documents whose `rev`
+   * changed are fetched, so the usual answer costs three small requests and no
+   * downloads at all.
+   *
+   * Called by `Workspace` when the tab is looked at again, and not from here,
+   * because whether this is a safe moment is a question about what is on
+   * screen — a turn that is still streaming, most of all — and this class is
+   * deliberately the one part of the app that knows nothing about that.
+   */
+  async refresh(): Promise<void> {
+    // Anything this session has not managed to send yet is about to change
+    // what the index says. Refreshing over the top of it would report this
+    // session's own unsent writing as a change from somewhere else.
+    if (!this.readyState() || this.refreshing) return;
+    if (this.pending.size || this.draining || this.rejected.size) return;
+    this.refreshing = true;
+    try {
+      const moved: string[] = [];
+      const unaccounted = new Set(this.documents.keys());
+      for (const collection of COLLECTIONS) {
+        for (const entry of await this.api.index(collection)) {
+          const key = keyOf({ collection, id: entry.id });
+          unaccounted.delete(key);
+          if (this.revs.get(key) !== entry.rev) moved.push(key);
+        }
+      }
+      for (const key of moved) {
+        const ref = refOf(key);
+        // Gone between the index and the read: rare, and the same outcome as
+        // not having been in the index at all.
+        const document = ref ? await this.api.get(ref) : null;
+        if (document === null) this.forget(key);
+        else {
+          this.documents.set(key, document);
+          this.revs.set(key, revIn(document));
+        }
+      }
+      // Whatever the index never mentioned was deleted somewhere else.
+      for (const key of unaccounted) this.forget(key);
+      if (moved.length || unaccounted.size) this.reloaded();
+    } catch {
+      // Not worth interrupting anyone for. What is in memory is still what
+      // this session is writing, and the next time the tab is looked at is
+      // another chance to catch up.
+    } finally {
+      this.refreshing = false;
+    }
+  }
+
+  /** The notice has been read. */
+  dismissNotice(): void {
+    this.noticeState.set('');
   }
 
   // -- the documents ---------------------------------------------------------
@@ -244,6 +348,13 @@ export class Persistence implements StorageBackend {
         try {
           await this.send(key, queued);
         } catch (error) {
+          // The document moved under this session. Nothing is wrong with the
+          // server or with the document; there is simply a newer one, and it
+          // came back with the refusal.
+          if (error instanceof Conflict) {
+            this.adopt(key, error);
+            continue;
+          }
           // Only the server's silence stops the queue. Its refusal stops the
           // one document, which comes off the queue so the rest can go on.
           if (!(error instanceof Refused)) throw error;
@@ -311,17 +422,51 @@ export class Persistence implements StorageBackend {
     return queued.ref.collection === 'stories' ? 'A story' : 'A chapter';
   }
 
-  private send(key: string, queued: Queued): Promise<void> {
-    const seq = this.nextSeq();
-    if (queued.kind === 'delete') return this.api.remove(queued.ref, seq);
+  private async send(key: string, queued: Queued): Promise<void> {
+    if (queued.kind === 'delete') {
+      await this.api.remove(queued.ref);
+      this.revs.delete(key);
+      return;
+    }
     // Always what the document says now: a write that sat through a retry
-    // should carry the latest version, not the one that was queued.
-    return this.api.put(queued.ref, this.documents.get(key), seq);
+    // should carry the latest version, not the one that was queued. The
+    // revision goes with it, and `''` says this session has never seen one,
+    // which for a document it has just made is exactly true.
+    const rev = await this.api.put(queued.ref, this.documents.get(key), this.revs.get(key) ?? '');
+    this.revs.set(key, rev);
   }
 
-  private nextSeq(): number {
-    this.lastSeq = Math.max(Date.now(), this.lastSeq + 1);
-    return this.lastSeq;
+  /**
+   * Takes the server's copy of a document in place of this session's.
+   *
+   * Whatever was typed here since the other device wrote is gone with it. That
+   * is the honest outcome of two people editing one paragraph and the reason
+   * the notice is shown rather than the merge being attempted: there is no
+   * rule this app could apply to two versions of a sentence that would not
+   * sometimes produce a third nobody wrote.
+   */
+  private adopt(key: string, conflict: Conflict): void {
+    if (conflict.document === null) this.forget(key);
+    else {
+      this.documents.set(key, conflict.document);
+      this.revs.set(key, conflict.rev);
+    }
+    // Off the queue: what was queued was the version that has just been
+    // replaced, and sending it again would only be refused again.
+    this.pending.delete(key);
+    this.rejected.delete(key);
+    this.reloaded();
+  }
+
+  private forget(key: string): void {
+    this.documents.delete(key);
+    this.revs.delete(key);
+  }
+
+  /** One notice, and one nudge to whoever can put the documents back on screen. */
+  private reloaded(): void {
+    this.noticeState.set(RELOADED);
+    this.changedState.update((count) => count + 1);
   }
 }
 

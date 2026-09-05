@@ -18,7 +18,9 @@ app/        Angular 21 workspace — standalone components, signals, zoneless
   shared/     top bar, save indicator, dialog openers, editor field, controls
 server/     Express 5 — JSON documents on disk, the built app in front of them,
             a dependency-free zip writer, and the build stamp (version.js: which
-            build this is, and which one wrote this data folder last)
+            build this is, and which one wrote this data folder last).
+            share.js is the second listener and the pairing lock in front of
+            it, which is how a phone on the same network reads the story
 electron/   the desktop shell: main process, preload, electron-builder config.
             It starts the same server in-process and opens one window at it,
             and knows nothing else about the app
