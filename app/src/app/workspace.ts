@@ -81,6 +81,13 @@ export class Workspace {
       ?.checkForUpdates(checkForUpdates)
       .catch(() => undefined);
 
+    // And the same again for the proxy. The window has already loaded by here,
+    // which is the point of reporting it from the page rather than the shell
+    // reading it: whatever the answer, starting up never waits on a proxy.
+    desktop()
+      ?.useSystemProxy(this.settings.ui().systemProxy)
+      .catch(() => undefined);
+
     // Everything under Preferences that the page can see — the theme, the
     // customised colours of that theme, the face the story is set in — is
     // written onto <html> from here, so a change in the dialog is on the page

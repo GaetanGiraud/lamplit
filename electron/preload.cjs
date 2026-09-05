@@ -16,9 +16,15 @@ const { contextBridge, ipcRenderer } = require('electron');
  *   switch that governs it is in the app's settings.json — which the shell
  *   deliberately cannot read. So the page reports the answer and the shell
  *   decides what to do with it.
+ * - `useSystemProxy`, reported the same way and for the same reason. The window
+ *   always starts direct, because resolving a system proxy can take twenty
+ *   seconds before anything at all is on screen; this is how someone who needs
+ *   that proxy to reach their model says so, once the app is up.
  */
 contextBridge.exposeInMainWorld('lamplit', {
   openDataFolder: () => ipcRenderer.invoke('lamplit:open-data-folder'),
   /** @param {boolean} enabled Preferences → Advanced, as the app has it. */
   checkForUpdates: (enabled) => ipcRenderer.invoke('lamplit:check-for-updates', enabled),
+  /** @param {boolean} enabled Preferences → Advanced, as the app has it. */
+  useSystemProxy: (enabled) => ipcRenderer.invoke('lamplit:use-system-proxy', enabled),
 });

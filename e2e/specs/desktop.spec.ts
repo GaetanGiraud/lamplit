@@ -134,6 +134,55 @@ test('starts its own server on a port it picked, and answers on it', async () =>
 });
 
 /**
+ * Chromium's default is the machine's proxy configuration, and on Windows that
+ * means WPAD: it looks for a `wpad` host and, on a corporate network or a VPN,
+ * finds one and waits — twenty-one seconds, measured — for a PAC file. Every
+ * request waits with it, loopback included, because the bypass rules are not
+ * consulted until the configuration has resolved. So the window that serves its
+ * own page has to start direct, and does; the proxy is opt-in from Preferences.
+ *
+ * Asserted as configuration rather than as a duration: a machine with no `wpad`
+ * host has nothing to be slow about, and this has to fail on that machine too.
+ */
+test('starts without a proxy, so nothing waits on finding one', async () => {
+  const resolved = await app.evaluate(async ({ session }) => ({
+    loopback: await session.defaultSession.resolveProxy('http://127.0.0.1/'),
+    provider: await session.defaultSession.resolveProxy('https://api.openai.com/'),
+  }));
+  expect(resolved).toEqual({ loopback: 'DIRECT', provider: 'DIRECT' });
+});
+
+/**
+ * And the switch that gives it back, which crosses the glass because the shell
+ * may not read settings.json. Asserted on what the shell was asked for rather
+ * than on what a proxy then did: a machine with no proxy resolves `system` and
+ * `direct` to the same DIRECT, so only the ask can tell them apart.
+ */
+test('takes the proxy back when the page says so, and gives it up again', async () => {
+  await app.evaluate(({ session }) => {
+    const asked: unknown[] = [];
+    (globalThis as { proxies?: unknown[] }).proxies = asked;
+    session.defaultSession.setProxy = (async (config: unknown) => {
+      asked.push(config);
+    }) as typeof session.defaultSession.setProxy;
+  });
+
+  type Bridge = { useSystemProxy(enabled: boolean): Promise<void> };
+  const ask = (enabled: boolean) =>
+    window.evaluate(
+      (on) => (globalThis as unknown as { lamplit: Bridge }).lamplit.useSystemProxy(on),
+      enabled,
+    );
+  await ask(true);
+  await ask(false);
+
+  expect(await app.evaluate(() => (globalThis as { proxies?: unknown[] }).proxies ?? [])).toEqual([
+    { mode: 'system' },
+    { mode: 'direct' },
+  ]);
+});
+
+/**
  * Electron grants every permission Chromium can ask for unless it is told not
  * to, so a packaged Lamplit answered `granted` for the camera, the microphone
  * and the reader's location — none of which it has ever asked for. The one

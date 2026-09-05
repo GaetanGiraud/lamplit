@@ -82,7 +82,10 @@ next launch opens at the default size.
 
 - **Your key still goes straight to your provider.** The window is Chromium, so the app talks to
   the model exactly as it does in a browser tab: no proxy, nothing in between. See
-  [Models and parameters](models-and-parameters.md).
+  [Models and parameters](models-and-parameters.md). If your network only lets you out through a
+  proxy — a work laptop, usually — switch on **Preferences → Advanced → Reach the model through
+  this computer’s proxy**. It is off by default because finding that proxy can take twenty seconds
+  on some networks, and the window would spend them blank before it ever opened.
 - **The server is the same one.** It runs inside the app, on the loopback address and on a port it
   picks for itself, so it never collides with anything and nothing on your network can reach it.
 - **The files are the same files.** A story written in the desktop app opens in the zip, and the

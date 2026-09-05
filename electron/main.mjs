@@ -69,6 +69,33 @@ const WINDOW_STATE = join(app.getPath('userData'), 'window.json');
  */
 const PAGE = { light: '#f6f3ec', dark: '#14151a' };
 
+/**
+ * Direct, and the reason it has to be.
+ *
+ * Chromium's default is the operating system's proxy configuration, and on
+ * Windows that includes WPAD auto-discovery: it goes looking for a `wpad` host,
+ * and on a corporate network or a VPN it finds one. Every request then waits
+ * for a PAC file to come back from it — twenty-one seconds, measured, on the
+ * machine this was found on — and *every* means every, because Chromium applies
+ * its bypass rules only after the configuration has resolved. Loopback is
+ * already in those rules and waits all the same, which is why a bypass list is
+ * not the fix it looks like, and why Electron documents `--proxy-bypass-list`
+ * as having no effect without a `--proxy-server` beside it.
+ *
+ * Hardly any Electron app meets this, because hardly any of them navigate to
+ * `http://` at all: a window on `file:` never enters proxy resolution. This one
+ * serves its own page, so it pays on the way in. The splash painted in 0.15 s
+ * and the loopback page behind it took 21.2 s.
+ *
+ * Direct is also what the rest of Lamplit already does — electron-updater asks
+ * GitHub through Node, which has never read a system proxy — and what
+ * *docs/desktop.md* promises about the model endpoint. Someone who needs the
+ * proxy to reach the internet at all switches it back on in Preferences →
+ * Advanced, and waits for it then rather than at every start.
+ */
+const DIRECT = { mode: 'direct' };
+const SYSTEM = { mode: 'system' };
+
 const DEFAULT_WINDOW = { width: 1180, height: 820 };
 /** Small enough for a laptop, wide enough that the reading column is not squeezed. */
 const MINIMUM_WINDOW = { width: 720, height: 520 };
@@ -168,6 +195,12 @@ async function start() {
   ipcMain.handle('lamplit:check-for-updates', (_event, setting) => {
     void checkForUpdates(setting);
   });
+  // Reported from the same place and for the same reason as the line above:
+  // the switch is in the app's settings.json and the shell may not read it.
+  // Off — the default, and what the window started under — is direct.
+  ipcMain.handle('lamplit:use-system-proxy', (_event, enabled) =>
+    session.defaultSession.setProxy(enabled ? SYSTEM : DIRECT),
+  );
   Menu.setApplicationMenu(buildMenu());
 
   // Same window, same background colour, so the hand-over is a change of
@@ -212,6 +245,10 @@ function listen(expressApp) {
 }
 
 async function openWindow() {
+  // Before the window exists, because the first request it makes must not go
+  // out under a configuration Chromium is still resolving. See DIRECT.
+  await session.defaultSession.setProxy(DIRECT);
+
   const state = await readWindowState();
   window = new BrowserWindow({
     ...state,

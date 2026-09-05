@@ -37,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
     font: 'serif',
     developerMode: false,
     checkForUpdates: true,
+    systemProxy: false,
     sidebarOpen: false,
     sidebarSections: {},
   },

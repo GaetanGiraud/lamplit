@@ -14,6 +14,13 @@ export interface DesktopShell {
    * Both answer to the same switch, and only the page can read it.
    */
   checkForUpdates(enabled: boolean): Promise<void>;
+  /**
+   * Whether the window may use the machine's proxy settings. It always starts
+   * without them: resolving a system proxy is allowed to take twenty seconds,
+   * and on the way in that is twenty seconds of nothing on screen. Someone who
+   * needs the proxy to reach their model says so here, once the app is up.
+   */
+  useSystemProxy(enabled: boolean): Promise<void>;
 }
 
 declare global {

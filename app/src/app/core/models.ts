@@ -106,6 +106,13 @@ export interface UiSettings {
    * has been published. Off means it is not asked at all.
    */
   checkForUpdates: boolean;
+  /**
+   * Whether the desktop window reaches the model through the proxy this machine
+   * is configured with. Off, and it connects directly, which is what every
+   * other way of running Lamplit does. Only the desktop app can honour it; in a
+   * browser tab the proxy is the browser's business and this is not shown.
+   */
+  systemProxy: boolean;
   /** The chapter panel down the right-hand side; a thin edge when it is off. */
   sidebarOpen: boolean;
   /**

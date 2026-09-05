@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PreferencesDialog } from './preferences-dialog';
 import { ModelClient } from '../../core/model-client';
 import { ChapterStore } from '../../store/chapter-store';
@@ -107,6 +107,14 @@ describe('PreferencesDialog', () => {
     fixture.detectChanges();
   }
 
+  /** A named slide toggle in Advanced, as the reader would reach it. */
+  function toggle(label: string): HTMLElement | null {
+    const row = [...host().querySelectorAll<HTMLElement>('mat-slide-toggle')].find((candidate) =>
+      candidate.textContent.includes(label),
+    );
+    return row?.querySelector<HTMLElement>('button[role="switch"], input[type="checkbox"]') ?? null;
+  }
+
   beforeEach(() => {
     storage = new InMemoryStorage();
     TestBed.configureTestingModule({
@@ -191,6 +199,65 @@ describe('PreferencesDialog', () => {
       );
 
       expect(on).toEqual(['Frost']);
+    });
+  });
+
+  /**
+   * The window always starts without a proxy, because finding one is allowed to
+   * take twenty seconds and on the way in that is twenty seconds of nothing on
+   * screen. This switch is how someone whose network only lets them out through
+   * a proxy asks for it back — so it has to reach the shell when it is clicked
+   * rather than at the next start, and it has to be absent where there is no
+   * shell to reach.
+   */
+  describe('reaching the model through the machine’s proxy', () => {
+    const LABEL = 'Reach the model through this computer’s proxy';
+    let useSystemProxy: ReturnType<typeof vi.fn>;
+
+    function inTheDesktopApp(): void {
+      useSystemProxy = vi.fn().mockResolvedValue(undefined);
+      (globalThis as { lamplit?: unknown }).lamplit = {
+        openDataFolder: vi.fn(),
+        checkForUpdates: vi.fn(),
+        useSystemProxy,
+      };
+    }
+
+    afterEach(() => {
+      delete (globalThis as { lamplit?: unknown }).lamplit;
+    });
+
+    it('is not on the sheet at all in a browser tab, where the proxy is the browser’s', () => {
+      open();
+      expect(toggle(LABEL)).toBeNull();
+    });
+
+    it('is on the sheet in the desktop app, and off until it is asked for', () => {
+      inTheDesktopApp();
+      open();
+
+      expect(toggle(LABEL)).not.toBeNull();
+      expect(settings().ui().systemProxy).toBe(false);
+    });
+
+    it('tells the shell when it is clicked, rather than at the next start', () => {
+      inTheDesktopApp();
+      open();
+      toggle(LABEL)!.click();
+      fixture.detectChanges();
+
+      expect(settings().ui().systemProxy).toBe(true);
+      expect(useSystemProxy).toHaveBeenCalledWith(true);
+    });
+
+    it('gives it up again the same way', () => {
+      inTheDesktopApp();
+      open({ systemProxy: true });
+      toggle(LABEL)!.click();
+      fixture.detectChanges();
+
+      expect(settings().ui().systemProxy).toBe(false);
+      expect(useSystemProxy).toHaveBeenCalledWith(false);
     });
   });
 });

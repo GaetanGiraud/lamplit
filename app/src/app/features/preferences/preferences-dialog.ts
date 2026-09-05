@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { desktop } from '../../core/desktop';
 import { ColourKey, ReadingFont } from '../../core/models';
 import {
   AA_CONTRAST,
@@ -229,6 +230,25 @@ import { DialogsService } from '../../shared/dialogs.service';
               bar says so if one of them is newer. Switched off, it is not asked at all. Your
               stories never leave this machine either way.
             </p>
+
+            @if (isDesktop) {
+              <hr />
+
+              <mat-slide-toggle
+                [checked]="ui().systemProxy"
+                (change)="setSystemProxy($event.checked)"
+              >
+                Reach the model through this computer’s proxy
+              </mat-slide-toggle>
+              <p class="ms-hint">
+                Off, Lamplit connects straight to whichever endpoint you have given it, the same as
+                the zip and a browser tab do. Switch it on if your network only lets you out through
+                a proxy — a work laptop, usually. Lamplit's window then takes a moment to find that
+                proxy the first time it needs it, which is why it is not the default: on some
+                networks that search takes twenty seconds, and nobody should wait for it just to
+                open the app.
+              </p>
+            }
 
             <hr />
 
@@ -524,6 +544,8 @@ export class PreferencesDialog {
   private readonly dialogs = inject(DialogsService);
 
   protected readonly ui = this.settings.ui;
+  /** Only the desktop shell has a proxy to switch; in a tab it is the browser's. */
+  protected readonly isDesktop = desktop() !== null;
   protected readonly fonts = READING_FONTS;
 
   /**
@@ -672,6 +694,17 @@ export class PreferencesDialog {
   protected setCheckForUpdates(on: boolean): void {
     this.settings.patchUi({ checkForUpdates: on });
     if (on) void this.updates.load();
+  }
+
+  /**
+   * Takes effect on the next request rather than at the next start: the shell
+   * changes the window's proxy when it is told, and there is nothing to restart.
+   */
+  protected setSystemProxy(on: boolean): void {
+    this.settings.patchUi({ systemProxy: on });
+    void desktop()
+      ?.useSystemProxy(on)
+      .catch(() => undefined);
   }
 
   protected async reset(): Promise<void> {
