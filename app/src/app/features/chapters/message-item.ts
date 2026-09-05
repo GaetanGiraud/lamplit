@@ -7,6 +7,7 @@ import { ChapterMessage } from '../../core/models';
 import { renderStoryHtml } from '../../core/formatting';
 import { withDirection } from '../../core/prompt-builder';
 import { SpeakerLabel } from '../../core/speakers';
+import { budgetThatFits } from '../../core/model-errors';
 import { formatTokens } from '../../core/tokens';
 import { ProseEditor } from '../../shared/prose-editor';
 import { TextValue } from '../../shared/text-value';
@@ -86,6 +87,17 @@ export interface MessageEdit {
         @if (error()) {
           <p class="error">{{ error() }}</p>
           <div class="error-actions">
+            <!-- Offered, never taken: pressing this changes the setting and
+                 sends nothing. "Try again" is still the press that spends. -->
+            @if (fits(); as budget) {
+              @if (contextSet()) {
+                <span class="ms-hint">Context budget set to {{ budget }}.</span>
+              } @else {
+                <button matButton="outlined" (click)="applyContext(budget)">
+                  Set context to {{ budget }}
+                </button>
+              }
+            }
             <button matButton="outlined" (click)="regenerate.emit()">Try again</button>
             <button matButton (click)="remove.emit()">Dismiss</button>
           </div>
@@ -550,6 +562,25 @@ export class MessageItem {
   readonly remove = output();
   readonly regenerate = output();
   readonly replay = output();
+  /** The reader accepting the context budget this bubble offered. */
+  readonly setContext = output<number>();
+
+  /**
+   * The budget that would fit inside the window the endpoint named, or null
+   * where it named none — an invented number would be worse than no button.
+   */
+  protected readonly fits = computed(() => {
+    const window = this.message().meta?.contextLimit?.window;
+    return window ? budgetThatFits(window) : null;
+  });
+
+  /** Pressed once; the offer becomes a statement rather than staying live. */
+  protected readonly contextSet = signal(false);
+
+  protected applyContext(budget: number): void {
+    this.contextSet.set(true);
+    this.setContext.emit(budget);
+  }
 
   private readonly sanitizer = inject(DomSanitizer);
 

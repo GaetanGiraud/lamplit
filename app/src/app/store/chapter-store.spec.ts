@@ -6,7 +6,10 @@ import {
   JsonChatResult,
   ModelClient,
 } from '../core/model-client';
+import { DEFAULT_GENERATION } from '../core/defaults';
+import { errorFromResponse } from '../core/model-errors';
 import { ChapterStore } from './chapter-store';
+import { SettingsStore } from './settings-store';
 import { StoryStore } from './story-store';
 import { KEYS } from './documents';
 import { STORAGE_BACKEND, StorageBackend } from './storage';
@@ -235,5 +238,113 @@ describe('ChapterStore and the page palette', () => {
     store().setPalette(CHAPTER_ID, '');
     expect(chapter().palette).toBeUndefined();
     expect(store().palette()).toBeNull();
+  });
+});
+
+describe('ChapterStore and a turn the model would not take', () => {
+  let storage: InMemoryStorage;
+  let client: FakeClient;
+
+  /** A story with one written turn, so `send` has somewhere to put a reply. */
+  function seed(): void {
+    storage.write(KEYS.settings, {
+      connection: { provider: 'nanogpt', baseUrl: 'https://x/v1', apiKey: 'k', model: 'm' },
+      generation: { ...DEFAULT_GENERATION, maxContextTokens: 16384 },
+      activeStoryId: STORY_ID,
+    });
+    storage.write(KEYS.story(STORY_ID), {
+      id: STORY_ID,
+      title: 'A story',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      activeChapterId: CHAPTER_ID,
+      chapterCounter: 1,
+      autoTheme: false,
+    });
+    storage.write(KEYS.chapter(CHAPTER_ID), {
+      id: CHAPTER_ID,
+      storyId: STORY_ID,
+      number: 1,
+      title: '',
+      scene: 'A monastery under snow.',
+      status: 'writing',
+      summary: '',
+      messages: [],
+    });
+  }
+
+  /** The endpoint refusing before a word of the reply has been streamed. */
+  function refuses(detail: string): void {
+    client.streamChat = () =>
+      Promise.reject(errorFromResponse(400, JSON.stringify({ error: { message: detail } })));
+  }
+
+  const store = () => TestBed.inject(ChapterStore);
+  const failed = () => store().written()[store().written().length - 1].meta!;
+
+  beforeEach(() => {
+    storage = new InMemoryStorage();
+    client = new FakeClient();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: STORAGE_BACKEND, useValue: storage },
+        { provide: ModelClient, useValue: client },
+      ],
+    });
+    seed();
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('says what the endpoint said about the window, and keeps the numbers', async () => {
+    refuses(
+      "This model's maximum context length is 8192 tokens, however you requested 19004 tokens",
+    );
+
+    await store().send('Go on.');
+
+    expect(failed().error).toContain('this model takes 8192 tokens');
+    expect(failed().error).toContain('your context budget is set to 16384');
+    expect(failed().contextLimit).toEqual({ window: 8192, requested: 19004, budget: 16384 });
+  });
+
+  it('sends nothing more on its own, and changes no setting', async () => {
+    const sent: unknown[] = [];
+    client.streamChat = (request) => {
+      sent.push(request);
+      return Promise.reject(
+        errorFromResponse(400, JSON.stringify({ error: 'maximum context length is 8192' })),
+      );
+    };
+
+    await store().send('Go on.');
+
+    // The whole of the decision: one request, because one was asked for, and
+    // the budget still says what the reader set it to.
+    expect(sent).toHaveLength(1);
+    expect(TestBed.inject(SettingsStore).generation().maxContextTokens).toBe(16384);
+  });
+
+  it('names the refusal even when the endpoint counted nothing out loud', async () => {
+    refuses('Too many tokens in prompt.');
+
+    await store().send('Go on.');
+
+    expect(failed().error).toContain('Too long for this model');
+    // No window named, so nothing for the bubble to offer: it will not invent one.
+    expect(failed().contextLimit).toEqual({
+      window: undefined,
+      requested: undefined,
+      budget: 16384,
+    });
+  });
+
+  it('leaves every other refusal exactly as it was', async () => {
+    refuses('unknown model: m');
+
+    await store().send('Go on.');
+
+    expect(failed().error).toContain('The endpoint rejected the request');
+    expect(failed().error).toContain('unknown model');
+    expect(failed().contextLimit).toBeUndefined();
   });
 });

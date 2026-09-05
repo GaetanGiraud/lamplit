@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readSseData } from './sse';
 import { ModelClient, buildBody, normaliseBaseUrl, parseChunk } from './model-client';
-import { errorFromResponse } from './model-errors';
+import {
+  budgetThatFits,
+  contextLimitOf,
+  describeContextLimit,
+  errorFromResponse,
+} from './model-errors';
 import { formatTokens, heuristicEstimator } from './tokens';
 import { renderMarkdown, renderStoryHtml } from './formatting';
 import { GenerationParams } from './models';
@@ -258,6 +263,67 @@ describe('errorFromResponse', () => {
     expect(errorFromResponse(404, '').kind).toBe('not-found');
     expect(errorFromResponse(429, '').kind).toBe('rate-limit');
     expect(errorFromResponse(503, '').kind).toBe('server');
+  });
+});
+
+describe('a refusal for length', () => {
+  const refusal = (detail: string) => errorFromResponse(400, JSON.stringify({ error: detail }));
+
+  it('reads the numbers out of the wordings the providers use', () => {
+    expect(
+      contextLimitOf(
+        refusal(
+          "This model's maximum context length is 8192 tokens, however you requested 19004 tokens (18004 in the messages, 1000 in the completion). Please reduce the length of the messages or completion.",
+        ),
+      ),
+    ).toEqual({ window: 8192, requested: 19004 });
+
+    expect(contextLimitOf(refusal('prompt is too long: 210000 tokens > 200000 maximum'))).toEqual({
+      window: 200000,
+      requested: 210000,
+    });
+
+    expect(
+      contextLimitOf(
+        refusal(
+          'Input validation error: `inputs` tokens + `max_new_tokens` must be <= 8193. Given: 9000 `inputs` tokens and 1000 `max_new_tokens`',
+        ),
+      ),
+    ).toEqual({ window: 8193, requested: 9000 });
+  });
+
+  it('still recognises one that does not count out loud', () => {
+    // Known to be about length, so the reader is told what it is about; no
+    // window named, so nothing is offered that would be a guess.
+    expect(contextLimitOf(refusal('Too many tokens in prompt.'))).toEqual({
+      window: undefined,
+      requested: undefined,
+    });
+  });
+
+  it('is not every 400, and not every failure', () => {
+    expect(contextLimitOf(refusal('Invalid value for `temperature`: must be <= 2'))).toBeNull();
+    expect(contextLimitOf(refusal('unknown model'))).toBeNull();
+    expect(contextLimitOf(errorFromResponse(401, ''))).toBeNull();
+    expect(contextLimitOf(errorFromResponse(429, 'too many tokens'))).toBeNull();
+  });
+
+  it('says what the endpoint said, in the reader’s terms, and keeps its words', () => {
+    const said =
+      "This model's maximum context length is 8192 tokens, however you requested 19004 tokens";
+    const message = describeContextLimit(contextLimitOf(refusal(said))!, 16384, said);
+    expect(message).toContain('this model takes 8192 tokens');
+    expect(message).toContain('the turn came to 19004');
+    expect(message).toContain('your context budget is set to 16384');
+    expect(message).toContain(said);
+  });
+
+  it('offers a budget that fits under the window, rounded to a number someone would pick', () => {
+    expect(budgetThatFits(8192)).toBe(7680);
+    expect(budgetThatFits(32768)).toBe(30976);
+    // Never below what the setting will take, nor above it.
+    expect(budgetThatFits(512)).toBe(1024);
+    expect(budgetThatFits(1_000_000)).toBe(200000);
   });
 });
 

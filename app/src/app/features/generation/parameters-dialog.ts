@@ -254,7 +254,16 @@ export class ParametersDialog {
   protected readonly budgetHint = computed(() => {
     const p = this.params();
     const history = Math.max(0, p.maxContextTokens - p.maxResponseTokens);
-    return `Everything sent per request. ${formatTokens(history)} left for the story after reserving the reply.`;
+    const budget = `Everything sent per request. ${formatTokens(history)} left for the story after reserving the reply.`;
+    // The model's own figure, where the provider published one. Said here so
+    // the wall is visible before it is walked into — the number is still the
+    // reader's to set, and nothing below moves it for them.
+    const window = this.settings.modelContextLength();
+    if (!window) return budget;
+    if (p.maxContextTokens > window) {
+      return `${budget} This model takes ${formatTokens(window)}, so anything above that is refused.`;
+    }
+    return `${budget} This model takes ${formatTokens(window)}.`;
   });
 
   protected readonly advancedSummary = computed(() => {

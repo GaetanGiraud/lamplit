@@ -26,6 +26,17 @@ export class SettingsStore {
   readonly generation = computed(() => this.state().generation);
   readonly ui = computed(() => this.state().ui);
 
+  /**
+   * What the selected model says its own window is, or 0 where the provider
+   * publishes no such thing. Read from the list the model picker already
+   * fetched; nothing acts on it, because the context budget is the reader's
+   * number and this is only how they find out it is too big.
+   */
+  readonly modelContextLength = computed(() => {
+    const { model, modelsCache } = this.state().connection;
+    return modelsCache.find((known) => known.id === model)?.contextLength ?? 0;
+  });
+
   /** Enough to send a request: URL and model. A key is optional (local servers). */
   readonly isConnected = computed(() => {
     const c = this.state().connection;

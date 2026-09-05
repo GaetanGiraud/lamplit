@@ -31,6 +31,7 @@ import { MessageItem } from './message-item';
           (remove)="chapters.deleteMessage(message.id)"
           (regenerate)="chapters.regenerate(message.id)"
           (replay)="chapters.replayFrom(message.id)"
+          (setContext)="settings.patchGeneration({ maxContextTokens: $event })"
         />
       }
       <div class="tail"></div>

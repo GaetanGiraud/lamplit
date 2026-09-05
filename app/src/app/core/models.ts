@@ -147,6 +147,14 @@ export interface MessageMeta {
   interrupted?: string;
   /** Set when the turn failed; the bubble renders as an error with a retry. */
   error?: string;
+  /**
+   * Set when the turn was refused for being longer than the model's window.
+   * The numbers are the endpoint's own and either may be missing; `budget` is
+   * what the context setting was at the time, so the bubble says what was true
+   * when it failed rather than what is true now. The bubble uses this to offer
+   * the setting change — offer, not make: see `contextLimitOf`.
+   */
+  contextLimit?: { window?: number; requested?: number; budget: number };
 }
 
 /**

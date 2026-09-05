@@ -9,7 +9,12 @@ import {
   paletteSchema,
   readPaletteName,
 } from '../core/page-palettes';
-import { ModelError, errorFromThrown } from '../core/model-errors';
+import {
+  ModelError,
+  contextLimitOf,
+  describeContextLimit,
+  errorFromThrown,
+} from '../core/model-errors';
 import {
   BuiltPrompt,
   activeCharacter,
@@ -513,8 +518,17 @@ export class ChapterStore {
     } catch (e) {
       this.flush();
       const error: ModelError = errorFromThrown(e);
+      // A refusal for length is the one failure the endpoint has told us how
+      // to fix, so it is said in those terms and the numbers are kept for the
+      // button that offers the change. Sending again is still a press.
+      const limit = contextLimitOf(error);
+      const budget = this.settings.generation().maxContextTokens;
       this.patchMessage(chapterId, placeholder.id, {
-        meta: { model: connection.model, error: error.message },
+        meta: {
+          model: connection.model,
+          error: limit ? describeContextLimit(limit, budget, error.detail ?? '') : error.message,
+          contextLimit: limit ? { ...limit, budget } : undefined,
+        },
       });
     } finally {
       this.cancelFlush();
