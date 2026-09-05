@@ -65,6 +65,10 @@ It checks the project's releases once when it starts, and downloads a new versio
 background if there is one. You are told when it is ready; it is installed the next time you quit.
 Nothing is sent anywhere in the process except the request that asks what the latest version is.
 
+Switching **Preferences → Advanced → Check for a new version when Lamplit starts** off stops all of
+it, not just the pill in the top bar: nothing is asked, nothing is downloaded, and nothing is
+waiting to install. See [Upgrading](upgrading.md).
+
 ## The window remembers itself
 
 Its size and position are kept in `window.json` next to your data folder. Delete that file and the

@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { shouldCheck } from './updates.mjs';
 
 /**
  * The desktop shell, and nothing else.
@@ -127,9 +128,15 @@ async function start() {
   );
 
   ipcMain.handle('lamplit:open-data-folder', openDataFolder);
+  // The page asks for the update check rather than the shell taking it: the
+  // switch that governs it is in the app's settings.json, which the shell
+  // deliberately cannot read. It does not wait for an answer, and there is
+  // none — the check takes as long as GitHub takes, and downloads after that.
+  ipcMain.handle('lamplit:check-for-updates', (_event, setting) => {
+    void checkForUpdates(setting);
+  });
   Menu.setApplicationMenu(buildMenu());
   await openWindow(url);
-  checkForUpdates();
 }
 
 /** Port 0: the operating system hands back one that is free. */
@@ -311,18 +318,22 @@ const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
 // -- updates -----------------------------------------------------------------
 
 /**
- * Checked once at startup, against the same GitHub release the installer came
- * from. Best effort by design: a machine that is offline, or a build that was
- * never published, must not produce a dialog about it.
+ * Checked once, when the page says it may, against the same GitHub release the
+ * installer came from. Best effort by design: a machine that is offline, or a
+ * build that was never published, must not produce a dialog about it.
+ *
+ * Whether it may at all is `shouldCheck`, next door, where a test can ask it.
+ *
+ * @param {boolean} [setting] Preferences → Advanced, as the page reports it.
  */
-async function checkForUpdates() {
-  if (!app.isPackaged) return;
-  // The portable build installs nothing and is not installed: it is one .exe
-  // on a stick, beside the stories. electron-updater does not know that and
-  // would download the installer and run it on quit, leaving an installed
-  // Lamplit with an empty profile while the stick stayed as it was. The pill
-  // from /api/updates still tells a portable reader there is a new version.
-  if (process.env['PORTABLE_EXECUTABLE_DIR']) return;
+async function checkForUpdates(setting) {
+  const allowed = shouldCheck({
+    isPackaged: app.isPackaged,
+    portable: Boolean(process.env['PORTABLE_EXECUTABLE_DIR']),
+    env: process.env,
+    setting,
+  });
+  if (!allowed) return;
   try {
     const { autoUpdater } = await import('electron-updater');
     autoUpdater.autoDownload = true;

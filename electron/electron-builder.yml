@@ -10,6 +10,7 @@ directories:
 # that has to be read by Node at runtime stays outside one, below.
 files:
   - main.mjs
+  - updates.mjs
   - preload.cjs
   - package.json
 

@@ -83,12 +83,16 @@ the repository have nothing to install for you, so the sheet links to the downlo
 > **What leaves your machine.** One request, to `api.github.com`, asking for the list of published
 > releases. It carries what any HTTP request carries — a URL, a user agent and your IP — and
 > nothing about you, your stories or your provider. The server makes it, not the browser, so the
-> only host the app itself ever talks to is still the model endpoint you chose.
+> only host the app itself ever talks to is still the model endpoint you chose. The desktop app's
+> updater asks the same project's releases a second time, for the installer rather than the notes,
+> and only when the check below is on.
 
 **Switching it off.** **Preferences → Advanced → Check for a new version when Lamplit starts.**
 Off means the server is not asked, so GitHub is not asked either — the request does not happen
-rather than happening and being ignored. `LAMPLIT_UPDATE_CHECK=0` in the environment does the same
-for a zip started by a script:
+rather than happening and being ignored. In the desktop app the same switch stands the installer's
+own updater down with it: nothing is fetched, nothing is downloaded, and nothing is waiting to
+install when you quit. `LAMPLIT_UPDATE_CHECK=0` in the environment does the same for a zip started
+by a script:
 
 ```bash
 LAMPLIT_UPDATE_CHECK=0 ./start.sh

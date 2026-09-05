@@ -1,6 +1,7 @@
 import { Component, afterNextRender, effect, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { DEFAULT_STORY_TITLE } from './core/defaults';
+import { desktop } from './core/desktop';
 import { applyUi } from './core/theming';
 import { ChapterPanel } from './features/chapters/chapter-panel';
 import { ChaptersPage } from './features/chapters/chapters-page';
@@ -73,7 +74,14 @@ export class Workspace {
     // Once, at start, and only when the reader has left it on — off means the
     // server is never asked, so GitHub is never asked either. Nothing waits
     // for the answer: it is a pill in the top bar or it is nothing.
-    if (this.settings.ui().checkForUpdates) void inject(UpdatesStore).load();
+    const checkForUpdates = this.settings.ui().checkForUpdates;
+    if (checkForUpdates) void inject(UpdatesStore).load();
+    // The other half of the same switch. The desktop shell runs an updater
+    // that downloads the new version and installs it on quit, and it cannot
+    // read settings.json by design, so the answer is carried to it from here.
+    desktop()
+      ?.checkForUpdates(checkForUpdates)
+      .catch(() => undefined);
 
     // Everything under Preferences that the page can see — the theme, the
     // customised colours of that theme, the face the story is set in — is

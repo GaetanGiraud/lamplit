@@ -37,6 +37,11 @@ of it is something that was wrong. The ones you could have noticed:
 - **An endpoint that will not stream** is understood rather than reported as an empty answer, and
   a page that will not parse is shown as the text it is rather than blanking the view.
 - **The colours the model picks** are the ones it named, not the first name in our own list.
+- **A link in an answer opens beside the story**, in a new tab, instead of navigating the app away
+  from the page you were writing on and taking the reply still arriving with it.
+- **Switching the update check off switches it off in the desktop app too.** It used to keep
+  asking GitHub, downloading the new version and installing it the next time you quit, whatever
+  the switch said. `LAMPLIT_UPDATE_CHECK=0` stops it now as well.
 
 And underneath, where a reader would only notice them going wrong: the API answers only to this
 machine's own names, so a page on the web cannot reach it by pointing a domain at your loopback;
