@@ -348,3 +348,251 @@ describe('ChapterStore and a turn the model would not take', () => {
     expect(failed().contextLimit).toBeUndefined();
   });
 });
+
+describe('ChapterStore and asking again after a failure', () => {
+  let storage: InMemoryStorage;
+  let client: FakeClient;
+  /** Every request the endpoint was asked to answer, in order. */
+  let asked: { role: string; content: string }[][];
+
+  function seed(messages: unknown[] = []): void {
+    storage.write(KEYS.settings, {
+      connection: { provider: 'nanogpt', baseUrl: 'https://x/v1', apiKey: 'k', model: 'm' },
+      generation: { ...DEFAULT_GENERATION },
+      activeStoryId: STORY_ID,
+    });
+    storage.write(KEYS.story(STORY_ID), {
+      id: STORY_ID,
+      title: 'A story',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      activeChapterId: CHAPTER_ID,
+      chapterCounter: 1,
+      autoTheme: false,
+    });
+    storage.write(KEYS.chapter(CHAPTER_ID), {
+      id: CHAPTER_ID,
+      storyId: STORY_ID,
+      number: 1,
+      title: '',
+      scene: 'A monastery under snow.',
+      status: 'writing',
+      summary: '',
+      messages,
+    });
+  }
+
+  /** A user turn, and the failed answer to it that the bubble offers to retry. */
+  const ASKED = { id: 'm-user', role: 'user', content: 'The bell rings.', createdAt: '' };
+  const FAILED = {
+    id: 'm-failed',
+    role: 'assistant',
+    content: '',
+    createdAt: '',
+    meta: { model: 'm', error: 'The endpoint refused: 502.' },
+  };
+
+  const store = () => TestBed.inject(ChapterStore);
+  const written = () => store().written();
+
+  beforeEach(() => {
+    storage = new InMemoryStorage();
+    client = new FakeClient();
+    asked = [];
+    client.streamChat = (request, onDelta) => {
+      asked.push((request as { messages: { role: string; content: string }[] }).messages);
+      onDelta({ content: 'The bell answers.' });
+      return Promise.resolve({
+        content: 'The bell answers.',
+        reasoning: '',
+        aborted: false,
+        finishReason: 'stop',
+      });
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: STORAGE_BACKEND, useValue: storage },
+        { provide: ModelClient, useValue: client },
+      ],
+    });
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('drops the failed answer and asks for another one', async () => {
+    seed([ASKED, FAILED]);
+    await store().retryLast();
+
+    expect(asked).toHaveLength(1);
+    // The bubble that failed is gone, replaced rather than added to.
+    expect(written()).toHaveLength(2);
+    expect(written()[1].content).toBe('The bell answers.');
+    expect(written()[1].meta?.error).toBeUndefined();
+    // And the turn it was answering is still the turn it was answering.
+    expect(asked[0][asked[0].length - 1].content).toContain('The bell rings.');
+  });
+
+  it('sends the last turn again when there is no answer to drop', async () => {
+    seed([ASKED]);
+    await store().retryLast();
+
+    expect(asked).toHaveLength(1);
+    expect(written().map((m) => m.id)).toContain('m-user');
+    expect(written()[1].content).toBe('The bell answers.');
+  });
+
+  it('asks again from the last thing written, whatever failed before it', async () => {
+    seed([ASKED, FAILED, { id: 'm-late', role: 'user', content: 'Anyone there?', createdAt: '' }]);
+    await store().retryLast();
+
+    // `m-late` is the last thing written, so it is what is sent again — and
+    // the failed bubble in front of it is not part of what gets sent.
+    expect(written().map((m) => m.id)).toEqual(['m-user', 'm-failed', 'm-late', written()[3].id]);
+    expect(written()[3].content).toBe('The bell answers.');
+  });
+
+  it('looks past a record of the cast changing to the last thing written', async () => {
+    seed([
+      ASKED,
+      FAILED,
+      { id: 'm-cast', kind: 'cast', role: 'system', content: '', createdAt: '', cast: {} },
+    ]);
+    await store().retryLast();
+
+    // The record is not a turn, so it is the failed answer that is asked again.
+    expect(written().map((m) => m.id)).toEqual(['m-user', written()[1].id]);
+    expect(written()[1].content).toBe('The bell answers.');
+  });
+
+  it('asks nothing of a chapter with nothing in it', async () => {
+    seed([]);
+    await store().retryLast();
+
+    expect(asked).toEqual([]);
+    expect(written()).toEqual([]);
+  });
+
+  it('asks nothing while a turn is already arriving', async () => {
+    seed([ASKED, FAILED]);
+    let arrive: (() => void) | undefined;
+    client.streamChat = (request, onDelta) => {
+      asked.push((request as { messages: { role: string; content: string }[] }).messages);
+      onDelta({ content: 'Still writing' });
+      return new Promise((fulfil) => {
+        arrive = () => fulfil({ content: 'Still writing.', reasoning: '', aborted: false });
+      });
+    };
+
+    const first = store().retryLast();
+    await store().retryLast();
+    expect(asked).toHaveLength(1);
+
+    arrive!();
+    await first;
+  });
+
+  it('asks nothing when there is nowhere to send it', async () => {
+    seed([ASKED, FAILED]);
+    TestBed.inject(SettingsStore).patchConnection({ model: '' });
+    await store().retryLast();
+
+    expect(asked).toEqual([]);
+    expect(written()[1].meta?.error).toBe('The endpoint refused: 502.');
+  });
+});
+
+describe('ChapterStore and losing a chapter', () => {
+  let storage: InMemoryStorage;
+
+  /** Three chapters, open on the second, and a message in each. */
+  function seed(): void {
+    storage.write(KEYS.settings, {
+      connection: { provider: 'nanogpt', baseUrl: 'https://x/v1', apiKey: 'k', model: 'm' },
+      activeStoryId: STORY_ID,
+    });
+    storage.write(KEYS.story(STORY_ID), {
+      id: STORY_ID,
+      title: 'A story',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      activeChapterId: 'chapter-2',
+      chapterCounter: 3,
+      autoTheme: false,
+    });
+    for (const number of [1, 2, 3]) {
+      storage.write(KEYS.chapter(`chapter-${number}`), {
+        id: `chapter-${number}`,
+        storyId: STORY_ID,
+        number,
+        title: '',
+        scene: `Scene ${number}.`,
+        status: 'writing',
+        summary: '',
+        messages: [{ id: `m-${number}`, role: 'user', content: 'The bell rings.' }],
+      });
+    }
+  }
+
+  const store = () => TestBed.inject(ChapterStore);
+
+  beforeEach(() => {
+    storage = new InMemoryStorage();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: STORAGE_BACKEND, useValue: storage },
+        { provide: ModelClient, useValue: new FakeClient() },
+      ],
+    });
+    seed();
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('takes the document with it, not just the row in the list', () => {
+    store().deleteChapter('chapter-1');
+
+    expect(
+      store()
+        .chapters()
+        .map((c) => c.id),
+    ).toEqual(['chapter-2', 'chapter-3']);
+    expect(storage.read(KEYS.chapter('chapter-1'))).toBeNull();
+  });
+
+  it('leaves the open chapter open when it was another one that went', () => {
+    store().deleteChapter('chapter-3');
+
+    expect(store().chapter().id).toBe('chapter-2');
+  });
+
+  it('opens the last chapter left when the open one is the one deleted', () => {
+    store().deleteChapter('chapter-2');
+
+    expect(store().chapter().id).toBe('chapter-3');
+    expect(TestBed.inject(StoryStore).story().activeChapterId).toBe('chapter-3');
+  });
+
+  it('never leaves a story with no chapter in it', () => {
+    for (const id of ['chapter-1', 'chapter-2', 'chapter-3']) store().deleteChapter(id);
+
+    const chapters = store().chapters();
+    expect(chapters).toHaveLength(1);
+    expect(chapters[0].id).not.toBe('chapter-3');
+    expect(store().chapter().id).toBe(chapters[0].id);
+    // Empty, waiting for its scene, and numbered after the three that went:
+    // a chapter 3 that was deleted does not come back as chapter 3.
+    expect(chapters[0].messages).toEqual([]);
+    expect(chapters[0].scene).toBe('');
+    expect(chapters[0].number).toBe(4);
+  });
+
+  it('clearing a chapter takes the messages and leaves the chapter', () => {
+    store().clearMessages();
+
+    const chapter = store().chapter();
+    expect(chapter.id).toBe('chapter-2');
+    expect(chapter.messages).toEqual([]);
+    expect(chapter.scene).toBe('Scene 2.');
+    expect(chapter.number).toBe(2);
+    // The other chapters are not touched by it.
+    expect(store().chapters()[2].messages).toHaveLength(1);
+  });
+});
