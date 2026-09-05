@@ -1,0 +1,17 @@
+---
+# Front matter, empty on purpose: it is what makes Jekyll run Liquid over this
+# file, and the sitemap line has to be an absolute URL. The host comes from
+# jekyll-github-metadata rather than being typed here, for the same reason
+# `url` is not set in _config.yml — one less thing to remember if the
+# repository is ever renamed.
+#
+# What this file can and cannot do: GitHub Pages serves it at /lamplit/robots.txt,
+# and a crawler only reads the one at the domain root, which belongs to the
+# lamplit-app.github.io repository and not to this one. So the rules below bind
+# nobody today; the file is here to be found, and to be the place the sitemap is
+# named the day the project has a domain or an organisation site.
+---
+User-agent: *
+Allow: /
+
+Sitemap: {{ '/sitemap.xml' | absolute_url }}

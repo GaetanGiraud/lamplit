@@ -10,8 +10,12 @@ import { fileURLToPath } from 'node:url';
  * three that still have to be bitmaps: favicon.ico for the browsers that ignore
  * SVG icons, apple-touch-icon.png for the home screen, and electron/icons/
  * icon.png for the desktop build — electron-builder makes the per-platform
- * icons from that one, provided it is at least 256 px. Edit the SVG, run this,
- * commit all four.
+ * icons from that one, provided it is at least 256 px.
+ *
+ * The website has a tab too, and GitHub Pages serves docs/ as it is, so the
+ * three browser icons are written into docs/ in the same breath rather than
+ * copied by hand later: one source, two destinations, and no drift between the
+ * app's tab and the site's. Edit the SVG, run this, commit all seven.
  *
  * Rasterising is done by the browser Playwright already brings, so there is no
  * image library in the dependency list for two files that change once a year.
@@ -23,6 +27,8 @@ const { chromium } = require('@playwright/test');
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = join(ROOT, 'app', 'public');
 const DESKTOP = join(ROOT, 'electron', 'icons');
+/** The website is docs/, served exactly as it is; its tab wants the same three. */
+const SITE = join(ROOT, 'docs');
 const SOURCE = join(PUBLIC, 'favicon.svg');
 
 /** What actually gets asked for: the tab, the bookmark bar, and the desktop. */
@@ -44,12 +50,17 @@ try {
 }
 
 await mkdir(DESKTOP, { recursive: true });
-await writeFile(join(PUBLIC, 'favicon.ico'), ico(ICO_SIZES.map((s) => rendered.get(s))));
-await writeFile(join(PUBLIC, 'apple-touch-icon.png'), rendered.get(APPLE_SIZE));
+const favicon = ico(ICO_SIZES.map((s) => rendered.get(s)));
+for (const dir of [PUBLIC, SITE]) {
+  await writeFile(join(dir, 'favicon.ico'), favicon);
+  await writeFile(join(dir, 'apple-touch-icon.png'), rendered.get(APPLE_SIZE));
+}
+await writeFile(join(SITE, 'favicon.svg'), svg);
 await writeFile(join(DESKTOP, 'icon.png'), rendered.get(DESKTOP_SIZE));
 
-console.log(`favicon.ico            ${ICO_SIZES.join(', ')} px`);
-console.log(`apple-touch-icon.png   ${APPLE_SIZE} px`);
+console.log(`favicon.ico             ${ICO_SIZES.join(', ')} px   app/public/, docs/`);
+console.log(`apple-touch-icon.png    ${APPLE_SIZE} px         app/public/, docs/`);
+console.log(`favicon.svg             copied        docs/`);
 console.log(`electron/icons/icon.png ${DESKTOP_SIZE} px`);
 
 /** One PNG of the source at `size`, drawn by a real browser. */

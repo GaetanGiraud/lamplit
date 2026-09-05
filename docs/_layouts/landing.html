@@ -22,8 +22,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
     {% seo %}
-    <!-- #40 adds docs/_includes/custom-head.html with the favicon links, for
-         this layout and for minima's head.html; include it here when it lands. -->
+    <!-- The favicons. minima's head.html includes this file on its own for the
+         guide pages; this layout is not minima's, so it asks. -->
+    {% include custom-head.html %}
     <style>
       /* -- the app's palette, dark first ---------------------------------- */
       :root {

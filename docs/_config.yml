@@ -20,13 +20,60 @@
 # table above the heading for anyone reading the guide in the repo.
 # Found on the first deploy, 2026-09-03.
 
+# ---------------------------------------------------------------------------
+# The rule, and it has no exceptions: nothing on this site is fetched from
+# anyone but GitHub.
+#
+# No analytics, no tag manager, no external fonts, no CDN for a script or a
+# stylesheet, no embedded video, no social widget, no comment system, no
+# hosted search — not now and not for the one useful thing that will seem
+# worth it later. Every one of those tells another company that a particular
+# person read a page about writing software, which is precisely the trade this
+# project exists to refuse.
+#
+# The landing page says so in its foot — "This site sets no cookies and loads
+# nothing from anyone else" — and `npm run check:docs` fails on any script,
+# stylesheet, font, image or embed under docs/ that points at another host, so
+# the sentence stays true without anyone having to remember it.
+#
+# What cannot be promised: GitHub Pages is GitHub's server and GitHub keeps its
+# own access logs, which we neither see nor control. That is why the page says
+# what it says and not "nobody knows you were here".
+# ---------------------------------------------------------------------------
+
 title: Lamplit
+# Short, because jekyll-seo-tag builds the homepage title as `Lamplit | <tagline>`
+# and a search engine cuts it at about sixty characters. `tagline` is preferred
+# over `description` when it exists, which is the only reason it is here; the
+# same line is the landing page's own h1.
+tagline: Like reading in bed with the lamp on
 description: >-
   Write a story with a language model, in chapters, on your own machine.
   Your stories are files. Your key goes to your provider and nowhere else.
 
 theme: minima
-lang: en_GB
+# BCP 47, with a hyphen: `en_GB` is not a language tag, and minima writes this
+# straight into <html lang>. jekyll-seo-tag turns it back into `en_GB` for
+# og:locale on its own.
+lang: en-GB
+
+# The plugins the site actually runs on. The theme and GitHub Pages enable most
+# of these without being asked; naming them makes the list the record, and
+# jekyll-sitemap is here because it is not one of the defaults.
+plugins:
+  - jekyll-seo-tag
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-titles-from-headings
+
+# Unfurled large on Slack, Discord and iMessage already; this is the line X
+# wants before it will do the same. The picture itself is `image:` in
+# index.md's front matter — docs/images/card.png, 1200×630, from
+# `npm run screenshots`.
+twitter:
+  card: summary_large_image
 
 # Minima puts every titled page in the header nav, which for a ten-page guide
 # is a wall. These two are the ways in; the rest are reached from them.

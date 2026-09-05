@@ -1,0 +1,14 @@
+<!--
+  The tab, on every page of the site.
+
+  minima's head.html ends by including this file, which is how the guide pages
+  get it; docs/_layouts/landing.html is not minima's and includes it by hand.
+
+  The three files are written by `npm run icons` into docs/ and app/public/ at
+  the same time, from the one favicon.svg, so the site's tab and the app's tab
+  cannot drift apart. Nothing here comes from another host — see the rule in
+  _config.yml.
+-->
+<link rel="icon" href="{{ '/favicon.svg' | relative_url }}" type="image/svg+xml" />
+<link rel="alternate icon" href="{{ '/favicon.ico' | relative_url }}" sizes="16x16 32x32 48x48" />
+<link rel="apple-touch-icon" href="{{ '/apple-touch-icon.png' | relative_url }}" />

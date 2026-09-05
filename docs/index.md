@@ -1,6 +1,12 @@
 ---
 layout: landing
 image: images/card.png
+# The line under the title in a search result. The site-wide description is two
+# sentences about what the app does; this one is for the page people land on,
+# and it leads with the words the search was probably made of.
+description: >-
+  A free, open-source app for writing long stories with a language model of your
+  choosing, on your own machine, with your own key.
 ---
 
 <!--

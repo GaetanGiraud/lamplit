@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -29,6 +29,14 @@ import { fileURLToPath } from 'node:url';
  *
  * Offline, deterministic, and in the release workflow, because the failure it
  * catches is invisible until someone clicks.
+ *
+ * The second job is the promise the landing page makes in its foot: this site
+ * sets no cookies and loads nothing from anyone else. A stylesheet from a CDN,
+ * a web font, an embedded video, an analytics snippet — each is a request that
+ * tells a company we do not control that someone read this page, and any of
+ * them can arrive in one line that looks like an improvement. So the rule
+ * written at the top of _config.yml is checked here rather than remembered:
+ * everything the browser fetches must be served from this site.
  */
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -40,8 +48,38 @@ const HTML_LINKS_ALLOWED = new Set(['index.md']);
 /** Jekyll will not build a page from these unless _config.yml asks it to. */
 const META_FILES = ['README.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md', 'LICENSE.md'];
 
+/**
+ * Everything a browser goes and fetches on its own, as opposed to a link a
+ * reader chooses to follow. Attributes, `@import` and CSS `url()`, plus
+ * markdown pictures, which the link pass above lets through when they are
+ * absolute.
+ */
+const FETCHED = [
+  [/<script\b[^>]*\bsrc=["']?([^"'\s>]+)/gi, 'a script'],
+  [/<link\b[^>]*\bhref=["']?([^"'\s>]+)/gi, 'a stylesheet, font or icon'],
+  [
+    /<(?:img|iframe|video|audio|source|track|embed)\b[^>]*\bsrc=["']?([^"'\s>]+)/gi,
+    'an embedded file',
+  ],
+  [/<object\b[^>]*\bdata=["']?([^"'\s>]+)/gi, 'an embedded file'],
+  [/@import\s+(?:url\()?\s*["']?([^"')\s;]+)/gi, 'an imported stylesheet'],
+  [/\burl\(\s*["']?([^"')]+)/gi, 'a file named in CSS'],
+  [/!\[[^\]]*\]\(\s*([^)\s]+)/g, 'a picture'],
+];
+
+/** `https://x`, `http://x` and `//x` — anything with a host of its own. */
+const ANOTHER_HOST = /^(?:[a-z][a-z0-9+.-]*:)?\/\//i;
+
 const problems = [];
 const files = (await readdir(DOCS)).filter((f) => f.endsWith('.md')).sort();
+/** The pages, and the two folders of HTML that wrap every one of them. */
+const served = [
+  ...files,
+  ...(await readdir(DOCS, { recursive: true }))
+    .filter((f) => f.endsWith('.html'))
+    .map((f) => f.split(sep).join('/'))
+    .sort(),
+];
 // Normalised: this repo is edited on Windows, so every one of these files is
 // CRLF on disk, and a pattern anchored on \n silently matches nothing.
 const config = normalise(await readFile(join(DOCS, '_config.yml'), 'utf8'));
@@ -97,13 +135,35 @@ for (const file of files) {
   }
 }
 
+for (const file of served) {
+  // Markdown hides its examples in code fences; HTML hides its notes in
+  // comments. Neither is fetched by anybody.
+  const source = file.endsWith('.md')
+    ? withoutCode(normalise(await readFile(join(DOCS, file), 'utf8')))
+    : normalise(await readFile(join(DOCS, file), 'utf8')).replace(/<!--[\s\S]*?-->/g, '');
+
+  for (const [pattern, what] of FETCHED) {
+    for (const [, target] of source.matchAll(pattern)) {
+      if (!ANOTHER_HOST.test(target)) continue;
+      problems.push(
+        `${file}: ${what} is fetched from ${target}, which is not this site. ` +
+          `The rule is at the top of _config.yml: no analytics, no CDN, no web ` +
+          `font, no embed. Serve the file from docs/ or do without it.`,
+      );
+    }
+  }
+}
+
 if (problems.length) {
   console.error(`\ncheck:docs — ${problems.length} problem(s):\n`);
   for (const problem of problems) console.error(`  ${problem}`);
   console.error('');
   process.exit(1);
 }
-console.log(`check:docs — ${files.length} pages, every link resolves and will be rewritten.`);
+console.log(
+  `check:docs — ${files.length} pages, every link resolves and will be rewritten, ` +
+    `and nothing in ${served.length} files is fetched from another host.`,
+);
 
 function normalise(text) {
   return text.replace(/\r\n/g, '\n');
