@@ -22,6 +22,14 @@ import { fileURLToPath } from 'node:url';
  *
  *   --no-build   reuse the last archive
  *   --port N     listen somewhere other than 4177
+ *   --check      stop as soon as it answers, and exit 0 — for CI
+ *
+ * `--check` is the same walk with nobody to walk it: it proves that what was
+ * packaged unzips, starts and serves. Nothing else covers that. A dependency
+ * npm put somewhere tools/package.mjs did not look is invisible until then —
+ * the stage is written, the zip is made, the installers are built, and the
+ * server dies on the reader's machine with ERR_MODULE_NOT_FOUND. It runs in
+ * .github/actions/verify, so it is no longer a thing to remember.
  *
  * The automated half of the same walk is e2e/specs/journey.spec.ts; the script
  * to follow here is e2e/LIVE-TEST.md.
@@ -37,6 +45,7 @@ const fresh = join(BUILD, 'fresh-install');
 
 const argv = process.argv.slice(2);
 const skipBuild = argv.includes('--no-build');
+const check = argv.includes('--check');
 const port = argv.includes('--port') ? Number(argv[argv.indexOf('--port') + 1]) : 4177;
 const url = `http://127.0.0.1:${port}/`;
 
@@ -81,7 +90,9 @@ async function main() {
   server = spawn(WINDOWS ? 'cmd.exe' : script, WINDOWS ? ['/c', script] : [], {
     cwd: app,
     stdio: 'inherit',
-    env: { ...process.env, LAMPLIT_PORT: String(port), LAMPLIT_OPEN: '1' },
+    // No browser under --check: there is nobody to show it to, and on a CI
+    // runner the call either fails or opens something nothing will close.
+    env: { ...process.env, LAMPLIT_PORT: String(port), LAMPLIT_OPEN: check ? '0' : '1' },
   });
   server.on('exit', (code) => stop(code ?? 0));
   server.on('error', (error) => {
@@ -91,6 +102,13 @@ async function main() {
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => stop(0));
 
   await waitForHealth(url);
+
+  if (check) {
+    step('it answered /api/health');
+    console.log(`   ${url}api/health — what was packaged runs.`);
+    await stop(0);
+    return;
+  }
 
   console.log(`\n   ${url}`);
   console.log('   an empty data folder and no key: it opens on the connection sheet.');
@@ -116,7 +134,15 @@ async function waitForHealth(url, timeout = 30_000) {
 async function stop(code) {
   if (stopping) return;
   stopping = true;
-  server?.kill();
+  // start.bat is a cmd.exe that spawned node: killing it leaves the server
+  // holding the port and, with nobody at the keyboard, the pipe the CI step is
+  // waiting on. Ctrl+C by hand signals the whole group and never needed this,
+  // which is why it took until --check to notice.
+  if (WINDOWS && server?.pid) {
+    spawnSync('taskkill', ['/pid', String(server.pid), '/t', '/f'], { stdio: 'ignore' });
+  } else {
+    server?.kill();
+  }
   process.exit(code);
 }
 

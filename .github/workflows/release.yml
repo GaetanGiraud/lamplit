@@ -44,8 +44,9 @@ jobs:
       - uses: actions/checkout@v7
 
       # Install, lint, formatting, the docs and release-notes checks, unit
-      # tests, the build and the end-to-end suite — the same action ci.yml runs
-      # on every push, so a tag cannot pass a check that main would fail. On
+      # tests, the build, a packaged copy started and asked for /api/health,
+      # and the end-to-end suite — the same action ci.yml runs on every push,
+      # so a tag cannot pass a check that main would fail. On
       # both platforms here, because the installers are made from what it
       # leaves behind.
       - uses: ./.github/actions/verify

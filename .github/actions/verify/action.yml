@@ -2,8 +2,9 @@ name: Verify
 description: >
   Everything a change has to pass before it is trusted: install, lint,
   formatting, the docs and release-notes checks, unit tests, the production
-  build, and the end-to-end suite. ci.yml runs it on every push and release.yml
-  runs it before building installers, so the two cannot drift apart.
+  build, a packaged copy started and asked for /api/health, and the end-to-end
+  suite. ci.yml runs it on every push and release.yml runs it before building
+  installers, so the two cannot drift apart.
 
 # A composite action rather than a reusable workflow because the release job
 # needs the checkout, the install and the build to still be there afterwards —
@@ -83,6 +84,20 @@ runs:
 
     - name: Build the app
       run: npm run build
+      shell: bash
+
+    # The only check that what ships actually runs. Everything above tests the
+    # repository; this packages it, unzips the archive into an empty folder and
+    # starts it through its own start script, which is the first moment a
+    # dependency left out of the staged node_modules would say so. Before, it
+    # was `npm run smoke`, run by hand and therefore run rarely.
+    #
+    # Both --no-build flags mean "reuse what is already there": the app was
+    # just built, and the archive is the one packaged on the line above.
+    - name: Start what would ship
+      run: |
+        node tools/package.mjs --no-build
+        npm run smoke -- --no-build --check
       shell: bash
 
     # Includes the desktop spec, which starts the Electron shell for real:

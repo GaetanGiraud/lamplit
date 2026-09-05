@@ -24,7 +24,8 @@ electron/   the desktop shell: main process, preload, electron-builder config.
             and knows nothing else about the app
 tools/      dev.mjs (both halves at once), package.mjs (the runnable zip),
             desktop.mjs (the window, and the installers), smoke.mjs (a fresh
-            install to walk by hand), screenshots.mjs (every picture in docs/),
+            install to walk by hand, and --check to prove one in CI),
+            screenshots.mjs (every picture in docs/),
             icons.mjs (the raster icons), probe-providers.mjs (the CORS table),
             check-docs.mjs (the links in docs/ survive becoming a website),
             release-notes.mjs (docs/releases.md from CHANGELOG.md),
@@ -54,7 +55,7 @@ usefully — why each decision went the way it did.
 | `npm run lint` | ESLint over the whole tree: the type-aware rule sets on `app/`, the recommended ones on everything else. `npm run lint:fix` applies what can be applied |
 | `npm run e2e` | Builds the app, then the full Playwright suite |
 | `npm run e2e:quick` | Playwright without the build (skips the specs that need it) |
-| `npm run smoke` | Packages, unzips the archive into an empty folder, and starts it — a genuinely fresh install to walk by hand |
+| `npm run smoke` | Packages, unzips the archive into an empty folder, and starts it — a genuinely fresh install to walk by hand. `--check` stops as soon as it answers `/api/health` and exits, which is how CI runs it |
 | `npm run screenshots` | Regenerates every picture in `docs/images` |
 | `npm run icons` | Regenerates favicon.ico and apple-touch-icon.png from `app/public/favicon.svg` |
 | `npm run providers` | Asks every provider in the list whether it still lets a browser call it, and prints the table for [Models and parameters](models-and-parameters.md). Not in CI: it talks to twenty companies |
@@ -111,7 +112,8 @@ one thing a fake model cannot check: whether a real one tells a decent story, an
 
 **On every push — CI.** `.github/workflows/ci.yml` runs on each push to `main` and on each pull
 request: `npm ci`, lint, the formatting check, the docs and release-notes checks, the unit tests,
-the production build and the end-to-end suite, on Ubuntu, in about three minutes. The steps are
+the production build, the packaged folder started for real, and the end-to-end suite, on Ubuntu, in
+about three minutes. The steps are
 `.github/actions/verify`, and the release workflow runs the same action on both platforms before
 it builds an installer, so a tag cannot pass a check that `main` would fail. The badge at the top
 of the README is the last run on `main`.

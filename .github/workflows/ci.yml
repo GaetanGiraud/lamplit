@@ -1,8 +1,8 @@
 name: CI
 
 # Every push to main, and every pull request, runs the whole verify action:
-# lint, formatting, the docs and release-notes checks, unit tests, the build
-# and the end-to-end suite. Ubuntu only — Windows runs the same steps in the
+# lint, formatting, the docs and release-notes checks, unit tests, the build,
+# the packaged folder started for real, and the end-to-end suite. Ubuntu only — Windows runs the same steps in the
 # release workflow, where a slow job costs nothing anyone is waiting for. Here
 # the point is a green tick within minutes of the push.
 #

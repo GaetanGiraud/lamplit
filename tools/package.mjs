@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collectEntries, writeZip } from '../server/src/zip.js';
 import { STAMP_FILE, buildStamp } from '../server/src/version.js';
+import { productionClosure } from './lib/production-closure.mjs';
 
 /**
  * `npm run package` — the whole app as one folder, and that folder as one zip.
@@ -22,6 +23,7 @@ import { STAMP_FILE, buildStamp } from '../server/src/version.js';
  *     public/               the built Angular app, served by it, and the
  *                           version.json stamped into it (see server/src/version.js)
  *     node_modules/         the server's production dependencies, and only those
+ *                           — plus, where npm put one there, server/node_modules/
  *     package.json  README.txt
  *     data/                 created on first run, next to the script
  *
@@ -36,7 +38,6 @@ import { STAMP_FILE, buildStamp } from '../server/src/version.js';
  */
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const ROOT_MODULES = join(ROOT, 'node_modules');
 const BUILT_APP = join(ROOT, 'app', 'dist', 'app', 'browser');
 /** Written by `ng build`, one entry per package bundled into the app. */
 const LICENCES_FILE = '3rdpartylicenses.txt';
@@ -94,9 +95,11 @@ if (options.zipOnly) {
   await writeFile(join(stageDir, 'README.txt'), readme(), 'utf8');
 
   step('collecting the server’s production dependencies');
-  const dependencies = productionClosure(join(ROOT, 'server'));
-  for (const [dependency, from] of dependencies) {
-    await cp(from, join(stageDir, 'node_modules', ...dependency.split('/')), { recursive: true });
+  // Each one to the place it holds in the repository, which is the place the
+  // stage has to resolve it from — see tools/lib/production-closure.mjs.
+  const dependencies = closure();
+  for (const [place, from] of dependencies) {
+    await cp(from, join(stageDir, ...place.split('/')), { recursive: true });
   }
   console.log(`   ${dependencies.size} packages`);
   console.log(`   stamped  build ${stamp.build}, commit ${stamp.commit || '(no git)'}`);
@@ -118,6 +121,15 @@ if (options.zip === false) {
 }
 
 // -- the pieces --------------------------------------------------------------
+
+/** Reported as one line, and a throw from it is one line too rather than a stack. */
+function closure() {
+  try {
+    return productionClosure({ root: ROOT, from: join(ROOT, 'server') });
+  } catch (error) {
+    fail(error.message);
+  }
+}
 
 function manifest() {
   const server = readJson(join(ROOT, 'server', 'package.json'));
@@ -398,50 +410,6 @@ on this machine. That is deliberate for a single-user local tool. The server
 listens on 127.0.0.1 only, so nothing on your network can reach it. Do not run
 this on a machine you share.
 `;
-}
-
-/**
- * Every package the server needs at runtime, resolved the way Node resolves
- * them rather than by asking npm — this works offline and copies exactly the
- * versions that were tested. Nested copies (a dependency pinned to its own
- * version of something) travel inside their parent's folder, so only packages
- * that sit at the top level are listed here.
- */
-function productionClosure(from) {
-  const found = new Map();
-  const visited = new Set();
-
-  const visit = (dir) => {
-    if (visited.has(dir)) return;
-    visited.add(dir);
-    const manifest = readJson(join(dir, 'package.json'));
-    const required = Object.keys(manifest.dependencies ?? {});
-    const optional = Object.keys(manifest.optionalDependencies ?? {});
-    for (const dependency of [...required, ...optional]) {
-      const target = resolvePackage(dependency, dir);
-      if (!target) {
-        if (optional.includes(dependency)) continue;
-        fail(`${manifest.name} needs ${dependency}, which is not installed. Run npm install.`);
-      }
-      if (target === join(ROOT_MODULES, ...dependency.split('/'))) found.set(dependency, target);
-      visit(target);
-    }
-  };
-
-  visit(from);
-  return new Map([...found].sort(([a], [b]) => a.localeCompare(b)));
-}
-
-/** node_modules lookup: this folder's, then every folder above it. */
-function resolvePackage(dependency, from) {
-  let dir = from;
-  for (;;) {
-    const candidate = join(dir, 'node_modules', ...dependency.split('/'));
-    if (existsSync(join(candidate, 'package.json'))) return candidate;
-    const parent = dirname(dir);
-    if (parent === dir) return null;
-    dir = parent;
-  }
 }
 
 /** `shell` on Windows: npm is a .cmd there, and Node will not spawn one directly. */
