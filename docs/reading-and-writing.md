@@ -144,6 +144,7 @@ word away from you.
 | **Edit** | Change the text in place. On a user line this is how you fix a typo without re-rolling; on an answer it is how you keep a good passage with one bad sentence. |
 | **Replay from here** *(your lines)* | Drop everything after this line and send it again. |
 | **Regenerate** *(answers)* | Drop this answer and everything after it, and ask again. |
+| **Listen** | Read this message aloud, in the voice this device has. Press it again to stop. |
 | **Copy** | The raw text, as written. |
 | **Delete** | Just that message. |
 
@@ -210,12 +211,40 @@ away underneath.
   already break their own lines look the same either way.
 - **Show token counts** — the line under each answer.
 - **Text size** — 14 to 26 pixels.
+- **Read replies aloud**, and under it the **voice** and the **reading speed** — see below.
 
 ![The same chapter, light](images/light.png)
 
 > These are reading preferences and live in `settings.json`, not in the story. The *prompt*
 > instructions that ask the model to put dialogue on its own line, or to answer at a particular
 > length, live in **Story → Style** — see [Story and world](story-and-world.md).
+
+### Read aloud
+
+Any message can be read out loud from its own actions — **Listen**, above. **Read replies aloud**
+does it without being asked: each answer is read as it finishes, which is what a phone propped
+against something across the room is for. On a phone the same switch is in the **⋯** menu, because
+Preferences is not offered there; see [On your phone](on-your-phone.md).
+
+What is read is the words: the asterisks that make an action italic, the heading hashes and the
+list bullets are left out, and the quotation marks are kept, because a voice pauses at them. In
+role-play with one character at a time, the speaker's name is said first — a listener cannot see
+the name above the passage. An answer that failed is never read; nor is your own line, which you
+wrote.
+
+The **voice** list is whatever this machine ships with: on Windows the ones installed under
+Speech, on a Mac the ones in System Settings, on a phone the ones the phone has. **Nothing is sent
+anywhere to do it** — the reading is done by the browser, on the device, and no request leaves the
+machine. The choice is stored by the voice's *name*, so a phone that has never heard of the voice
+your laptop uses simply reads in its own.
+
+**Reading speed** runs from 0.6 to 1.6 times the voice's own pace.
+
+> **Dictation is the keyboard's job, not Lamplit's.** Every phone keyboard has a microphone key
+> that dictates into any text box, this one included. Lamplit does not offer a dictate button of
+> its own: the browser API for it refuses to run on a plain-HTTP address like the one your phone
+> reaches Lamplit on, and getting round that needs a domain name and a certificate for a server
+> that lives on your desk. See [On your phone](on-your-phone.md).
 
 ### Colours
 

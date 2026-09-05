@@ -1,5 +1,6 @@
 import { characterColour } from './character-colours';
 import { ChapterMessage, Story, ThemeName } from './models';
+import { isOneAtATime } from './prompt-builder';
 
 /**
  * Who is speaking on each line of the page.
@@ -61,6 +62,28 @@ export function speakerLabels(
 }
 
 /**
+ * The name to say before a message that is being read aloud, or '' for none.
+ *
+ * Not the same question as the label on the page, and it has to be asked
+ * separately for two reasons. A run of turns by one speaker is labelled once
+ * because the reader can see the run; a listener cannot, so every message
+ * carries its name. And it is only asked at all where the model is playing one
+ * character at a time — an ensemble answer belongs to nobody, and a narrator's
+ * page has no names on it, so announcing one would be inventing a speaker.
+ */
+export function announcedName(
+  story: Pick<Story, 'mode' | 'roleplay' | 'characters' | 'persona'>,
+  message: ChapterMessage,
+): string {
+  if (story.mode !== 'roleplay' || !isOneAtATime(story)) return '';
+  if (message.kind === 'cast' || message.meta?.error) return '';
+  // An ensemble answer is the room talking and belongs to nobody, exactly as
+  // it does on the page.
+  if (message.role !== 'user' && !message.speakerId && !nameOf(story, message)) return '';
+  return nameOf(story, message);
+}
+
+/**
  * The speaker of one turn, as a key that says whether it is the same person as
  * the turn before it, and the label to draw when it is not.
  */
@@ -69,15 +92,11 @@ function whoSpoke(
   message: ChapterMessage,
   theme: ThemeName,
 ): { key: string; label: SpeakerLabel | null } {
+  const name = nameOf(story, message);
   if (message.role === 'user') {
-    const name = story.persona.name.trim();
     return { key: 'reader', label: name ? { name, colour: '' } : null };
   }
 
-  const character = story.characters.find((c) => c.id === message.speakerId);
-  // What it was called when it was written; an answer written before names were
-  // stored falls back to what the character is called now.
-  const name = message.speakerName?.trim() || character?.name.trim() || '';
   if (!message.speakerId && !name) {
     // An ensemble answer is the room talking: the prose carries the names.
     return { key: 'ensemble', label: null };
@@ -85,5 +104,19 @@ function whoSpoke(
 
   const key = `${message.speakerId ?? ''}:${name}`;
   if (!name) return { key, label: null };
+  const character = story.characters.find((c) => c.id === message.speakerId);
   return { key, label: { name, colour: character ? characterColour(character, theme) : '' } };
+}
+
+/**
+ * What the speaker of a message is called: the reader's persona on their own
+ * lines, and on the model's the name it was playing under *when the message was
+ * written*. A rename is a change to the story from here on, not a correction of
+ * what was already said — an answer written before names were stored has none
+ * of its own and falls back to what the character is called now.
+ */
+function nameOf(story: Pick<Story, 'characters' | 'persona'>, message: ChapterMessage): string {
+  if (message.role === 'user') return story.persona.name.trim();
+  const character = story.characters.find((c) => c.id === message.speakerId);
+  return message.speakerName?.trim() || character?.name.trim() || '';
 }

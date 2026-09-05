@@ -1,6 +1,13 @@
 import { test as base } from '@playwright/test';
 import { IS_BUILT, PersistenceServer } from './persistence-server';
-import { SCENE, SeedStory, seedConnectedSettings, seedDeveloperMode, seedStory } from './helpers';
+import {
+  SCENE,
+  SeedStory,
+  seedConnectedSettings,
+  seedDeveloperMode,
+  seedStory,
+  seedUi,
+} from './helpers';
 
 /** What a seeded app is, beyond the one story `seedStory` writes. */
 export interface AppOptions extends SeedStory {
@@ -12,6 +19,8 @@ export interface AppOptions extends SeedStory {
   scene?: string;
   /** Developer mode, which the context pill and the prompt preview live behind. */
   developerMode?: boolean;
+  /** Reading each reply aloud as it finishes, as the menu switch leaves it. */
+  readAloud?: boolean;
   /** Generation settings other than the ones `seedConnectedSettings` writes. */
   generation?: Record<string, unknown>;
 }
@@ -47,10 +56,11 @@ export const test = base.extend<{ server: PersistenceServer; app: App }>({
 
   app: async ({ page, server }, use) => {
     const app: App = {
-      async seed({ developerMode, generation, ...story } = {}) {
+      async seed({ developerMode, readAloud, generation, ...story } = {}) {
         await seedConnectedSettings(server, 'test-key', generation);
-        // After the settings document, which it reads and writes back.
+        // After the settings document, which they read and write back.
         if (developerMode) await seedDeveloperMode(server);
+        if (readAloud) await seedUi(server, { readAloud: true });
         await seedStory(server, { scene: SCENE, ...story });
       },
       async visit() {

@@ -58,6 +58,19 @@ export async function seedConnectedSettings(
 }
 
 /**
+ * A `ui` field written over the settings document already on disk, so a spec
+ * can start from a setting a reader would have changed on the computer.
+ */
+export async function seedUi(
+  server: PersistenceServer,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const settings = (await server.document('settings')) ?? {};
+  const ui = (settings['ui'] as Record<string, unknown>) ?? {};
+  await server.seed({ settings: { ...settings, ui: { ...ui, ...patch } } });
+}
+
+/**
  * Turns developer mode on before the app starts.
  *
  * The context pill and the prompt preview behind it are only there when it is,
@@ -65,9 +78,7 @@ export async function seedConnectedSettings(
  * does not is checking the app a writer actually sees.
  */
 export async function seedDeveloperMode(server: PersistenceServer): Promise<void> {
-  const settings = (await server.document('settings')) ?? {};
-  const ui = (settings['ui'] as Record<string, unknown>) ?? {};
-  await server.seed({ settings: { ...settings, ui: { ...ui, developerMode: true } } });
+  await seedUi(server, { developerMode: true });
 }
 
 /** Opens What the model sees, which developer mode's pill is the only way into. */
@@ -239,9 +250,13 @@ export async function send(page: Page, text: string): Promise<void> {
   await page.getByRole('button', { name: 'Send', exact: true }).click();
 }
 
-/** Waits for the turn to finish: the Stop button is only up while streaming. */
+/**
+ * Waits for the turn to finish: the composer's Stop is only up while streaming.
+ * Exactly that name — a message being read aloud offers "Stop reading", which
+ * is a different button about a different thing.
+ */
 export async function waitForTurn(page: Page): Promise<void> {
-  await expect(page.getByRole('button', { name: 'Stop' })).toBeHidden({
+  await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeHidden({
     timeout: 20_000,
   });
 }

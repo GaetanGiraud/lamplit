@@ -24,6 +24,7 @@ import {
 import type { MarkType } from '@tiptap/pm/model';
 import { Slice } from '@tiptap/pm/model';
 import { EditorState, Plugin, Selection, TextSelection, type Transaction } from '@tiptap/pm/state';
+import type { EditorView } from '@tiptap/pm/view';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
@@ -78,6 +79,12 @@ const Action = Italic.extend({
 });
 
 /**
+ * Asks for the speech marks to be worked out again when nothing was typed.
+ * Only dictation needs it: see `addProseMirrorPlugins` below.
+ */
+const RESPEAK = 'respeak';
+
+/**
  * Speech is a colour, not a mark the writer applies: whatever sits between a
  * pair of quotes is speech, the moment the pair closes. So the mark is worked
  * out from the text after every change, by the rule the page reads with, and
@@ -115,12 +122,43 @@ const Speech = Mark.create({
   addKeyboardShortcuts() {
     return { "Mod-'": () => this.editor.commands.quote() };
   },
+  /**
+   * Re-derived after every change — except while a word is being composed.
+   *
+   * Composition is how a phone keyboard's microphone key puts dictated words
+   * into a box, and how an IME enters any language that needs one: the browser
+   * holds a run of text open and rewrites it as it goes. A transaction
+   * appended into the middle of that — which is exactly what re-marking speech
+   * is — moves text the browser still believes it owns, and what comes back is
+   * a doubled word, a lost one, or a composition that ends early. So nothing is
+   * touched until the composition is over, and `compositionend` asks for the
+   * pass that was skipped.
+   */
   addProseMirrorPlugins() {
     const type = this.type;
+    let view: EditorView | null = null;
     return [
       new Plugin({
-        appendTransaction: (transactions, _old, state) =>
-          transactions.some((tr) => tr.docChanged) ? respeak(state, type) : null,
+        view: (editorView) => {
+          view = editorView;
+          return { destroy: () => (view = null) };
+        },
+        props: {
+          handleDOMEvents: {
+            compositionend: (editorView) => {
+              // A task later: ProseMirror reads the composed text out of the
+              // DOM after this event, so now is before there is anything to
+              // mark. Never handled — the browser's own work comes first.
+              setTimeout(() => editorView.dispatch(editorView.state.tr.setMeta(RESPEAK, true)));
+              return false;
+            },
+          },
+        },
+        appendTransaction: (transactions, _old, state) => {
+          if (view?.composing) return null;
+          const asked = transactions.some((tr) => tr.docChanged || tr.getMeta(RESPEAK));
+          return asked ? respeak(state, type) : null;
+        },
       }),
     ];
   },
@@ -292,6 +330,8 @@ export class ProseEditor {
   private editor?: Editor;
   /** The last markdown the editor either emitted or was given: what it says now. */
   private current = '';
+  /** A change the host has not been told about, because it was still being composed. */
+  private deferred = false;
 
   constructor() {
     afterNextRender(() => this.mount());
@@ -399,18 +439,35 @@ export class ProseEditor {
           view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, from + 1)));
           return true;
         },
+        handleDOMEvents: {
+          // The composition is over and the host has still not heard about it:
+          // whatever ProseMirror does next, this is the moment it is safe to
+          // say. A task later, because the composed text is read out of the
+          // DOM after this event. Never handled.
+          compositionend: () => {
+            setTimeout(() => {
+              if (this.deferred && !editor.view.composing) this.emit();
+            });
+            return false;
+          },
+        },
       },
       onUpdate: () => {
         const markdown = serialiseProse(editor.getJSON());
         if (markdown === this.current) return;
         this.current = markdown;
-        this.valueChange.emit(markdown);
-        // The document has the last word. Once the host has rendered its
-        // answer, a `value` that still differs from what was said is a
-        // refusal, and the box shows the value — even when the signal behind
-        // it did not change, which is what the effect below cannot see: the
-        // `[AUTHOR]` split hands back the same prose twice in a row.
-        afterNextRender(() => this.settle(), { injector: this.injector });
+        // Not while the browser owns the text. A composition — a phone
+        // keyboard dictating, an IME entering a language that needs one — is a
+        // run of text the browser is still rewriting, and what the host does
+        // with a change is answer it: the `[AUTHOR]` split rewrites the
+        // document and moves the focus, both of which would land in the middle
+        // of a word that has not been said yet. Half-composed text is not what
+        // anybody wrote, so nobody is told about it.
+        if (editor.view.composing) {
+          this.deferred = true;
+          return;
+        }
+        this.emit();
       },
       onTransaction: () => this.readMarks(),
     });
@@ -435,9 +492,33 @@ export class ProseEditor {
     this.readMarks();
   }
 
+  /**
+   * The document's answer to what was typed, once the host has rendered it.
+   *
+   * Never mid-composition. A reset builds a new state and hands it to the
+   * view, which throws away the run of text a dictation or an IME is still
+   * writing into — the words spoken into it are simply gone. Composition
+   * always ends with an update of its own, and this runs after that one.
+   */
+  /**
+   * Hands the text to the host, and asks the document what it made of it.
+   *
+   * The document has the last word. Once the host has rendered its answer, a
+   * `value` that still differs from what was said is a refusal, and the box
+   * shows the value — even when the signal behind it did not change, which is
+   * what the `value` effect cannot see: the `[AUTHOR]` split hands back the
+   * same prose twice in a row.
+   */
+  private emit(): void {
+    this.deferred = false;
+    this.valueChange.emit(this.current);
+    afterNextRender(() => this.settle(), { injector: this.injector });
+  }
+
   private settle(): void {
     const value = this.value();
-    if (this.editor && value !== this.current) this.reset(value);
+    if (!this.editor || this.editor.view.composing) return;
+    if (value !== this.current) this.reset(value);
   }
 
   private readMarks(): void {

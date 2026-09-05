@@ -415,6 +415,32 @@ Below 48rem there is now one layout, for one purpose — carry on the story you 
   a cached shell would be a nicer-looking way of saying so.
 - A narrow window on a desktop gets the same layout. Nothing anywhere asks what device this is.
 
+**The story, read out loud.** **Listen** in a message's actions reads that message in a voice the
+device already has; **Read replies aloud** — in Preferences → Reading, and in the phone's one menu
+— reads each answer as it finishes, which is what a phone propped against something across the
+room is for. Press again, or write the next line, and it stops.
+
+- **Nothing is sent anywhere to do it.** The reading is the browser's own, on the machine, with
+  the voices that machine ships with. No key is spent and no service can be down.
+- **The words, not the marks.** The asterisks that make an action italic, the heading hashes and
+  the list bullets are left out; the quotation marks are kept, because a voice pauses at them. In
+  role-play with one character at a time the speaker is named first, since a listener cannot see
+  the name above the passage.
+- **The voice and the speed** are picked in **Preferences → Reading**. The voice is stored by
+  name, so a phone that has never heard of your laptop's voice reads in its own.
+- A long reply is handed over a few sentences at a time. Chrome stops speaking after about fifteen
+  seconds of one utterance and says nothing about it, which is exactly the replies worth listening
+  to.
+
+**Dictation is the keyboard's, and always will be.** Every phone keyboard has a microphone key
+that dictates into any text box, and the composer is a text box. Lamplit does not add a button of
+its own: the browser's recogniser refuses to run on the plain-HTTP address your phone reaches
+Lamplit at, and the way round that is a domain name and a certificate for a server that lives on
+your desk. What did change is the box itself — dictating into it, or writing in any language that
+needs an input method, no longer risks a doubled or a missing word. The editor was re-marking
+speech and answering `[AUTHOR]` in the middle of text the keyboard had not finished writing; it
+waits for the keyboard now.
+
 **Two devices writing one story no longer lose one of them.** Every document now carries a
 revision, and a save says which revision it was based on. A save based on one that has moved on is
 refused rather than applied, the page reloads that document and says **"Changed on another device;

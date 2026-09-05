@@ -1,5 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { speakerLabels } from '../../core/speakers';
+import { ReadAloud } from '../../shared/read-aloud.service';
 import { ChapterStore } from '../../store/chapter-store';
 import { SettingsStore } from '../../store/settings-store';
 import { StoryStore } from '../../store/story-store';
@@ -27,10 +28,13 @@ import { MessageItem } from './message-item';
           [bookStyle]="settings.ui().bookStyleDialogue"
           [showTokens]="settings.ui().showTokenCounts"
           [speaker]="speakers().get(message.id) ?? null"
+          [canListen]="speech.supported"
+          [listening]="speech.speakingId() === message.id"
           (edited)="chapters.editMessage(message.id, $event.content, $event.direction)"
           (remove)="chapters.deleteMessage(message.id)"
           (regenerate)="chapters.regenerate(message.id)"
           (replay)="chapters.replayFrom(message.id)"
+          (listen)="speech.toggleMessage(message)"
           (setContext)="settings.patchGeneration({ maxContextTokens: $event })"
         />
       }
@@ -56,6 +60,7 @@ import { MessageItem } from './message-item';
 export class MessageList {
   protected readonly chapters = inject(ChapterStore);
   protected readonly settings = inject(SettingsStore);
+  protected readonly speech = inject(ReadAloud);
   private readonly stories = inject(StoryStore);
 
   /**

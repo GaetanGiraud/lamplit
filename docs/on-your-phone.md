@@ -27,8 +27,8 @@ phone remembers your story: it is read from, and written straight back to, the c
 The bar is three things: the wordmark, the save dot when there is something to say, and one menu.
 
 - **Tap the wordmark** for the story you are in, the chapter you are on, and your other stories.
-- **Tap ⋯** for Story, World, Chapters and the chapter panel, then this chapter's own turning
-  points: a new chapter, its scene, and clearing it.
+- **Tap ⋯** for Story, World, Chapters, the chapter panel and **Read replies aloud**, then this
+  chapter's own turning points: a new chapter, its scene, and clearing it.
 
 ![The one menu](images/phone-menu.png)
 
@@ -40,8 +40,34 @@ Two things are different because a thumb is not a mouse:
 
 - **Enter makes a new line, and Send sends.** A phone keyboard has no Shift+Enter to make a line
   break with, so Enter cannot be the send key without costing you every line break you wanted.
-- **A message's actions — edit, regenerate, copy, delete — are behind the ⋯** under it, rather than
-  out in a margin there is no room for.
+- **A message's actions — edit, regenerate, copy, listen, delete — are behind the ⋯** under it,
+  rather than out in a margin there is no room for.
+
+## Listening instead of reading
+
+**⋯ → Read replies aloud** reads each answer out as it finishes, in the voice the phone already
+has. Prop the phone against something, write a line, and listen to what comes back. Any single
+message can be read on its own from its **⋯ → Listen**, whether or not the switch is on, and
+pressing it again stops.
+
+The voice and the speed are chosen on the computer, under **Preferences → Reading** — like
+everything else in Preferences, they are settled there and shared through `settings.json`. The
+voice is stored by name, so a phone that does not have your laptop's voice reads in its own.
+Nothing is sent anywhere to do this: the reading is the phone's own, offline, and no request
+leaves it.
+
+## Talking instead of typing
+
+**Use the microphone key on your keyboard.** Gboard, the iOS keyboard and every other keyboard
+worth having will dictate into any text box, and Lamplit's composer is a text box: tap it, tap the
+microphone, and speak. Punctuation works — say "comma", "full stop", "new line" — and the words
+land in the box as the keyboard hears them, ready to be edited before you send.
+
+Lamplit has no dictate button of its own, and will not get one. The browser's own speech
+recognition refuses to run except on a secure address, and your phone reaches Lamplit at a plain
+`http://` address on your home network. Making that address secure means a domain name, DNS and a
+certificate the phone will trust — a great deal of setup for a server that lives inside a desktop
+app, and all of it to duplicate a button that is already on the keyboard.
 
 ## The chapter panel
 
@@ -60,7 +86,7 @@ Deliberately missing, not missing yet:
 
 | | |
 |---|---|
-| Preferences | text size, book style, theme, colours |
+| Preferences | text size, book style, theme, colours, the reading voice |
 | Parameters | temperature, the context budget, response length |
 | Connection | which endpoint answers, and with which model |
 | About, What's new | which build this is, and what changed in it |

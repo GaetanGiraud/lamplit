@@ -52,7 +52,7 @@ test.describe('preferences', () => {
     await expect(page.getByRole('switch', { name: 'Dark theme' })).toBeVisible();
     await expect(page.getByRole('switch', { name: 'Dialogue on its own line' })).toBeVisible();
     await expect(page.getByRole('switch', { name: 'Show token counts' })).toBeVisible();
-    await expect(page.getByRole('slider')).toBeVisible();
+    await expect(page.getByRole('slider', { name: 'Text size' })).toBeVisible();
 
     await page.getByRole('switch', { name: 'Show token counts' }).click();
     await expect

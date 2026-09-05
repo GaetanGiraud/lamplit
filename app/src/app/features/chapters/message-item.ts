@@ -146,6 +146,11 @@ export interface MessageEdit {
               Regenerate
             </button>
           }
+          @if (canListen()) {
+            <button mat-menu-item [disabled]="streaming()" (click)="listen.emit()">
+              {{ listening() ? 'Stop reading' : 'Listen' }}
+            </button>
+          }
           <button mat-menu-item (click)="copy()">Copy</button>
           <button mat-menu-item (click)="remove.emit()">Delete</button>
         </mat-menu>
@@ -196,6 +201,31 @@ export interface MessageEdit {
                 <path d="M13.4 8a5.4 5.4 0 1 1-1.6-3.8" />
                 <path d="M13.4 2.2v3.4H10" />
               </svg>
+            </button>
+          }
+
+          @if (canListen()) {
+            <button
+              class="act"
+              type="button"
+              [class.on]="listening()"
+              [disabled]="streaming()"
+              (click)="listen.emit()"
+              [matTooltip]="listening() ? 'Stop reading' : 'Read this aloud'"
+              matTooltipPosition="left"
+              [attr.aria-label]="listening() ? 'Stop reading' : 'Listen'"
+            >
+              @if (listening()) {
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <rect x="4.4" y="4.4" width="7.2" height="7.2" rx="1.2" />
+                </svg>
+              } @else {
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M3.2 6.2h2.2L8.4 3.4v9.2L5.4 9.8H3.2z" />
+                  <path d="M10.8 6.2a2.6 2.6 0 0 1 0 3.6" />
+                  <path d="M12.6 4.4a5 5 0 0 1 0 7.2" />
+                </svg>
+              }
             </button>
           }
 
@@ -424,6 +454,12 @@ export interface MessageEdit {
       cursor: default;
     }
 
+    /* The one action with a state: it is doing something until it is pressed
+       again, and the margin has to say so. */
+    .act.on {
+      color: var(--li-accent);
+    }
+
     .act svg {
       width: 1rem;
       height: 1rem;
@@ -571,11 +607,17 @@ export class MessageItem {
   readonly showTokens = input(true);
   /** Whose turn this is, when the page has a name for it. */
   readonly speaker = input<SpeakerLabel | null>(null);
+  /** Whether this browser can read at all: no voice, no button. */
+  readonly canListen = input(false);
+  /** Whether it is this message being read, of the one thing that ever is. */
+  readonly listening = input(false);
 
   readonly edited = output<MessageEdit>();
   readonly remove = output();
   readonly regenerate = output();
   readonly replay = output();
+  /** Read this one aloud, or stop if it is the one being read. */
+  readonly listen = output();
   /** The reader accepting the context budget this bubble offered. */
   readonly setContext = output<number>();
 

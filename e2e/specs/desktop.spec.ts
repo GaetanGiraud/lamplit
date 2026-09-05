@@ -214,6 +214,25 @@ test('takes the proxy back when the page says so, and gives it up again', async 
 });
 
 /**
+ * Reading a message aloud is `speechSynthesis` and nothing else — no key, no
+ * request, no service — so on the desktop it comes down to whether the window
+ * Electron built has the API at all. It does, and the app asks exactly this
+ * question before it offers the button.
+ *
+ * The number of voices is deliberately not asserted: that is whatever the
+ * machine has installed, and a headless Linux runner with no speech service
+ * has none. A device with no voices reads in nothing, which is the platform's
+ * answer and not the app's.
+ */
+test('can speak, which is all reading a message aloud needs of it', async () => {
+  const speech = await window.evaluate(() => ({
+    synthesis: typeof speechSynthesis,
+    utterance: typeof SpeechSynthesisUtterance,
+  }));
+  expect(speech).toEqual({ synthesis: 'object', utterance: 'function' });
+});
+
+/**
  * Electron grants every permission Chromium can ask for unless it is told not
  * to, so a packaged Lamplit answered `granted` for the camera, the microphone
  * and the reader's location — none of which it has ever asked for. The one

@@ -309,7 +309,7 @@ async function theApp() {
 
   // A real turn, streamed by the stand-in model into the real composer: once
   // part-way through, with Stop up, and once finished.
-  const stop = page.getByRole('button', { name: 'Stop' });
+  const stop = page.getByRole('button', { name: 'Stop', exact: true });
   await write(page, '"Who are you?" I say, and I do not move.');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await stop.waitFor({ timeout: 20_000 });

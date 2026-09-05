@@ -38,6 +38,9 @@ export const DEFAULT_SETTINGS: Settings = {
     developerMode: false,
     checkForUpdates: true,
     systemProxy: false,
+    readAloud: false,
+    voice: '',
+    speechRate: 1,
     sidebarOpen: false,
     sidebarSections: {},
   },
@@ -58,6 +61,13 @@ export const PARAM_RANGES = {
   repetitionPenalty: { min: 0.5, max: 2, step: 0.01 },
   topA: { min: 0, max: 1, step: 0.01 },
 } as const;
+
+/**
+ * How fast the reading voice may be asked to go. The Web Speech API takes
+ * 0.1 to 10, and both ends of that are unlistenable; this is the range a
+ * person actually reads at, from a shade under natural to about half again.
+ */
+export const SPEECH_RATE = { min: 0.6, max: 1.6, step: 0.05 } as const;
 
 // ---------------------------------------------------------------------------
 // Story defaults

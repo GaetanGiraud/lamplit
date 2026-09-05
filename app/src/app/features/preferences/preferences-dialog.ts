@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { SPEECH_RATE } from '../../core/defaults';
 import { desktop } from '../../core/desktop';
 import { ColourKey, ReadingFont } from '../../core/models';
 import {
@@ -23,6 +24,7 @@ import { ShareStore } from '../../store/share-store';
 import { StoryStore } from '../../store/story-store';
 import { UpdatesStore } from '../../store/updates-store';
 import { DialogsService } from '../../shared/dialogs.service';
+import { ReadAloud } from '../../shared/read-aloud.service';
 
 /**
  * Everything about how the story looks to you, and nothing about what is sent.
@@ -83,6 +85,57 @@ import { DialogsService } from '../../shared/dialogs.service';
                 />
               </mat-slider>
             </label>
+
+            <!-- Read aloud. The device's own voices and nothing sent anywhere,
+                 so the list is whatever this machine happens to ship with —
+                 which is why the choice is stored by name and a phone that has
+                 never heard of it simply reads in its own. -->
+            @if (speech.supported) {
+              <hr />
+              <mat-slide-toggle
+                [checked]="ui().readAloud"
+                (change)="settings.patchUi({ readAloud: $event.checked })"
+              >
+                Read replies aloud
+              </mat-slide-toggle>
+              <p class="li-hint">
+                Each reply is read as it finishes. Any message can be read on its own from its
+                <strong>⋯</strong> menu without this being on.
+              </p>
+
+              <mat-form-field appearance="outline" class="font" subscriptSizing="dynamic">
+                <mat-label>Voice</mat-label>
+                <mat-select
+                  [value]="ui().voice"
+                  (valueChange)="settings.patchUi({ voice: $event })"
+                >
+                  <mat-option value="">This device's default</mat-option>
+                  @for (voice of speech.voices(); track voice.name) {
+                    <mat-option [value]="voice.name"
+                      >{{ voice.name }} · {{ voice.lang }}</mat-option
+                    >
+                  }
+                </mat-select>
+                <mat-hint>The voices this machine has. Nothing is sent anywhere to read.</mat-hint>
+              </mat-form-field>
+
+              <label class="size">
+                Reading speed
+                <mat-slider
+                  [min]="rate.min"
+                  [max]="rate.max"
+                  [step]="rate.step"
+                  discrete
+                  [displayWith]="rateLabel"
+                >
+                  <input
+                    matSliderThumb
+                    [value]="ui().speechRate"
+                    (valueChange)="settings.patchUi({ speechRate: $event })"
+                  />
+                </mat-slider>
+              </label>
+            }
           </div>
         </mat-expansion-panel>
 
@@ -699,6 +752,7 @@ export class PreferencesDialog {
   protected readonly stories = inject(StoryStore);
   protected readonly chapters = inject(ChapterStore);
   protected readonly share = inject(ShareStore);
+  protected readonly speech = inject(ReadAloud);
   private readonly updates = inject(UpdatesStore);
   private readonly dialogs = inject(DialogsService);
 
@@ -848,9 +902,15 @@ export class PreferencesDialog {
     return ui.checkForUpdates ? 'checking for new versions' : 'not checking for new versions';
   });
 
+  protected readonly rate = SPEECH_RATE;
+
+  /** `1.15x`, and `1x` rather than `1.00x` for the pace the voice ships with. */
+  protected readonly rateLabel = (value: number) => `${Number(value.toFixed(2))}x`;
+
   protected readonly readingSummary = computed(() => {
     const ui = this.ui();
-    return `${ui.theme} theme, ${ui.fontSize}px`;
+    const aloud = ui.readAloud ? ', read aloud' : '';
+    return `${ui.theme} theme, ${ui.fontSize}px${aloud}`;
   });
 
   protected readonly coloursSummary = computed(() => {

@@ -13,6 +13,7 @@ import { ChapterStore } from './store/chapter-store';
 import { StoryStore } from './store/story-store';
 import { Persistence } from './store/persistence';
 import { DialogsService } from './shared/dialogs.service';
+import { ReadAloud } from './shared/read-aloud.service';
 
 /**
  * The app itself, once there are documents to show.
@@ -72,6 +73,10 @@ export class Workspace {
   constructor() {
     this.persistence.listen();
     this.watchForOtherDevices();
+    // Built here rather than left to the first component that wants it: it
+    // watches the chapter for a reply finishing, and a chapter with nothing in
+    // it yet has no message list to build it.
+    inject(ReadAloud);
 
     // Once, at start, and only when the reader has left it on — off means the
     // server is never asked, so GitHub is never asked either. Nothing waits

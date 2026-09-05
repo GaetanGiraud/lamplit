@@ -9,6 +9,7 @@ import { ChapterStore } from '../store/chapter-store';
 import { StoryStore } from '../store/story-store';
 import { UpdatesStore } from '../store/updates-store';
 import { DialogsService } from './dialogs.service';
+import { ReadAloud } from './read-aloud.service';
 import { SaveStatusIndicator } from './save-status';
 
 /**
@@ -110,6 +111,14 @@ import { SaveStatusIndicator } from './save-status';
             <button mat-menu-item (click)="dialogs.openWorld()">World…</button>
             <button mat-menu-item (click)="dialogs.openChapters()">Chapters…</button>
             <button mat-menu-item (click)="settings.setSidebarOpen(true)">Chapter panel</button>
+            <!-- The one setting the phone does keep, because it is about
+                 listening to this story rather than about the app: a phone
+                 propped up across the room reads each reply as it lands. -->
+            @if (speech.supported) {
+              <button mat-menu-item (click)="speech.toggleAutomatic()">
+                {{ speech.automatic() ? '✓ ' : '' }}Read replies aloud
+              </button>
+            }
             <hr />
           }
           <button mat-menu-item (click)="dialogs.newChapter()">New chapter…</button>
@@ -288,6 +297,7 @@ export class TopBar {
   protected readonly chapters = inject(ChapterStore);
   protected readonly updates = inject(UpdatesStore);
   protected readonly dialogs = inject(DialogsService);
+  protected readonly speech = inject(ReadAloud);
 
   protected readonly chapterLabel = computed(() => {
     const chapter = this.chapters.chapter();

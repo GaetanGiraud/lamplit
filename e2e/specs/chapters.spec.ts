@@ -70,7 +70,7 @@ test.describe('writing a chapter', () => {
 
     const answer = assistantMessages(page).first();
     await expect(answer).toContainText('knight', { timeout: 15_000 });
-    await page.getByRole('button', { name: 'Stop' }).click();
+    await page.getByRole('button', { name: 'Stop', exact: true }).click();
     await waitForTurn(page);
 
     await expect(answer.locator('.story-prose')).not.toBeEmpty();
@@ -88,7 +88,7 @@ test.describe('writing a chapter', () => {
     await answer.hover();
     await expect(answer.getByRole('button', { name: 'Edit' })).toBeDisabled();
 
-    await page.getByRole('button', { name: 'Stop' }).click();
+    await page.getByRole('button', { name: 'Stop', exact: true }).click();
     await waitForTurn(page);
     // Finished, and an ordinary message again.
     await expect(answer.getByRole('button', { name: 'Edit' })).toBeEnabled();

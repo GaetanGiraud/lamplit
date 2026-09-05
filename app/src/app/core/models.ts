@@ -113,6 +113,21 @@ export interface UiSettings {
    * browser tab the proxy is the browser's business and this is not shown.
    */
   systemProxy: boolean;
+  /**
+   * Whether each reply is read aloud as it finishes. A message can always be
+   * read on request from its own menu; this is the one that needs no asking,
+   * which is what a phone propped up across the room is for.
+   */
+  readAloud: boolean;
+  /**
+   * The voice to read in, by the name the device gives it. A name rather than
+   * an index, because `settings.json` is shared with every device that has
+   * scanned the code and none of them has the same list — an unknown name is
+   * simply the device's own default.
+   */
+  voice: string;
+  /** How fast it reads. 1 is the voice's own pace; see `SPEECH_RATE`. */
+  speechRate: number;
   /** The chapter panel down the right-hand side; a thin edge when it is off. */
   sidebarOpen: boolean;
   /**
