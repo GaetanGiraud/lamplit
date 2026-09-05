@@ -87,6 +87,28 @@ export function readChapters(storage: StorageBackend, storyId: string): Chapter[
   return chapters.sort((a, b) => a.number - b.number);
 }
 
+/**
+ * Every chapter of one story, copied under another and filed under it.
+ *
+ * Returns the copy's own id for whichever chapter `activeChapterId` names,
+ * because the story being copied points at a chapter that belongs to *it*: the
+ * one field a duplicate cannot simply carry across.
+ */
+export function copyStoryChapters(
+  storage: StorageBackend,
+  from: string,
+  to: string,
+  activeChapterId: string,
+): string {
+  let active = '';
+  for (const chapter of readChapters(storage, from)) {
+    const copy = { ...structuredClone(chapter), id: newId(), storyId: to };
+    if (chapter.id === activeChapterId) active = copy.id;
+    storage.write(KEYS.chapter(copy.id), copy);
+  }
+  return active;
+}
+
 export function removeStoryDocuments(storage: StorageBackend, storyId: string): void {
   for (const chapter of readChapters(storage, storyId)) {
     storage.remove(KEYS.chapter(chapter.id));

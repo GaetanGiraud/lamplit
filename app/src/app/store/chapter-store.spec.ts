@@ -217,7 +217,8 @@ describe('ChapterStore and the page palette', () => {
     expect(chapters.isStreaming()).toBe(true);
 
     TestBed.inject(StoryStore).select(OTHER);
-    chapters.sync();
+    // The store follows the open story through an effect, as it does in the app.
+    TestBed.tick();
     await sending;
 
     // The chapter is not this store's any more, so the file is what can be read.
@@ -594,5 +595,85 @@ describe('ChapterStore and losing a chapter', () => {
     expect(chapter.number).toBe(2);
     // The other chapters are not touched by it.
     expect(store().chapters()[2].messages).toHaveLength(1);
+  });
+});
+
+/**
+ * Every open story has a chapter to write in, and exactly one when it is new.
+ * The story document is `StoryStore`'s and the chapter document is this
+ * store's, so the invariant is kept here — which means it has to hold for a
+ * story made by `create` and left to the effect, and for one made through
+ * `startStory` and read from in the same breath.
+ */
+describe('ChapterStore and a story that has just been made', () => {
+  let storage: InMemoryStorage;
+
+  const store = () => TestBed.inject(ChapterStore);
+  const stories = () => TestBed.inject(StoryStore);
+
+  beforeEach(() => {
+    storage = new InMemoryStorage();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: STORAGE_BACKEND, useValue: storage },
+        { provide: ModelClient, useValue: new FakeClient() },
+      ],
+    });
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('gives an install with nothing in it one story and one chapter', () => {
+    const chapters = store().chapters();
+
+    expect(stories().stories()).toHaveLength(1);
+    expect(chapters).toHaveLength(1);
+    expect(chapters[0].storyId).toBe(stories().story().id);
+    expect(chapters[0].number).toBe(1);
+    expect(store().chapter().id).toBe(chapters[0].id);
+    // Filed as well as held, so a reload finds it. Written by the same effect
+    // that writes every other change to a chapter, hence the tick.
+    TestBed.tick();
+    expect(storage.read(KEYS.chapter(chapters[0].id))).toBeTruthy();
+  });
+
+  it('hands back the new story’s first chapter, there and then', () => {
+    const first = store().chapter().id;
+
+    const chapter = store().startStory({ title: 'The Lamplighter', mode: 'roleplay' });
+
+    expect(chapter.id).not.toBe(first);
+    expect(stories().story().title).toBe('The Lamplighter');
+    expect(stories().story().mode).toBe('roleplay');
+    expect(chapter.storyId).toBe(stories().story().id);
+    expect(chapter.number).toBe(1);
+    // The one the app is now writing in, without waiting for anything.
+    expect(
+      store()
+        .chapters()
+        .map((c) => c.id),
+    ).toEqual([chapter.id]);
+    expect(store().chapter().id).toBe(chapter.id);
+    expect(stories().story().activeChapterId).toBe(chapter.id);
+  });
+
+  it('does not make a second chapter when the effect catches up afterwards', () => {
+    const chapter = store().startStory({ title: 'The Lamplighter' });
+    TestBed.tick();
+
+    expect(
+      store()
+        .chapters()
+        .map((c) => c.id),
+    ).toEqual([chapter.id]);
+  });
+
+  it('gives the last story deleted a fresh story with a chapter in it', () => {
+    stories().delete(stories().story().id);
+    TestBed.tick();
+
+    expect(stories().stories()).toHaveLength(1);
+    expect(store().chapters()).toHaveLength(1);
+    expect(store().chapter().storyId).toBe(stories().story().id);
   });
 });

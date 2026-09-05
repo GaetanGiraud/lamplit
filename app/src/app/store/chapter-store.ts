@@ -24,7 +24,7 @@ import {
 } from '../core/prompt-builder';
 import { TOKEN_ESTIMATOR } from '../core/tokens';
 import { SettingsStore } from './settings-store';
-import { StoryStore } from './story-store';
+import { NewStory, StoryStore } from './story-store';
 import { STORAGE_BACKEND } from './storage';
 import { KEYS, newChapter, newId, now, readChapters } from './documents';
 
@@ -111,9 +111,12 @@ export class ChapterStore {
 
   constructor() {
     this.loadFor(this.stories.story().id);
+    // A story switch is answered here rather than announced by whoever made
+    // it. `loadFor` records the story it read, so the one flow that switches
+    // and loads in the same breath — `startStory` — is not read twice.
     effect(() => {
-      this.stories.story();
-      this.sync();
+      const storyId = this.stories.story().id;
+      if (storyId !== this.loadedStoryId) this.loadFor(storyId);
     });
     effect(() => {
       for (const chapter of this.state()) {
@@ -122,12 +125,6 @@ export class ChapterStore {
         this.storage.write(KEYS.chapter(chapter.id), chapter);
       }
     });
-  }
-
-  /** Catches up with a story switch made in this same tick. */
-  sync(): void {
-    const storyId = this.stories.story().id;
-    if (storyId !== this.loadedStoryId) this.loadFor(storyId);
   }
 
   /** Everything the next request will carry, for the pill and the preview. */
@@ -276,6 +273,23 @@ export class ChapterStore {
   }
 
   // -- the chapters themselves ----------------------------------------------
+
+  /**
+   * A story of one's own, and the chapter that is going to be written in it.
+   *
+   * Both documents exist by the time this returns, which is what lets the flow
+   * behind it open the scene sheet on the new chapter in the same breath. The
+   * story is `StoryStore`'s to make and the chapter is this store's, so the
+   * two are put together here — the store that already follows the open story
+   * — rather than in the service that opens the sheets.
+   */
+  startStory(setup: NewStory = {}): Chapter {
+    const story = this.stories.create(setup);
+    // `loadFor` finds no chapters filed under a story that has just been made,
+    // and makes the first one, which is the invariant this store keeps.
+    this.loadFor(story.id);
+    return this.chapter();
+  }
 
   /**
    * A new chapter exists the moment it is asked for, with the scene still

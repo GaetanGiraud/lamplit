@@ -13,14 +13,19 @@ import { SettingsStore } from './settings-store';
 import { STORAGE_BACKEND } from './storage';
 import {
   KEYS,
-  newChapter,
+  copyStoryChapters,
   newId,
   newStory,
   now,
-  readChapters,
   readStories,
   removeStoryDocuments,
 } from './documents';
+
+/**
+ * What can be decided about a story before it exists. Everything else about it
+ * — its id, when it was made, its cast, its world — is the store's to fill in.
+ */
+export type NewStory = Partial<Pick<Story, 'title' | 'mode' | 'persona'>>;
 
 /**
  * Every story on this machine, and which one is open. A story is one
@@ -71,13 +76,21 @@ export class StoryStore {
     if (this.state().some((s) => s.id === id)) this.settings.setActiveStory(id);
   }
 
-  /** A new story starts with Chapter 1 waiting for its scene. */
-  create(title = DEFAULT_STORY_TITLE): Story {
-    const story = newStory(title.trim() || DEFAULT_STORY_TITLE);
-    const chapter = newChapter(story.id, 1);
-    story.activeChapterId = chapter.id;
-    story.chapterCounter = 1;
-    this.storage.write(KEYS.chapter(chapter.id), chapter);
+  /**
+   * A story, open, with whatever was decided about it before it existed.
+   *
+   * It has no chapter yet: chapters are `ChapterStore`'s documents, and the
+   * invariant that the open story always has one is kept there — this call
+   * makes the story the open one, so by the time anything reads a chapter,
+   * that store has made the first. `ChapterStore.startStory` is the way in for
+   * a flow that needs the chapter in the same breath.
+   */
+  create(setup: NewStory = {}): Story {
+    const story: Story = {
+      ...newStory(),
+      ...setup,
+      title: (setup.title ?? '').trim() || DEFAULT_STORY_TITLE,
+    };
     this.state.update((stories) => [...stories, story]);
     this.settings.setActiveStory(story.id);
     return story;
@@ -93,14 +106,14 @@ export class StoryStore {
       createdAt: now(),
       updatedAt: now(),
     };
-    // Chapters are documents of their own, so the copy needs its own set.
-    let activeChapterId = '';
-    for (const chapter of readChapters(this.storage, source.id)) {
-      const cloned = { ...structuredClone(chapter), id: newId(), storyId: copy.id };
-      if (chapter.id === source.activeChapterId) activeChapterId = cloned.id;
-      this.storage.write(KEYS.chapter(cloned.id), cloned);
-    }
-    copy.activeChapterId = activeChapterId;
+    // Chapters are documents of their own, so the copy needs its own set —
+    // filed by the module that knows how a story's chapters are filed.
+    copy.activeChapterId = copyStoryChapters(
+      this.storage,
+      source.id,
+      copy.id,
+      source.activeChapterId,
+    );
     this.state.update((stories) => [...stories, copy]);
     this.settings.setActiveStory(copy.id);
     return copy;
@@ -296,16 +309,16 @@ export class StoryStore {
     return next;
   }
 
-  /** An install with nothing in it gets one story, so there is always one open. */
+  /**
+   * An install with nothing in it gets one story, so there is always one open.
+   * Its first chapter is `ChapterStore`'s to make, and it makes it as soon as
+   * it is built — which is immediately, since it is built on this one.
+   */
   private load(): Story[] {
     const stored = readStories(this.storage);
     if (stored.length) return stored;
 
     const story = newStory();
-    const chapter = newChapter(story.id, 1);
-    story.activeChapterId = chapter.id;
-    story.chapterCounter = 1;
-    this.storage.write(KEYS.chapter(chapter.id), chapter);
     this.storage.write(KEYS.story(story.id), story);
     return [story];
   }

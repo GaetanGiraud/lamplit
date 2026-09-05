@@ -134,14 +134,8 @@ export class DialogsService {
   /**
    * The scene sheet. Resolves true when the writer confirmed; Escape and
    * backdrop still save the text, they just do not open the chapter.
-   *
-   * Confirming is also the moment the scene exists to be read, so it is where
-   * the story asks the model which page to read the chapter on — when it is a
-   * story that asks at all. Nothing waits for the answer: the page changes
-   * under the chapter a second later, or it does not change at all.
    */
   async openScene(chapterId: string, opening = false): Promise<boolean> {
-    const before = this.chapters.chapters().find((c) => c.id === chapterId)?.scene ?? '';
     const { SceneDialog } = await import('../features/chapters/scene-dialog');
     const ref = this.dialog.open(SceneDialog, {
       width: '40rem',
@@ -149,9 +143,7 @@ export class DialogsService {
       data: { chapterId, opening },
       autoFocus: 'first-tabbable',
     });
-    const confirmed = (await firstValueFrom(ref.afterClosed())) === true;
-    if (confirmed) void this.chapters.choosePalette(chapterId, before);
-    return confirmed;
+    return (await firstValueFrom(ref.afterClosed())) === true;
   }
 
   /**
@@ -240,12 +232,8 @@ export class DialogsService {
     });
     if (!setup) return;
 
-    const story = this.stories.create(setup.title);
-    this.stories.patch({ mode: setup.mode, persona: setup.persona }, story.id);
-    // The chapter store follows the active story through an effect; the flow
-    // continues in this tick, so ask it to catch up now.
-    this.chapters.sync();
-    await this.openScene(this.chapters.chapter().id, true);
+    const chapter = this.chapters.startStory(setup);
+    await this.openScene(chapter.id, true);
   }
 
   /**

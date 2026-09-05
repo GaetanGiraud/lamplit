@@ -141,6 +141,9 @@ export class SceneDialog {
     return `about ${formatTokens(asking)} to choose the page`;
   });
 
+  /** The scene as the sheet was opened on it, for the question below. */
+  private readonly openedOn = this.chapter().scene;
+
   constructor() {
     // Escape and backdrop save a draft; they just do not open the chapter.
     inject(DestroyRef).onDestroy(() => this.commit());
@@ -150,9 +153,19 @@ export class SceneDialog {
     return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
   }
 
+  /**
+   * Confirming is the moment the scene exists to be read, so it is where the
+   * story asks the model which page to read the chapter on — when it is a
+   * story that asks at all, and when the scene is not the one already asked
+   * about. Written first, so what is asked about is what was written.
+   *
+   * Nothing waits for the answer: the page changes under the chapter a second
+   * later, or it does not change at all.
+   */
   protected confirm(): void {
     if (!this.valid()) return;
     this.commit();
+    void this.chapters.choosePalette(this.chapter().id, this.openedOn);
     this.ref.close(true);
   }
 
