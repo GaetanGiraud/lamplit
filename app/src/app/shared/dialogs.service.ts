@@ -22,6 +22,16 @@ export class DialogsService {
   private connection: Promise<void> | null = null;
 
   /**
+   * Whether anything is open over the page. The page's own shortcuts stop at
+   * the edge of a sheet — Escape belongs to whatever is on top, and Ctrl+Enter
+   * inside a text box is a keystroke and not a request — so the two places
+   * that listen at the document ask this before acting.
+   */
+  anyOpen(): boolean {
+    return this.dialog.openDialogs.length > 0;
+  }
+
+  /**
    * `insisting` is the first-run form: it opens before anything else, does not
    * take Escape or a click outside for an answer, and keeps Done dark until
    * there is somewhere to send the story. Resolves when it closes, so the flow

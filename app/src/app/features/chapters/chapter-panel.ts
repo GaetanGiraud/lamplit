@@ -1,5 +1,4 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DEFAULT_NARRATOR_PROMPT } from '../../core/defaults';
 import { characterColour } from '../../core/character-colours';
@@ -590,7 +589,6 @@ export class ChapterPanel {
   protected readonly story = this.stories.story;
   private readonly settings = inject(SettingsStore);
   private readonly dialogs = inject(DialogsService);
-  private readonly dialog = inject(MatDialog);
 
   protected readonly open = computed(() => this.settings.ui().sidebarOpen);
 
@@ -654,13 +652,14 @@ export class ChapterPanel {
    * of what the key meant. A panel that is pushing the page rather than
    * covering it is part of the page, with nothing to dismiss.
    *
-   * There is no register of open menus to ask, the way `MatDialog` keeps one
-   * of open dialogs, so the overlay container is looked at directly. What
-   * cannot be asked is whether the event was handled: the prose editor marks
-   * Escape handled whenever it has the focus, which is most of the time.
+   * Nothing keeps a register of open menus, the way the dialogs service can be
+   * asked what is open over the page, so the overlay container is looked at
+   * directly. What cannot be asked is whether the event was handled: the prose
+   * editor marks Escape handled whenever it has the focus, which is most of
+   * the time.
    */
   protected onEscape(): void {
-    if (this.dialog.openDialogs.length) return;
+    if (this.dialogs.anyOpen()) return;
     if (document.querySelector('.cdk-overlay-container .mat-mdc-menu-panel')) return;
     if (this.open() && this.overlay()) this.close();
   }

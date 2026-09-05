@@ -1,5 +1,4 @@
 import { Component, afterNextRender, effect, inject } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
 import { DEFAULT_STORY_TITLE } from './core/defaults';
 import { desktop } from './core/desktop';
 import { applyUi } from './core/theming';
@@ -66,7 +65,6 @@ export class Workspace {
   private readonly chapters = inject(ChapterStore);
   private readonly stories = inject(StoryStore);
   private readonly dialogs = inject(DialogsService);
-  private readonly dialog = inject(MatDialog);
 
   constructor() {
     inject(Persistence).listen();
@@ -142,7 +140,7 @@ export class Workspace {
    */
   protected onKey(event: KeyboardEvent): void {
     if (!(event.ctrlKey || event.metaKey)) return;
-    if (event.repeat || event.defaultPrevented || this.dialog.openDialogs.length) return;
+    if (event.repeat || event.defaultPrevented || this.dialogs.anyOpen()) return;
     if (event.key === 'Enter') {
       event.preventDefault();
       void this.chapters.retryLast();
