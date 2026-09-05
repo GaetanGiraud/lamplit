@@ -1,0 +1,464 @@
+<!doctype html>
+<!--
+  The landing page, and only the landing page.
+
+  A layout of its own rather than an override of minima's, because the header
+  nav and the footer are the wrong furniture for a page whose whole job is one
+  tagline, one button and one picture. Every other page in docs/ is a guide page
+  and keeps minima exactly as it is; nothing here reaches them.
+
+  The theme is the app's own: the same palette, the same reading serif, the same
+  34rem measure, so the page a reader lands on and the page they end up writing
+  in are recognisably the same object. Dark is designed first and light follows
+  `prefers-color-scheme`, because the app does that and a reader at a bright
+  desk should not be handed a dark page.
+
+  Nothing is loaded from another host: no web font, no icon set, no script but
+  the page's own.
+-->
+<html lang="{{ site.lang | replace: '_', '-' | default: 'en' }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    {% seo %}
+    <!-- #40 adds docs/_includes/custom-head.html with the favicon links, for
+         this layout and for minima's head.html; include it here when it lands. -->
+    <style>
+      /* -- the app's palette, dark first ---------------------------------- */
+      :root {
+        --li-page: #14151a;
+        --li-surface: #1c1e25;
+        --li-raised: #23262f;
+        --li-border: #2f333e;
+        --li-ink: #e7e4dd;
+        --li-ink-soft: #b6b2a9;
+        --li-muted: #7c8090;
+        --li-accent: #b79cf0;
+        --li-on-accent: #191527;
+
+        /* The lamp. One warm radial, high in the right corner, at an alpha low
+           enough that it reads as light in the room and not as a colour. */
+        --li-glow: rgba(255, 186, 94, 0.17);
+        --li-frame-shadow: rgba(255, 176, 82, 0.16);
+
+        --li-sans: system-ui, 'Segoe UI', sans-serif;
+        --li-serif:
+          'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+        --li-measure: 34rem;
+        --li-wide: 60rem;
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --li-page: #f6f3ec;
+          --li-surface: #fffdf8;
+          --li-raised: #ffffff;
+          --li-border: #e2dccd;
+          --li-ink: #22201c;
+          --li-ink-soft: #4a463f;
+          --li-muted: #8a8478;
+          --li-accent: #6b4ea8;
+          --li-on-accent: #ffffff;
+
+          --li-glow: rgba(214, 148, 58, 0.1);
+          --li-frame-shadow: rgba(120, 92, 40, 0.16);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        position: relative;
+        margin: 0;
+        background: var(--li-page);
+        color: var(--li-ink);
+        font-family: var(--li-sans);
+        font-size: 17px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* The lamp: one warm radial behind the hero, gone before the fold. It is
+         anchored to the top of the document rather than to the viewport, so it
+         scrolls away with the hero instead of following the reader down the
+         page. The only decoration here: no illustration of a lamp, no texture,
+         and nothing that moves once the page has settled. */
+      body::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto;
+        height: 100vh;
+        z-index: 0;
+        pointer-events: none;
+        background: radial-gradient(64rem 42rem at 82% -8%, var(--li-glow), transparent 68%);
+      }
+
+      /* The one exception, and only for a reader who has not asked for less:
+         the lamp comes up rather than having been on all along. */
+      @media (prefers-reduced-motion: no-preference) {
+        body::before {
+          animation: li-lamp 1.6s ease-out both;
+        }
+      }
+
+      @keyframes li-lamp {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .li-page {
+        position: relative;
+        z-index: 1;
+        max-width: var(--li-wide);
+        margin: 0 auto;
+        padding: 2.6rem 1.6rem 3rem;
+      }
+
+      /* -- type ------------------------------------------------------------ */
+      h1,
+      h2,
+      h3 {
+        font-family: var(--li-serif);
+        font-weight: 400;
+        letter-spacing: 0.01em;
+      }
+
+      h1 {
+        margin: 0 0 1rem;
+        max-width: 22ch;
+        font-size: clamp(1.85rem, 5vw, 2.85rem);
+        line-height: 1.18;
+      }
+
+      h2 {
+        margin: 3.4rem 0 1rem;
+        font-size: clamp(1.35rem, 3vw, 1.6rem);
+        line-height: 1.25;
+      }
+
+      h3 {
+        margin: 0 0 0.5rem;
+        font-size: 1.05rem;
+      }
+
+      p {
+        margin: 0 0 1rem;
+        max-width: var(--li-measure);
+      }
+
+      a {
+        color: var(--li-ink);
+        text-underline-offset: 0.18em;
+        text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+      }
+
+      a:hover {
+        text-decoration-color: currentColor;
+      }
+
+      strong,
+      b {
+        font-weight: 600;
+      }
+
+      .li-quiet {
+        color: var(--li-muted);
+        font-size: 0.9rem;
+        line-height: 1.55;
+      }
+
+      /* -- hero ------------------------------------------------------------ */
+      .li-mark {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin: 0 0 1.7rem;
+        font-family: var(--li-serif);
+        font-size: 1.3rem;
+        letter-spacing: 0.03em;
+      }
+
+      .li-mark svg {
+        display: block;
+        width: 1.5rem;
+        height: 1.5rem;
+        color: var(--li-accent);
+      }
+
+      .li-lede {
+        font-size: 1.05rem;
+        color: var(--li-ink-soft);
+      }
+
+      .li-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1.1rem;
+        margin: 1.5rem 0 0.7rem;
+      }
+
+      /* The one place the accent violet is used. */
+      .li-cta {
+        display: inline-block;
+        padding: 0.78rem 1.5rem;
+        border-radius: 10px;
+        background: var(--li-accent);
+        color: var(--li-on-accent) !important;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none !important;
+      }
+
+      .li-cta:hover {
+        background: color-mix(in srgb, var(--li-accent) 85%, var(--li-ink));
+      }
+
+      .li-elsewhere {
+        font-size: 0.92rem;
+        color: var(--li-ink-soft);
+      }
+
+      /* The lit page: a warm-tinted shadow rather than a hard border, so the
+         picture reads as the thing the lamp is on. */
+      .li-shot {
+        max-width: none;
+        margin: 2.1rem 0 0;
+      }
+
+      .li-shot img {
+        display: block;
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--li-border);
+        box-shadow:
+          0 24px 60px -24px var(--li-frame-shadow),
+          0 40px 80px -40px rgba(0, 0, 0, 0.55);
+      }
+
+      /* -- the three reasons ----------------------------------------------- */
+      .li-reasons {
+        margin: 1.2rem 0 0;
+        padding: 0;
+        max-width: 46rem;
+        list-style: none;
+      }
+
+      .li-reasons > li {
+        padding: 0.85rem 0;
+        border-top: 1px solid var(--li-border);
+        color: var(--li-ink-soft);
+      }
+
+      .li-reasons > li:last-child {
+        border-bottom: 1px solid var(--li-border);
+      }
+
+      .li-reasons b {
+        color: var(--li-ink);
+      }
+
+      /* -- the first run, in three pictures -------------------------------- */
+      .li-steps {
+        display: grid;
+        gap: 1.6rem;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        margin: 1.4rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .li-steps img {
+        width: 100%;
+        margin: 0 0 0.7rem;
+        border-radius: 8px;
+        border: 1px solid var(--li-border);
+      }
+
+      .li-steps p {
+        margin: 0;
+        max-width: none;
+        font-size: 0.92rem;
+        color: var(--li-ink-soft);
+      }
+
+      /* -- downloads -------------------------------------------------------- */
+      .li-downloads {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        margin: 1.4rem 0 1.2rem;
+        padding: 0;
+        list-style: none;
+      }
+
+      .li-downloads > li {
+        display: flex;
+        flex-direction: column;
+        padding: 1.1rem;
+        border: 1px solid var(--li-border);
+        border-radius: 12px;
+        background: var(--li-surface);
+      }
+
+      .li-downloads p {
+        margin: 0 0 0.9rem;
+        max-width: none;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        color: var(--li-ink-soft);
+      }
+
+      .li-get,
+      .li-get--off {
+        display: block;
+        margin-top: auto;
+        padding: 0.62rem 1rem;
+        border-radius: 8px;
+        font-size: 0.94rem;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .li-get {
+        border: 1px solid var(--li-border);
+        background: var(--li-raised);
+        color: var(--li-ink) !important;
+        text-decoration: none !important;
+      }
+
+      .li-get:hover {
+        border-color: var(--li-accent);
+      }
+
+      .li-get--off {
+        border: 1px dashed var(--li-border);
+        color: var(--li-muted);
+        cursor: not-allowed;
+      }
+
+      .li-off h3 {
+        color: var(--li-muted);
+      }
+
+      /* Both of these do nothing until the script at the foot adds .li-here, so
+         with JavaScript off the page reads exactly as it is written and no card
+         is hidden or reordered. */
+      .li-downloads > li.li-here {
+        border-color: var(--li-accent);
+      }
+
+      .li-here-note {
+        display: none;
+      }
+
+      .li-downloads > li.li-here .li-here-note {
+        display: block;
+        margin: 0 0 0.7rem !important;
+        font-size: 0.7rem !important;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--li-accent) !important;
+      }
+
+      /* #39's licence card lands here and shares this shape. */
+      .li-card {
+        margin: 1.4rem 0;
+        padding: 0.85rem 1.1rem;
+        border: 1px solid var(--li-border);
+        border-radius: 12px;
+        background: var(--li-surface);
+      }
+
+      .li-card > summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .li-card[open] > summary {
+        margin-bottom: 0.6rem;
+      }
+
+      .li-card p {
+        max-width: var(--li-measure);
+        font-size: 0.9rem;
+        color: var(--li-ink-soft);
+      }
+
+      /* -- foot ------------------------------------------------------------- */
+      .li-foot {
+        margin: 3.6rem 0 0;
+        padding: 1.4rem 0 0;
+        border-top: 1px solid var(--li-border);
+      }
+
+      .li-foot p {
+        max-width: 46rem;
+      }
+
+      @media (max-width: 34rem) {
+        .li-page {
+          padding: 2rem 1.15rem 2.4rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="li-page">{{ content }}</main>
+
+    <script>
+      // One courtesy, and it is additive: the build for the machine reading the
+      // page is named on the hero's button and marked in the download section.
+      // The page is written to read correctly with this file blocked, missing
+      // or broken, and nothing here hides a card, reorders one, or redirects
+      // anyone.
+      //
+      // Unscripted, the hero's button is a link to the download section, which
+      // is the honest answer for a machine we have not identified -- and the
+      // only answer for a Mac, where there is no installer to offer.
+      (function () {
+        var RELEASE = 'https://github.com/lamplit-app/lamplit/releases/latest/download/';
+        var agent = navigator.userAgent || '';
+        // A phone or tablet says Linux or Mac and runs none of these, so it
+        // gets no card marked rather than the wrong one.
+        var phone = /Android|iPhone|iPad|iPod/.test(agent);
+        var os = phone
+          ? null
+          : /Windows|Win64|Win32/.test(agent)
+            ? 'windows'
+            : /Macintosh|Mac OS X/.test(agent)
+              ? 'macos'
+              : /Linux|X11|CrOS/.test(agent)
+                ? 'linux'
+                : null;
+
+        var here = os && document.getElementById('li-' + os);
+        if (here) here.className += ' li-here';
+
+        var offer = {
+          windows: ['Download for Windows', RELEASE + 'Lamplit-Setup.exe'],
+          linux: ['Download for Linux', RELEASE + 'Lamplit.AppImage'],
+        }[os];
+        var cta = document.getElementById('li-cta');
+        if (offer && cta) {
+          cta.textContent = offer[0];
+          cta.href = offer[1];
+          var elsewhere = document.getElementById('li-elsewhere');
+          if (elsewhere) elsewhere.hidden = false;
+        }
+      })();
+    </script>
+  </body>
+</html>

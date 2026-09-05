@@ -2,7 +2,7 @@ import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createServer as createSocket } from 'node:net';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -220,6 +220,7 @@ try {
   await firstRun();
   await freshServer({ withStory: true });
   await theApp();
+  await socialCard();
 } finally {
   await browser.close();
   persistence?.kill();
@@ -277,6 +278,19 @@ async function theApp() {
   await chapter.first().waitFor();
 
   await shot(page, 'reading', 'the reading surface: a chapter, book-styled');
+
+  // The website's hero, which is the same page seen from higher up: scrolled to
+  // the start of the chapter and cropped above the composer, so the picture is
+  // the book rather than the app. Nothing is hidden to take it — the composer
+  // is simply not in this part of the scroller.
+  const scroller = page.locator('li-chapters-page .page');
+  await scroller.evaluate((el) => (el.scrollTop = 0));
+  await page.waitForTimeout(500);
+  await shot(page, 'hero', 'the chapter from the top, for the website', {
+    clip: { x: 0, y: 0, width: VIEWPORT.width, height: 700 },
+  });
+  await scroller.evaluate((el) => (el.scrollTop = el.scrollHeight));
+  await page.waitForTimeout(500);
 
   // A real turn, streamed by the stand-in model into the real composer: once
   // part-way through, with Stop up, and once finished.
@@ -449,6 +463,97 @@ async function theApp() {
   await context.setOffline(false);
 
   await close();
+}
+
+/**
+ * `docs/images/card.png` — the 1200×630 picture a link to the site unfurls as,
+ * in a chat window or a search result.
+ *
+ * Composed here rather than drawn by hand so that it is reproducible, and so
+ * the app in it is the picture the landing page is already showing: it is the
+ * hero shot taken a moment ago, cropped by the frame it sits in. The palette,
+ * the serif and the single warm glow are `docs/_layouts/landing.html`'s, kept
+ * in step by eye — the card is the page, small.
+ *
+ * The serif is the app's stack and resolves to whatever the machine taking the
+ * picture has; on a machine with none of them it falls to Georgia, which is
+ * close enough that the card does not need a font of its own downloaded.
+ */
+async function socialCard() {
+  const hero = await readFile(join(OUT, 'hero.png'));
+  const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
+  // `setContent` waits for load, which is the picture decoded; the faces are
+  // the machine's own, so there is nothing else to wait for.
+  await page.setContent(card(`data:image/png;base64,${hero.toString('base64')}`));
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: join(OUT, 'card.png'), animations: 'disabled' });
+  await page.close();
+  shots.push('card.png — the 1200×630 card a link to the site unfurls as');
+}
+
+/** The card's one and only document. `shot` is the hero, as a data URI. */
+function card(shot) {
+  const mark = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 5v16" />
+      <path d="M16 13h2" /><path d="M16 9h2" />
+      <path d="M6 9h2" /><path d="M6 13h2" />
+      <path d="M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4.001a5 5 0 0 1 3.999 2 5 5 0 0 1 4-2z" />
+    </svg>`;
+
+  return `<!DOCTYPE html>
+<html lang="en-GB"><head><meta charset="utf-8"><style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    position: relative;
+    background: #14151a;
+    color: #e7e4dd;
+    font-family: system-ui, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* The lamp: the same warm radial the page has, in the same corner. */
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(880px 600px at 76% -16%, rgba(255,186,94,.19), transparent 66%);
+  }
+  .left {
+    position: relative;
+    width: 600px;
+    height: 100%;
+    padding: 0 0 0 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .left > * { max-width: 512px; }
+  .mark { display: flex; align-items: center; gap: 13px; font-family: var(--serif); font-size: 30px; letter-spacing: .03em; }
+  .mark svg { width: 34px; height: 34px; color: #b79cf0; }
+  h1 { margin: 30px 0 0; font-family: var(--serif); font-weight: 400; font-size: 50px; line-height: 1.16; }
+  .free { margin: 28px 0 0; font-size: 21px; line-height: 1.5; color: #b6b2a9; }
+  /* A crop of the page, run off the right edge: the card is a window onto it. */
+  .shot {
+    position: absolute;
+    left: 664px;
+    top: 104px;
+    width: 720px;
+    border-radius: 18px;
+    border: 1px solid #2f333e;
+    box-shadow:
+      0 40px 80px -28px rgba(255,176,82,.20),
+      0 50px 100px -40px rgba(0,0,0,.65);
+  }
+  :root { --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; }
+</style></head><body>
+  <div class="left">
+    <div class="mark">${mark}<b>Lamplit</b></div>
+    <h1>Like reading in bed with the lamp on. Except the book writes back.</h1>
+    <p class="free">Free and open source. Your stories are files, on your own machine.</p>
+  </div>
+  <img class="shot" src="${shot}" alt="">
+</body></html>`;
 }
 
 // -- plumbing -----------------------------------------------------------------
