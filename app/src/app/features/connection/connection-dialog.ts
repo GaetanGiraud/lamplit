@@ -39,7 +39,7 @@ export interface ConnectionData {
  * so closing the modal — however it closes — has already saved.
  */
 @Component({
-  selector: 'ms-connection-dialog',
+  selector: 'li-connection-dialog',
   imports: [
     MatButtonModule,
     MatDialogModule,
@@ -49,7 +49,7 @@ export interface ConnectionData {
     MatSelectModule,
   ],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">
+    <h2 mat-dialog-title class="li-dialog-title">
       {{ insisting ? 'First, somewhere to send the story' : 'Connection' }}
     </h2>
 
@@ -207,7 +207,7 @@ export interface ConnectionData {
   styles: `
     .lede {
       margin: 0 0 0.9rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       line-height: 1.5;
     }
 
@@ -215,7 +215,7 @@ export interface ConnectionData {
     .note {
       margin: 0 0 0.6rem;
       font-size: 0.8rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       line-height: 1.45;
     }
 
@@ -240,13 +240,13 @@ export interface ConnectionData {
 
     /* The "get a key" link lives in a hint, and hints inherit a muted grey. */
     mat-hint a {
-      color: var(--ms-accent);
+      color: var(--li-accent);
       white-space: nowrap;
     }
 
     .status {
       font-size: 0.8rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       line-height: 1.35;
     }
 
@@ -255,14 +255,14 @@ export interface ConnectionData {
     }
 
     .status.bad {
-      color: var(--ms-danger);
+      color: var(--li-danger);
     }
 
     .mono {
       display: block;
-      font-family: var(--ms-mono);
+      font-family: var(--li-mono);
       font-size: 0.68rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       line-height: 1.2;
     }
   `,

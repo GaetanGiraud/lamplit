@@ -80,7 +80,7 @@ test.describe('a story from nothing, told by a narrator', () => {
   };
 
   /** Developer mode's one door into the assembled prompt. Absent until then. */
-  const contextPill = () => page.locator('ms-composer').getByRole('button', { name: /^context/ });
+  const contextPill = () => page.locator('li-composer').getByRole('button', { name: /^context/ });
 
   test('1 · opens on the connection, and will not be waved away', async () => {
     const sheet = page.getByRole('dialog');
@@ -185,7 +185,7 @@ test.describe('a story from nothing, told by a narrator', () => {
   test('6 · the story so far is written down, and is always sent', async () => {
     await page.getByRole('button', { name: 'World', exact: true }).click();
     const world = page.getByRole('dialog');
-    await world.locator('ms-editor-field textarea').first().fill(STORY_SO_FAR);
+    await world.locator('li-editor-field textarea').first().fill(STORY_SO_FAR);
     await close(world);
 
     await expect
@@ -208,7 +208,7 @@ test.describe('a story from nothing, told by a narrator', () => {
     const entry = world.locator('.entry').first();
     await entry.getByLabel('Title').fill('Old Tomas');
     await entry.getByLabel('Keys').fill(`${LORE_KEY}, keeper`);
-    const truth = entry.locator('ms-editor-field textarea');
+    const truth = entry.locator('li-editor-field textarea');
     await truth.fill(LORE_FACT);
     await truth.blur();
     await expect(entry).not.toHaveClass(/unwritten/);
@@ -325,8 +325,8 @@ test.describe('a story from nothing, told by a narrator', () => {
     const reader = await fresh.newPage();
     await reader.goto(server.url);
 
-    await expect(reader.locator('ms-top-bar')).toContainText(TITLE);
-    await expect(reader.locator('ms-top-bar')).toContainText('Chapter 2');
+    await expect(reader.locator('li-top-bar')).toContainText(TITLE);
+    await expect(reader.locator('li-top-bar')).toContainText('Chapter 2');
     await expect(reader.locator('article[data-role]')).toHaveCount(2);
 
     // Chapter 1 is still there, closed, with everything in it.
@@ -339,7 +339,7 @@ test.describe('a story from nothing, told by a narrator', () => {
     // And the world came back too.
     await reader.getByRole('button', { name: 'World', exact: true }).click();
     const world = reader.getByRole('dialog');
-    await expect(world.locator('ms-editor-field textarea').first()).not.toBeEmpty();
+    await expect(world.locator('li-editor-field textarea').first()).not.toBeEmpty();
     await world.getByRole('tab', { name: 'Lore' }).click();
     await expect(world.locator('.entry')).toContainText('Old Tomas');
     await fresh.close();

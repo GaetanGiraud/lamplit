@@ -16,7 +16,7 @@ import { ParamRow } from '../../shared/param-row';
  * at the top because their relationship is the thing people get wrong.
  */
 @Component({
-  selector: 'ms-parameters-dialog',
+  selector: 'li-parameters-dialog',
   imports: [
     MatButtonModule,
     MatDialogModule,
@@ -27,11 +27,11 @@ import { ParamRow } from '../../shared/param-row';
     ParamRow,
   ],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">Parameters</h2>
+    <h2 mat-dialog-title class="li-dialog-title">Parameters</h2>
 
     <mat-dialog-content>
       <section class="budgets">
-        <ms-param-row
+        <li-param-row
           label="Context budget"
           [hint]="budgetHint()"
           [min]="ranges.maxContextTokens.min"
@@ -40,7 +40,7 @@ import { ParamRow } from '../../shared/param-row';
           [value]="params().maxContextTokens"
           (valueChange)="patch({ maxContextTokens: $event })"
         />
-        <ms-param-row
+        <li-param-row
           label="Reply length"
           hint="Hard ceiling on one reply, in tokens."
           [min]="ranges.maxResponseTokens.min"
@@ -52,7 +52,7 @@ import { ParamRow } from '../../shared/param-row';
       </section>
 
       <div class="grid">
-        <ms-param-row
+        <li-param-row
           label="Temperature"
           hint="Low is steady and predictable, high is surprising and prone to wander."
           [min]="ranges.temperature.min"
@@ -61,7 +61,7 @@ import { ParamRow } from '../../shared/param-row';
           [value]="params().temperature"
           (valueChange)="patch({ temperature: $event })"
         />
-        <ms-param-row
+        <li-param-row
           label="Top-p"
           hint="Keeps only the most likely words that add up to this probability."
           [min]="ranges.topP.min"
@@ -70,7 +70,7 @@ import { ParamRow } from '../../shared/param-row';
           [value]="params().topP"
           (valueChange)="patch({ topP: $event })"
         />
-        <ms-param-row
+        <li-param-row
           label="Frequency penalty"
           hint="Pushes back on words it has already used a lot."
           [min]="ranges.frequencyPenalty.min"
@@ -79,7 +79,7 @@ import { ParamRow } from '../../shared/param-row';
           [value]="params().frequencyPenalty"
           (valueChange)="patch({ frequencyPenalty: $event })"
         />
-        <ms-param-row
+        <li-param-row
           label="Presence penalty"
           hint="Pushes it towards subjects it has not touched yet."
           [min]="ranges.presencePenalty.min"
@@ -107,13 +107,13 @@ import { ParamRow } from '../../shared/param-row';
           <mat-panel-description>{{ advancedSummary() }}</mat-panel-description>
         </mat-expansion-panel-header>
 
-        <p class="ms-hint">
+        <p class="li-hint">
           Switched off means the parameter is left out of the request. Not every endpoint supports
           these; NanoGPT does.
         </p>
 
         <div class="grid">
-          <ms-param-row
+          <li-param-row
             label="Top-k"
             optional
             [min]="ranges.topK.min"
@@ -122,7 +122,7 @@ import { ParamRow } from '../../shared/param-row';
             [value]="params().topK"
             (valueChange)="patch({ topK: $event })"
           />
-          <ms-param-row
+          <li-param-row
             label="Min-p"
             optional
             [min]="ranges.minP.min"
@@ -131,7 +131,7 @@ import { ParamRow } from '../../shared/param-row';
             [value]="params().minP"
             (valueChange)="patch({ minP: $event })"
           />
-          <ms-param-row
+          <li-param-row
             label="Repetition penalty"
             optional
             [min]="ranges.repetitionPenalty.min"
@@ -140,7 +140,7 @@ import { ParamRow } from '../../shared/param-row';
             [value]="params().repetitionPenalty"
             (valueChange)="patch({ repetitionPenalty: $event })"
           />
-          <ms-param-row
+          <li-param-row
             label="Top-a"
             optional
             [min]="ranges.topA.min"
@@ -213,9 +213,9 @@ import { ParamRow } from '../../shared/param-row';
     .budgets {
       padding: 0.5rem 0.85rem 0.3rem;
       margin-bottom: 0.5rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 12px;
-      background: color-mix(in srgb, var(--ms-accent) 6%, transparent);
+      background: color-mix(in srgb, var(--li-accent) 6%, transparent);
     }
 
     mat-form-field {
@@ -233,7 +233,7 @@ import { ParamRow } from '../../shared/param-row';
 
     mat-panel-description {
       flex: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font-size: 0.8rem;
     }
 

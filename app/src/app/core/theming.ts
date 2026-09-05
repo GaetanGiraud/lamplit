@@ -5,8 +5,8 @@ import { PagePalette } from './page-palettes';
  * The reading palette, and the one place the page is told about it.
  *
  * Every colour the app varies between dark and light is a custom property on
- * `<html>`, declared in `styles.scss` as `light-dark(var(--ms-x-light),
- * var(--ms-x-dark))`. A customised colour is that property set inline on the
+ * `<html>`, declared in `styles.scss` as `light-dark(var(--li-x-light),
+ * var(--li-x-dark))`. A customised colour is that property set inline on the
  * same element, which is why the whole of Preferences → Colours is a handful of
  * `setProperty` calls and why putting a colour back is `removeProperty` rather
  * than a value copied from a second list that could drift from the stylesheet.
@@ -47,23 +47,23 @@ export interface FontChoice {
 
 /** The first is what the app ships with; the story is set in it unless told otherwise. */
 export const READING_FONTS: readonly FontChoice[] = [
-  { key: 'serif', label: 'Serif', stack: 'var(--ms-serif)', sample: 'The lamp was still lit.' },
-  { key: 'sans', label: 'Sans-serif', stack: 'var(--ms-sans)', sample: 'The lamp was still lit.' },
-  { key: 'mono', label: 'Monospace', stack: 'var(--ms-mono)', sample: 'The lamp was still lit.' },
+  { key: 'serif', label: 'Serif', stack: 'var(--li-serif)', sample: 'The lamp was still lit.' },
+  { key: 'sans', label: 'Sans-serif', stack: 'var(--li-sans)', sample: 'The lamp was still lit.' },
+  { key: 'mono', label: 'Monospace', stack: 'var(--li-mono)', sample: 'The lamp was still lit.' },
 ];
 
 /** The property a colour is drawn from — the one an override writes to. */
 export function propertyOf(key: ColourKey): string {
-  return `--ms-${key}`;
+  return `--li-${key}`;
 }
 
 /** The property holding what the stylesheet ships for that name in that theme. */
 function shippedPropertyOf(key: ColourKey, theme: ThemeName): string {
-  return `--ms-${key}-${theme}`;
+  return `--li-${key}-${theme}`;
 }
 
 /** The property the story's own face is read from. */
-export const READING_FAMILY = '--ms-reading-family';
+export const READING_FAMILY = '--li-reading-family';
 
 /**
  * Everything in Preferences that the page can see, written onto one element.
@@ -103,7 +103,7 @@ export function applyUi(
  * What the stylesheet ships for this name in this theme, as `#rrggbb`.
  *
  * Read back off the element rather than kept in a list here: `styles.scss`
- * writes `--ms-page-light` and `--ms-page-dark` beside every token for exactly
+ * writes `--li-page-light` and `--li-page-dark` beside every token for exactly
  * this, so the colour a reset returns to is the one the theme is built from,
  * whichever theme is on screen. Empty when there is no stylesheet attached,
  * which is every unit test — callers fall back.

@@ -93,7 +93,7 @@ describe('MessageItem, being edited', () => {
     await fixture.whenStable();
     type(' And then he stopped.');
 
-    press('ms-prose-editor', 'Escape');
+    press('li-prose-editor', 'Escape');
 
     expect(editing()).toBe(false);
     expect(saved).toEqual([]);
@@ -106,7 +106,7 @@ describe('MessageItem, being edited', () => {
     await fixture.whenStable();
     type(' And then he stopped.');
 
-    press('ms-prose-editor', 'Enter', { ctrlKey: true });
+    press('li-prose-editor', 'Enter', { ctrlKey: true });
 
     expect(editing()).toBe(false);
     expect(saved).toEqual([
@@ -119,7 +119,7 @@ describe('MessageItem, being edited', () => {
     startEditing();
     await fixture.whenStable();
 
-    press('ms-prose-editor', 'Enter', { ctrlKey: true });
+    press('li-prose-editor', 'Enter', { ctrlKey: true });
 
     expect(editing()).toBe(false);
     expect(saved).toEqual([]);

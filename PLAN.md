@@ -405,7 +405,7 @@ it on first load so it can be filled in; the existing messages are left alone.
     autosize, which measured a frame late, needed a content box and a `flex: none` fix in every
     flex dialog, and still had to be re-measured by hand whenever text arrived from code. A spec
     types into the composer and fails if the box ever scrolls its own text.
-    Text is written into a box only through `[msText]`, which never rewrites a field that is
+    Text is written into a box only through `[liText]`, which never rewrites a field that is
     being typed into — a plain `[value]` binding moves the caret to the end and throws away the
     browser's undo stack whenever the document changes underneath.
 11. **Lore scanning** runs on every send over (scene + draft + last N messages), and again on

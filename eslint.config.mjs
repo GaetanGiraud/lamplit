@@ -57,11 +57,11 @@ export default defineConfig([
       '@angular-eslint/component-selector': [
         'error',
         // `app-root` is the one the CLI made; everything else is the product's.
-        { type: 'element', prefix: ['ms', 'app'], style: 'kebab-case' },
+        { type: 'element', prefix: ['li', 'app'], style: 'kebab-case' },
       ],
       '@angular-eslint/directive-selector': [
         'error',
-        { type: 'attribute', prefix: 'ms', style: 'camelCase' },
+        { type: 'attribute', prefix: 'li', style: 'camelCase' },
       ],
       // A count or a flag in a template literal reads as what it is; only an
       // object or an array would print as nonsense, and those stay forbidden.

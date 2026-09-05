@@ -116,7 +116,7 @@ test('wide, it takes its width out of the page and covers none of it', async ({ 
   await page.setViewportSize({ width: 1400, height: 900 });
   await app.visit();
 
-  const reading = page.locator('ms-chapters-page');
+  const reading = page.locator('li-chapters-page');
   const before = (await reading.boundingBox())!.width;
 
   await openPanel(page);
@@ -206,7 +206,7 @@ test('narrow, Escape closes the menu it was pressed for and leaves the panel', a
   await expect(chapterPanel(page).locator('.scrim')).toBeVisible();
 
   // The dot beside a character's name: the menu that changes their colour.
-  await chapterPanel(page).locator('ms-character-swatch button').first().click();
+  await chapterPanel(page).locator('li-character-swatch button').first().click();
   const menu = page.locator('.mat-mdc-menu-panel');
   await expect(menu).toBeVisible();
 

@@ -237,33 +237,33 @@ const EnterKey = Extension.create<{ onEnter: () => boolean }>({
  * can never bring back what was deliberately taken out.
  */
 @Component({
-  selector: 'ms-prose-editor',
+  selector: 'li-prose-editor',
   template: `<div #host></div>`,
   // The editor's DOM is made by ProseMirror, not by this template, so the
   // styles have to reach it without Angular's scoping attribute: global, and
   // kept under this element's name.
   encapsulation: ViewEncapsulation.None,
   styles: `
-    ms-prose-editor {
+    li-prose-editor {
       display: block;
       min-width: 0;
     }
 
-    ms-prose-editor .ProseMirror {
+    li-prose-editor .ProseMirror {
       position: relative;
       min-height: calc(var(--rows-min, 3) * 1lh);
       max-height: calc(var(--rows-max, 14) * 1lh);
       overflow-y: auto;
       white-space: pre-wrap;
-      color: var(--ms-ink);
+      color: var(--li-ink);
       outline: none;
     }
 
-    ms-prose-editor .ProseMirror p.is-editor-empty:first-child::before {
+    li-prose-editor .ProseMirror p.is-editor-empty:first-child::before {
       content: attr(data-placeholder);
       float: left;
       height: 0;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       pointer-events: none;
     }
   `,

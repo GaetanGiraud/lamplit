@@ -41,11 +41,11 @@ html {
 
 // The palette, and the one place either half of it is written down.
 //
-// Each name is emitted three times — `--ms-page-light`, `--ms-page-dark`, and
-// the `--ms-page` that light-dark() picks between. The two halves are spelled
+// Each name is emitted three times — `--li-page-light`, `--li-page-dark`, and
+// the `--li-page` that light-dark() picks between. The two halves are spelled
 // out as properties of their own so that Preferences → Colours can read the
 // shipped colour of a theme back off <html> at any time: it overrides
-// `--ms-page` inline, and "Reset to default" is that property removed rather
+// `--li-page` inline, and "Reset to default" is that property removed rather
 // than a colour copied out of a second list in the TypeScript that could drift
 // from this one. `core/theming.ts` puts a label on each name.
 $palette: (
@@ -96,23 +96,23 @@ $palette: (
 );
 
 :root {
-  --ms-sans: system-ui, 'Segoe UI', sans-serif;
-  --ms-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
-  --ms-mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+  --li-sans: system-ui, 'Segoe UI', sans-serif;
+  --li-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  --li-mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
 
   // The face the story itself is set in; Preferences swaps in one of the three
   // above. Only the prose follows it — the app around it stays as it is.
-  --ms-reading-family: var(--ms-serif);
+  --li-reading-family: var(--li-serif);
 
   @each $name, $themes in $palette {
     @each $theme, $value in $themes {
-      --ms-#{$name}-#{$theme}: #{$value};
+      --li-#{$name}-#{$theme}: #{$value};
     }
-    --ms-#{$name}: light-dark(var(--ms-#{$name}-light), var(--ms-#{$name}-dark));
+    --li-#{$name}: light-dark(var(--li-#{$name}-light), var(--li-#{$name}-dark));
   }
 
-  --ms-reading-size: 18px;
-  --ms-radius: 14px;
+  --li-reading-size: 18px;
+  --li-radius: 14px;
 
   // The reading column, and the margin beside it.
   //
@@ -122,12 +122,12 @@ $palette: (
   // the column and the other from the middle of the scroller — so the
   // arithmetic is written once, here.
   //
-  // `--ms-column` is only correct on an element whose containing block is the
+  // `--li-column` is only correct on an element whose containing block is the
   // full width of the scroller; that is what the `100%` in it means.
-  --ms-measure: 34rem;
-  --ms-column: min(var(--ms-measure), 100% - 2.5rem);
-  --ms-rail: 2rem;
-  --ms-margin-gap: 0.7rem;
+  --li-measure: 34rem;
+  --li-column: min(var(--li-measure), 100% - 2.5rem);
+  --li-rail: 2rem;
+  --li-margin-gap: 0.7rem;
 }
 
 * {
@@ -141,9 +141,9 @@ body {
 }
 
 body {
-  background: var(--ms-page);
-  color: var(--ms-ink);
-  font-family: var(--ms-sans);
+  background: var(--li-page);
+  color: var(--li-ink);
+  font-family: var(--li-sans);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
@@ -158,12 +158,12 @@ body::before {
   background:
     radial-gradient(
       1200px 600px at 15% -10%,
-      color-mix(in srgb, var(--ms-accent) 12%, transparent),
+      color-mix(in srgb, var(--li-accent) 12%, transparent),
       transparent 70%
     ),
     radial-gradient(
       900px 500px at 100% 0%,
-      color-mix(in srgb, var(--ms-speech) 10%, transparent),
+      color-mix(in srgb, var(--li-speech) 10%, transparent),
       transparent 70%
     );
 }
@@ -190,7 +190,7 @@ app-root {
 
 .booting-mark {
   margin: 0 0 0.9rem;
-  font-family: var(--ms-serif);
+  font-family: var(--li-serif);
   font-size: 2.6rem;
   font-weight: 400;
   letter-spacing: 0.04em;
@@ -198,7 +198,7 @@ app-root {
 
 .booting-line {
   margin: 0;
-  color: var(--ms-muted);
+  color: var(--li-muted);
   font-size: 0.95rem;
 }
 
@@ -206,8 +206,8 @@ app-root {
 // Story prose. Applied to the rendered markdown of every message.
 // ---------------------------------------------------------------------------
 .story-prose {
-  font-family: var(--ms-reading-family);
-  font-size: var(--ms-reading-size);
+  font-family: var(--li-reading-family);
+  font-size: var(--li-reading-size);
   line-height: 1.65;
   overflow-wrap: break-word;
 
@@ -220,33 +220,33 @@ app-root {
   }
 
   .speech {
-    color: var(--ms-speech);
+    color: var(--li-speech);
     font-style: normal;
   }
 
   .action,
   em {
-    color: var(--ms-action);
+    color: var(--li-action);
     font-style: italic;
   }
 
   strong {
-    color: var(--ms-ink);
+    color: var(--li-ink);
     font-weight: 650;
   }
 
   blockquote {
     margin: 0.75em 0;
     padding-left: 0.9em;
-    border-left: 2px solid var(--ms-border);
-    color: var(--ms-ink-soft);
+    border-left: 2px solid var(--li-border);
+    color: var(--li-ink-soft);
   }
 
   h1,
   h2,
   h3,
   h4 {
-    font-family: var(--ms-reading-family);
+    font-family: var(--li-reading-family);
     font-weight: 600;
     line-height: 1.25;
     margin: 1.1em 0 0.5em;
@@ -272,18 +272,18 @@ app-root {
 
   hr {
     border: 0;
-    border-top: 1px solid var(--ms-border);
+    border-top: 1px solid var(--li-border);
     margin: 1.4em 0;
   }
 
   a {
-    color: var(--ms-accent);
+    color: var(--li-accent);
   }
 
   code {
-    font-family: var(--ms-mono);
+    font-family: var(--li-mono);
     font-size: 0.85em;
-    background: color-mix(in srgb, var(--ms-ink) 8%, transparent);
+    background: color-mix(in srgb, var(--li-ink) 8%, transparent);
     padding: 0.12em 0.35em;
     border-radius: 5px;
   }
@@ -292,7 +292,7 @@ app-root {
     margin: 0.8em 0;
     padding: 0.85em 1em;
     overflow-x: auto;
-    border: 1px solid var(--ms-border);
+    border: 1px solid var(--li-border);
     border-radius: 10px;
     background: light-dark(#f2eee4, #16181e);
 
@@ -307,13 +307,13 @@ app-root {
   table {
     border-collapse: collapse;
     margin: 0.8em 0;
-    font-family: var(--ms-sans);
+    font-family: var(--li-sans);
     font-size: 0.9em;
   }
 
   th,
   td {
-    border: 1px solid var(--ms-border);
+    border: 1px solid var(--li-border);
     padding: 0.35em 0.6em;
     text-align: left;
   }
@@ -322,7 +322,7 @@ app-root {
 // Syntax colours, kept in our palette instead of pulling in a hljs theme.
 .hljs-comment,
 .hljs-quote {
-  color: var(--ms-muted);
+  color: var(--li-muted);
   font-style: italic;
 }
 
@@ -330,7 +330,7 @@ app-root {
 .hljs-selector-tag,
 .hljs-literal,
 .hljs-type {
-  color: var(--ms-accent);
+  color: var(--li-accent);
 }
 
 .hljs-string,
@@ -347,7 +347,7 @@ app-root {
 .hljs-title,
 .hljs-title.function_,
 .hljs-section {
-  color: var(--ms-speech);
+  color: var(--li-speech);
 }
 
 .hljs-attr,
@@ -402,89 +402,89 @@ textarea:where(:not(.mat-mdc-input-element)) {
   max-height: calc(var(--rows-max) * 1lh + 2 * (var(--field-pad-y) + var(--field-border)));
   flex-shrink: 0;
   padding: var(--field-pad-y) var(--field-pad-x);
-  border: var(--field-border) solid var(--ms-border);
+  border: var(--field-border) solid var(--li-border);
   border-radius: 10px;
-  background: var(--ms-surface-raised);
-  color: var(--ms-ink);
+  background: var(--li-surface-raised);
+  color: var(--li-ink);
   font: inherit;
   font-size: 0.9rem;
   line-height: 1.55;
   resize: none;
 
   &::placeholder {
-    color: var(--ms-muted);
+    color: var(--li-muted);
   }
 
   &:focus {
     outline: none;
-    border-color: color-mix(in srgb, var(--ms-accent) 65%, var(--ms-border));
+    border-color: color-mix(in srgb, var(--li-accent) 65%, var(--li-border));
   }
 }
 
 // ---------------------------------------------------------------------------
 // Shared bits
 // ---------------------------------------------------------------------------
-.ms-pill {
+.li-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   padding: 0.2rem 0.6rem;
-  border: 1px solid var(--ms-border);
+  border: 1px solid var(--li-border);
   border-radius: 999px;
   font-size: 0.72rem;
   letter-spacing: 0.02em;
-  color: var(--ms-muted);
-  background: var(--ms-surface);
+  color: var(--li-muted);
+  background: var(--li-surface);
 }
 
 // A two-way choice with room to explain itself: the Narrator / Role-play
 // toggle, shared by the story sheet and the new-story sheet.
-.ms-choices {
+.li-choices {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.6rem;
 }
 
-.ms-choice {
+.li-choice {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.75rem 0.85rem;
-  border: 1px solid var(--ms-border);
+  border: 1px solid var(--li-border);
   border-radius: 12px;
-  background: var(--ms-surface-raised);
+  background: var(--li-surface-raised);
   text-align: left;
   font: inherit;
   cursor: pointer;
 
   .name {
-    font-family: var(--ms-serif);
+    font-family: var(--li-serif);
     font-size: 1.05rem;
-    color: var(--ms-ink);
+    color: var(--li-ink);
   }
 
   &.on {
-    border-color: color-mix(in srgb, var(--ms-accent) 70%, var(--ms-border));
-    background: color-mix(in srgb, var(--ms-accent) 10%, transparent);
+    border-color: color-mix(in srgb, var(--li-accent) 70%, var(--li-border));
+    background: color-mix(in srgb, var(--li-accent) 10%, transparent);
   }
 }
 
-.ms-dialog-title {
-  font-family: var(--ms-serif);
+.li-dialog-title {
+  font-family: var(--li-serif);
   font-size: 1.3rem;
   margin: 0;
 }
 
-.ms-hint {
-  color: var(--ms-muted);
+.li-hint {
+  color: var(--li-muted);
   font-size: 0.8rem;
   line-height: 1.5;
 }
 
 .mat-mdc-dialog-surface {
-  border-radius: var(--ms-radius) !important;
-  border: 1px solid var(--ms-border);
-  background: var(--ms-surface) !important;
+  border-radius: var(--li-radius) !important;
+  border: 1px solid var(--li-border);
+  background: var(--li-surface) !important;
   box-shadow: 0 24px 64px light-dark(rgb(0 0 0 / 18%), rgb(0 0 0 / 55%)) !important;
 }
 
@@ -495,5 +495,5 @@ textarea:where(:not(.mat-mdc-input-element)) {
 // The scrollbar sits inside the reading column; keep it out of the way.
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--ms-border) transparent;
+  scrollbar-color: var(--li-border) transparent;
 }

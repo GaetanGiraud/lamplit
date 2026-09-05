@@ -362,7 +362,7 @@ test.describe('parameters', () => {
     const advanced = dialog.getByRole('button', { name: /Advanced/ });
     await advanced.scrollIntoViewIfNeeded();
     await advanced.click();
-    await dialog.locator('ms-param-row', { hasText: 'Top-k' }).getByRole('switch').click();
+    await dialog.locator('li-param-row', { hasText: 'Top-k' }).getByRole('switch').click();
     await dialog.getByRole('button', { name: 'Done' }).click();
 
     await send(page, 'Second request.');

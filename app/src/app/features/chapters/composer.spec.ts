@@ -97,7 +97,7 @@ describe('Composer', () => {
     fixture.detectChanges();
   }
 
-  const prose = () => host().querySelector('ms-prose-editor .ProseMirror')?.textContent ?? '';
+  const prose = () => host().querySelector('li-prose-editor .ProseMirror')?.textContent ?? '';
 
   function directionBox(): HTMLTextAreaElement | null {
     return host().querySelector<HTMLTextAreaElement>('.direction textarea');

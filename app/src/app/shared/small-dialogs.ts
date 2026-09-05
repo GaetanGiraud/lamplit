@@ -13,10 +13,10 @@ export interface TextPromptData {
 
 /** One line of text, for naming a story or retitling a chapter. */
 @Component({
-  selector: 'ms-text-prompt-dialog',
+  selector: 'li-text-prompt-dialog',
   imports: [MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">{{ data.title }}</h2>
+    <h2 mat-dialog-title class="li-dialog-title">{{ data.title }}</h2>
     <mat-dialog-content>
       <mat-form-field appearance="outline">
         <mat-label>{{ data.label }}</mat-label>
@@ -78,10 +78,10 @@ export interface ConfirmData {
 
 /** The one thing the app asks twice about: deleting something written. */
 @Component({
-  selector: 'ms-confirm-dialog',
+  selector: 'li-confirm-dialog',
   imports: [MatButtonModule, MatDialogModule],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">{{ data.title }}</h2>
+    <h2 mat-dialog-title class="li-dialog-title">{{ data.title }}</h2>
     <mat-dialog-content>
       <p>{{ data.message }}</p>
     </mat-dialog-content>
@@ -98,11 +98,11 @@ export interface ConfirmData {
       margin: 0;
       font-size: 0.92rem;
       line-height: 1.6;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .go.danger {
-      --mat-button-filled-container-color: var(--ms-danger);
+      --mat-button-filled-container-color: var(--li-danger);
       --mat-button-filled-label-text-color: light-dark(#fff, #1a0f0d);
     }
   `,

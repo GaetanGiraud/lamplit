@@ -20,15 +20,15 @@ type TextElement = HTMLTextAreaElement | HTMLInputElement;
  * The box's height is not this directive's concern: it follows the text by
  * itself (`field-sizing`, in the global styles), typed or written.
  */
-@Directive({ selector: 'textarea[msText], input[msText]' })
+@Directive({ selector: 'textarea[liText], input[liText]' })
 export class TextValue {
-  readonly msText = input('');
+  readonly liText = input('');
 
   private readonly element = inject<ElementRef<TextElement>>(ElementRef);
 
   constructor() {
     effect(() => {
-      const value = this.msText();
+      const value = this.liText();
       const node = this.element.nativeElement;
       if (node.value === value) return;
       if (node === document.activeElement && !node.readOnly) return;

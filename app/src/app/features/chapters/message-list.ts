@@ -13,14 +13,14 @@ import { MessageItem } from './message-item';
  * story.
  */
 @Component({
-  selector: 'ms-message-list',
+  selector: 'li-message-list',
   imports: [MessageItem],
   template: `
-    <div class="column" [style.--ms-reading-size.px]="settings.ui().fontSize">
+    <div class="column" [style.--li-reading-size.px]="settings.ui().fontSize">
       <!-- The written turns, not every row: a record of the cast changing is
            in the list so the prompt knows where it happened, not to be read. -->
       @for (message of chapters.written(); track message.id) {
-        <ms-message-item
+        <li-message-item
           [message]="message"
           [streaming]="chapters.streamingId() === message.id"
           [busy]="chapters.isStreaming()"
@@ -43,7 +43,7 @@ import { MessageItem } from './message-item';
     }
 
     .column {
-      width: min(var(--ms-measure), calc(100% - 2.5rem));
+      width: min(var(--li-measure), calc(100% - 2.5rem));
       margin: 0 auto;
       padding: 1.25rem 0 0;
     }

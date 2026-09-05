@@ -22,14 +22,14 @@ import { DialogsService } from './shared/dialogs.service';
  * over one.
  */
 @Component({
-  selector: 'ms-workspace',
+  selector: 'li-workspace',
   imports: [TopBar, UpgradeNotice, ChapterPanel, ChaptersPage],
   template: `
-    <ms-top-bar />
-    <ms-upgrade-notice />
+    <li-top-bar />
+    <li-upgrade-notice />
     <div class="body">
-      <ms-chapters-page />
-      <ms-chapter-panel />
+      <li-chapters-page />
+      <li-chapter-panel />
     </div>
   `,
   styles: `
@@ -50,7 +50,7 @@ import { DialogsService } from './shared/dialogs.service';
       overflow: hidden;
     }
 
-    ms-chapters-page {
+    li-chapters-page {
       flex: 1;
       min-width: 0;
       min-height: 0;

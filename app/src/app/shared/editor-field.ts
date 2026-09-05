@@ -24,7 +24,7 @@ let nextId = 0;
  * save mark, and leaves the box itself with no name at all.
  */
 @Component({
-  selector: 'ms-editor-field',
+  selector: 'li-editor-field',
   imports: [MatTooltipModule, TextValue],
   template: `
     <div class="field">
@@ -51,7 +51,7 @@ let nextId = 0;
         [class.dimmed]="dimmed()"
         [style.--rows-min]="rows()"
         [style.--rows-max]="rows() + 10"
-        [msText]="draft()"
+        [liText]="draft()"
         [placeholder]="placeholder()"
         [readOnly]="readOnly()"
         (input)="draft.set(text($event))"
@@ -60,9 +60,9 @@ let nextId = 0;
 
       <span class="foot">
         @if (hint()) {
-          <span class="ms-hint">{{ hint() }}</span>
+          <span class="li-hint">{{ hint() }}</span>
         }
-        <span class="ms-hint count">{{ words() }} words</span>
+        <span class="li-hint count">{{ words() }} words</span>
       </span>
     </div>
   `,
@@ -83,15 +83,15 @@ let nextId = 0;
 
     .label {
       font-size: 0.82rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .save {
       margin-left: auto;
-      border: 1px solid color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
+      border: 1px solid color-mix(in srgb, var(--li-accent) 45%, var(--li-border));
       border-radius: 999px;
-      background: color-mix(in srgb, var(--ms-accent) 12%, transparent);
-      color: var(--ms-accent);
+      background: color-mix(in srgb, var(--li-accent) 12%, transparent);
+      color: var(--li-accent);
       font: inherit;
       font-size: 0.72rem;
       padding: 0.05rem 0.55rem;
@@ -101,14 +101,14 @@ let nextId = 0;
     /* The box itself is the shared text field from the global styles; only
        what differs from it is said here. */
     textarea.serif {
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1rem;
     }
 
     /* Text that is not the writer's own yet — the narrator default, sitting in
        the box it will be edited in. Typing over it is what adopts it. */
     textarea.dimmed {
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .foot {
@@ -139,7 +139,7 @@ export class EditorField implements OnDestroy {
 
   readonly save = output<string>();
 
-  protected readonly id = `ms-editor-${++nextId}`;
+  protected readonly id = `li-editor-${++nextId}`;
   protected readonly draft = signal('');
 
   protected readonly dirty = computed(() => this.draft() !== this.value());
@@ -147,7 +147,7 @@ export class EditorField implements OnDestroy {
 
   constructor() {
     // The document is the source of truth; an outside edit replaces the draft,
-    // and [msText] puts it in the box when it lands.
+    // and [liText] puts it in the box when it lands.
     effect(() => this.draft.set(this.value()));
   }
 

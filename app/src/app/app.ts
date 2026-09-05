@@ -13,9 +13,9 @@ import { Workspace } from './workspace';
   imports: [NoServer, Workspace],
   template: `
     @if (persistence.ready()) {
-      <ms-workspace />
+      <li-workspace />
     } @else {
-      <ms-no-server />
+      <li-no-server />
     }
   `,
   styles: `
@@ -24,7 +24,7 @@ import { Workspace } from './workspace';
       height: 100%;
     }
 
-    ms-workspace {
+    li-workspace {
       height: 100%;
     }
   `,

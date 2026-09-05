@@ -18,7 +18,7 @@ export interface StoryDialogData {
 
 /** Who is telling the story, who the reader is, and how it should read. */
 @Component({
-  selector: 'ms-story-dialog',
+  selector: 'li-story-dialog',
   imports: [
     MatButtonModule,
     MatDialogModule,
@@ -30,32 +30,32 @@ export interface StoryDialogData {
     EditorField,
   ],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">{{ story().title }}</h2>
+    <h2 mat-dialog-title class="li-dialog-title">{{ story().title }}</h2>
 
     <mat-dialog-content>
       <mat-tab-group>
         <mat-tab label="Mode">
           <div class="tab">
-            <div class="ms-choices">
+            <div class="li-choices">
               <button
                 type="button"
-                class="ms-choice"
+                class="li-choice"
                 [class.on]="story().mode === 'narrator'"
                 (click)="setMode('narrator')"
               >
                 <span class="name">Narrator</span>
-                <span class="ms-hint">
+                <span class="li-hint">
                   One voice tells the whole story. You say what you do; it writes what happens.
                 </span>
               </button>
               <button
                 type="button"
-                class="ms-choice"
+                class="li-choice"
                 [class.on]="story().mode === 'roleplay'"
                 (click)="setMode('roleplay')"
               >
                 <span class="name">Role-play</span>
-                <span class="ms-hint">
+                <span class="li-hint">
                   The model plays the other characters and answers in their own words.
                 </span>
               </button>
@@ -72,7 +72,7 @@ export interface StoryDialogData {
               @if (story().narrator.useDefault) {
                 <p class="preset">{{ defaultPrompt }}</p>
               } @else {
-                <ms-editor-field
+                <li-editor-field
                   label="Narrator instructions"
                   [rows]="7"
                   [value]="story().narrator.prompt"
@@ -81,27 +81,27 @@ export interface StoryDialogData {
               }
             } @else {
               <div class="cast">
-                <div class="ms-choices casting">
+                <div class="li-choices casting">
                   <button
                     type="button"
-                    class="ms-choice"
+                    class="li-choice"
                     [class.on]="story().roleplay.casting === 'ensemble'"
                     (click)="setCasting('ensemble')"
                   >
                     <span class="name">Ensemble</span>
-                    <span class="ms-hint">
+                    <span class="li-hint">
                       The model plays everyone in the scene and answers as whoever the moment calls
                       for.
                     </span>
                   </button>
                   <button
                     type="button"
-                    class="ms-choice"
+                    class="li-choice"
                     [class.on]="story().roleplay.casting === 'one-at-a-time'"
                     (click)="setCasting('one-at-a-time')"
                   >
                     <span class="name">One at a time</span>
-                    <span class="ms-hint">
+                    <span class="li-hint">
                       It plays one of them. The rest are in the scene without a voice; switch in the
                       chapter panel.
                     </span>
@@ -111,7 +111,7 @@ export interface StoryDialogData {
                 @for (character of story().characters; track character.id) {
                   <section class="character" [attr.data-character]="character.id">
                     <header>
-                      <ms-character-swatch
+                      <li-character-swatch
                         [character]="character"
                         (pick)="stories.setCharacterColour(character.id, $event)"
                       />
@@ -133,7 +133,7 @@ export interface StoryDialogData {
                         Remove
                       </button>
                     </header>
-                    <ms-editor-field
+                    <li-editor-field
                       label="Who they are"
                       [rows]="4"
                       [value]="character.description"
@@ -143,7 +143,7 @@ export interface StoryDialogData {
                   </section>
                 }
                 @if (!story().characters.length) {
-                  <p class="ms-hint">
+                  <p class="li-hint">
                     No characters yet. Without them the model plays whoever the scene needs.
                   </p>
                 }
@@ -157,7 +157,7 @@ export interface StoryDialogData {
 
         <mat-tab label="Persona">
           <div class="tab">
-            <p class="ms-hint">Who the reader is in this story. Always sent, in both modes.</p>
+            <p class="li-hint">Who the reader is in this story. Always sent, in both modes.</p>
             <mat-form-field appearance="outline">
               <mat-label>Name</mat-label>
               <input
@@ -166,7 +166,7 @@ export interface StoryDialogData {
                 (change)="setPersona({ name: value($event) })"
               />
             </mat-form-field>
-            <ms-editor-field
+            <li-editor-field
               label="Description"
               [rows]="6"
               [value]="story().persona.description"
@@ -186,7 +186,7 @@ export interface StoryDialogData {
             </mat-slide-toggle>
 
             <div class="lengths">
-              <span class="ms-hint">Reply length</span>
+              <span class="li-hint">Reply length</span>
               @for (option of lengths; track option.value) {
                 <button
                   type="button"
@@ -199,7 +199,7 @@ export interface StoryDialogData {
               }
             </div>
 
-            <p class="ms-hint">
+            <p class="li-hint">
               Both become a sentence in the style rules the model is sent. The reading settings
               under Preferences only change how answers are drawn here.
             </p>
@@ -212,7 +212,7 @@ export interface StoryDialogData {
             >
               Let the model choose the page colours from each chapter's scene
             </mat-slide-toggle>
-            <p class="ms-hint">
+            <p class="li-hint">
               Opening a chapter sends its scene, and a list of ten palettes with what each one is
               for, and asks which fits. The answer is one word; the chapter is read on that page
               from then on, and switching chapters switches pages. It is a small request of its own,
@@ -249,19 +249,19 @@ export interface StoryDialogData {
     .tab hr {
       width: 100%;
       border: 0;
-      border-top: 1px solid var(--ms-border);
+      border-top: 1px solid var(--li-border);
       margin: 0.2rem 0;
     }
 
     .preset {
       margin: 0;
       padding: 0.7rem 0.85rem;
-      border: 1px dashed var(--ms-border);
+      border: 1px dashed var(--li-border);
       border-radius: 10px;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.92rem;
       line-height: 1.6;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .cast {
@@ -272,7 +272,7 @@ export interface StoryDialogData {
 
     /* Nested inside the mode choice above it, so it is drawn a size down: the
        question it asks only exists because of the answer to that one. */
-    .casting .ms-choice {
+    .casting .li-choice {
       padding: 0.55rem 0.7rem;
     }
 
@@ -285,7 +285,7 @@ export interface StoryDialogData {
       flex-direction: column;
       gap: 0.4rem;
       padding: 0.7rem 0.8rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 12px;
     }
 
@@ -310,25 +310,25 @@ export interface StoryDialogData {
       gap: 0.4rem;
     }
 
-    .lengths .ms-hint {
+    .lengths .li-hint {
       margin-right: 0.4rem;
     }
 
     .length {
       padding: 0.25rem 0.8rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 999px;
-      background: var(--ms-surface-raised);
-      color: var(--ms-ink-soft);
+      background: var(--li-surface-raised);
+      color: var(--li-ink-soft);
       font: inherit;
       font-size: 0.82rem;
       cursor: pointer;
     }
 
     .length.on {
-      border-color: color-mix(in srgb, var(--ms-accent) 70%, var(--ms-border));
-      background: color-mix(in srgb, var(--ms-accent) 12%, transparent);
-      color: var(--ms-ink);
+      border-color: color-mix(in srgb, var(--li-accent) 70%, var(--li-border));
+      background: color-mix(in srgb, var(--li-accent) 12%, transparent);
+      color: var(--li-ink);
     }
   `,
 })

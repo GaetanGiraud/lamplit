@@ -199,12 +199,12 @@ export function assistantMessages(page: Page): Locator {
  * author's field under it is still a textarea, and is not this.
  */
 export function composer(page: Page): Locator {
-  return proseEditor(page.locator('ms-composer'));
+  return proseEditor(page.locator('li-composer'));
 }
 
 /** The editable surface of a prose editor inside `scope`: the composer's, or a message's. */
 export function proseEditor(scope: Locator): Locator {
-  return scope.locator('ms-prose-editor [contenteditable]');
+  return scope.locator('li-prose-editor [contenteditable]');
 }
 
 /**
@@ -231,7 +231,7 @@ export async function fillProse(editor: Locator, text: string): Promise<void> {
  */
 export async function expectComposerHidden(page: Page, reason: RegExp): Promise<void> {
   await expect(composer(page)).toHaveCount(0);
-  await expect(page.locator('ms-composer').getByRole('button', { name: reason })).toBeVisible();
+  await expect(page.locator('li-composer').getByRole('button', { name: reason })).toBeVisible();
 }
 
 export async function send(page: Page, text: string): Promise<void> {
@@ -278,7 +278,7 @@ export async function openChapter(page: Page, scene: string): Promise<void> {
 
 /** The panel beside the page: the scene, the narrator, the persona and the cast. */
 export function chapterPanel(page: Page): Locator {
-  return page.locator('ms-chapter-panel');
+  return page.locator('li-chapter-panel');
 }
 
 /** One of the panel's sections, by the name it is marked with. */

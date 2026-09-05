@@ -25,13 +25,13 @@ export interface SceneDialogData {
  * fight. So: one large field, and the only validation is that it is not empty.
  */
 @Component({
-  selector: 'ms-scene-dialog',
+  selector: 'li-scene-dialog',
   imports: [MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule, TextValue],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">Chapter {{ chapter().number }} — the scene</h2>
+    <h2 mat-dialog-title class="li-dialog-title">Chapter {{ chapter().number }} — the scene</h2>
 
     <mat-dialog-content>
-      <p class="ms-hint lead">
+      <p class="li-hint lead">
         Where are we, when, who is on stage, what is happening as the lights come up. A word or
         three pages, whatever the chapter needs — it goes to the model exactly as written.
       </p>
@@ -40,7 +40,7 @@ export interface SceneDialogData {
         class="scene"
         cdkFocusInitial
         style="--rows-min: 8; --rows-max: 22"
-        [msText]="scene()"
+        [liText]="scene()"
         (input)="scene.set(text($event))"
         placeholder="A lighthouse gallery. Dusk, the first night of autumn. Mara is alone, and the lamp is already lit."
       ></textarea>
@@ -58,7 +58,7 @@ export interface SceneDialogData {
     </mat-dialog-content>
 
     <mat-dialog-actions>
-      <span class="cost ms-hint">
+      <span class="cost li-hint">
         {{ words() }} words · {{ cost() }} tokens every request
         @if (pageCost()) {
           · {{ pageCost() }}
@@ -84,7 +84,7 @@ export interface SceneDialogData {
 
     /* Prose, written at reading size, because that is what it is. */
     .scene {
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1.02rem;
       line-height: 1.65;
     }

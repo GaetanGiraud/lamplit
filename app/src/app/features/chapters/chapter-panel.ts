@@ -36,7 +36,7 @@ const PANEL_PUSH_WIDTH = 1100;
  * sampling parameters are not chapter fields and stay behind their own sheets.
  */
 @Component({
-  selector: 'ms-chapter-panel',
+  selector: 'li-chapter-panel',
   imports: [MatTooltipModule, CharacterSwatch, EditorField, TextValue],
   template: `
     @if (open()) {
@@ -74,7 +74,7 @@ const PANEL_PUSH_WIDTH = 1100;
             </button>
             @if (isOpen('scene')) {
               <div class="body">
-                <ms-editor-field
+                <li-editor-field
                   serif
                   ariaLabel="The scene"
                   [rows]="6"
@@ -106,7 +106,7 @@ const PANEL_PUSH_WIDTH = 1100;
                 <div class="body">
                   <!-- The default sits in the box it would be edited in, greyed
                        until it is written over. Typing is what adopts it. -->
-                  <ms-editor-field
+                  <li-editor-field
                     ariaLabel="Narrator instructions"
                     [rows]="7"
                     [value]="narratorText()"
@@ -114,7 +114,7 @@ const PANEL_PUSH_WIDTH = 1100;
                     (save)="setNarrator($event)"
                   />
                   @if (story().narrator.useDefault) {
-                    <p class="ms-hint">
+                    <p class="li-hint">
                       The instructions Lamplit ships with. Write into them and they become yours.
                     </p>
                   } @else {
@@ -144,10 +144,10 @@ const PANEL_PUSH_WIDTH = 1100;
                   class="line-field"
                   aria-label="Persona name"
                   placeholder="Who you are in this story"
-                  [msText]="story().persona.name"
+                  [liText]="story().persona.name"
                   (change)="setPersona({ name: value($event) })"
                 />
-                <ms-editor-field
+                <li-editor-field
                   ariaLabel="Persona description"
                   [rows]="4"
                   [value]="story().persona.description"
@@ -179,9 +179,9 @@ const PANEL_PUSH_WIDTH = 1100;
                       class="cast-row"
                       [class.off]="!character.enabled"
                       [class.playing]="isPlaying(character.id)"
-                      [style.--ms-cast-colour]="colourOf(character)"
+                      [style.--li-cast-colour]="colourOf(character)"
                     >
-                      <ms-character-swatch
+                      <li-character-swatch
                         [character]="character"
                         (pick)="stories.setCharacterColour(character.id, $event)"
                       />
@@ -239,7 +239,7 @@ const PANEL_PUSH_WIDTH = 1100;
                       </button>
                     </div>
                   } @empty {
-                    <p class="ms-hint">
+                    <p class="li-hint">
                       No characters yet. Without them the model plays whoever the scene needs.
                     </p>
                   }
@@ -292,16 +292,16 @@ const PANEL_PUSH_WIDTH = 1100;
       height: 100%;
       padding: 0.7rem 0;
       border: 0;
-      border-left: 1px solid var(--ms-border);
-      background: color-mix(in srgb, var(--ms-surface) 55%, transparent);
-      color: var(--ms-muted);
+      border-left: 1px solid var(--li-border);
+      background: color-mix(in srgb, var(--li-surface) 55%, transparent);
+      color: var(--li-muted);
       font: inherit;
       cursor: pointer;
     }
 
     .handle:hover {
-      color: var(--ms-ink-soft);
-      background: color-mix(in srgb, var(--ms-surface) 90%, transparent);
+      color: var(--li-ink-soft);
+      background: color-mix(in srgb, var(--li-surface) 90%, transparent);
     }
 
     .edge {
@@ -322,8 +322,8 @@ const PANEL_PUSH_WIDTH = 1100;
       flex-direction: column;
       height: 100%;
       min-height: 0;
-      border-left: 1px solid var(--ms-border);
-      background: var(--ms-surface);
+      border-left: 1px solid var(--li-border);
+      background: var(--li-surface);
     }
 
     /* Over the page rather than beside it, with the scrim between: at this
@@ -344,7 +344,7 @@ const PANEL_PUSH_WIDTH = 1100;
       align-items: center;
       gap: 0.5rem;
       padding: 0.5rem 0.4rem 0.5rem 0.85rem;
-      border-bottom: 1px solid var(--ms-border);
+      border-bottom: 1px solid var(--li-border);
     }
 
     .what {
@@ -353,9 +353,9 @@ const PANEL_PUSH_WIDTH = 1100;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.95rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .scroll {
@@ -366,7 +366,7 @@ const PANEL_PUSH_WIDTH = 1100;
     }
 
     .block {
-      border-bottom: 1px solid color-mix(in srgb, var(--ms-border) 70%, transparent);
+      border-bottom: 1px solid color-mix(in srgb, var(--li-border) 70%, transparent);
     }
 
     .head {
@@ -377,7 +377,7 @@ const PANEL_PUSH_WIDTH = 1100;
       padding: 0.6rem 0.85rem;
       border: 0;
       background: none;
-      color: var(--ms-ink);
+      color: var(--li-ink);
       font: inherit;
       font-size: 0.82rem;
       text-align: left;
@@ -385,12 +385,12 @@ const PANEL_PUSH_WIDTH = 1100;
     }
 
     .head:hover {
-      background: color-mix(in srgb, var(--ms-accent) 7%, transparent);
+      background: color-mix(in srgb, var(--li-accent) 7%, transparent);
     }
 
     .mark {
       flex: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font-size: 0.7rem;
     }
 
@@ -407,7 +407,7 @@ const PANEL_PUSH_WIDTH = 1100;
       white-space: nowrap;
       text-overflow: ellipsis;
       text-align: right;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font-size: 0.74rem;
     }
 
@@ -421,17 +421,17 @@ const PANEL_PUSH_WIDTH = 1100;
     .line-field {
       width: 100%;
       padding: 0.45rem 0.6rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 8px;
-      background: var(--ms-surface-raised);
-      color: var(--ms-ink);
+      background: var(--li-surface-raised);
+      color: var(--li-ink);
       font: inherit;
       font-size: 0.9rem;
     }
 
     .line-field:focus {
       outline: none;
-      border-color: color-mix(in srgb, var(--ms-accent) 65%, var(--ms-border));
+      border-color: color-mix(in srgb, var(--li-accent) 65%, var(--li-border));
     }
 
     .link,
@@ -440,7 +440,7 @@ const PANEL_PUSH_WIDTH = 1100;
       padding: 0;
       border: 0;
       background: none;
-      color: var(--ms-accent);
+      color: var(--li-accent);
       font: inherit;
       font-size: 0.78rem;
       cursor: pointer;
@@ -465,8 +465,8 @@ const PANEL_PUSH_WIDTH = 1100;
     }
 
     .cast-row:hover {
-      border-color: var(--ms-border);
-      background: var(--ms-surface-raised);
+      border-color: var(--li-border);
+      background: var(--li-surface-raised);
     }
 
     /* In the cast but out of the scene. Still listed, because it is a door
@@ -478,16 +478,16 @@ const PANEL_PUSH_WIDTH = 1100;
     /* Who the model is being, when it is being one of them — in their own
        colour, so the row and the dot on it are saying the same thing. */
     .cast-row.playing {
-      border-color: color-mix(in srgb, var(--ms-cast-colour) 45%, var(--ms-border));
-      background: color-mix(in srgb, var(--ms-cast-colour) 14%, transparent);
+      border-color: color-mix(in srgb, var(--li-cast-colour) 45%, var(--li-border));
+      background: color-mix(in srgb, var(--li-cast-colour) 14%, transparent);
     }
 
     .tag {
       margin-left: 0.35rem;
       padding: 0 0.3rem;
       border-radius: 999px;
-      background: color-mix(in srgb, var(--ms-cast-colour) 24%, transparent);
-      color: var(--ms-cast-colour);
+      background: color-mix(in srgb, var(--li-cast-colour) 24%, transparent);
+      color: var(--li-cast-colour);
       font-size: 0.6rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -500,15 +500,15 @@ const PANEL_PUSH_WIDTH = 1100;
       width: 1.55rem;
       height: 0.85rem;
       padding: 0;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 999px;
-      background: var(--ms-surface);
+      background: var(--li-surface);
       cursor: pointer;
     }
 
     .in-scene[aria-checked='true'] {
-      border-color: color-mix(in srgb, var(--ms-accent) 55%, var(--ms-border));
-      background: color-mix(in srgb, var(--ms-accent) 30%, transparent);
+      border-color: color-mix(in srgb, var(--li-accent) 55%, var(--li-border));
+      background: color-mix(in srgb, var(--li-accent) 30%, transparent);
     }
 
     .knob {
@@ -517,13 +517,13 @@ const PANEL_PUSH_WIDTH = 1100;
       height: 0.5rem;
       margin-left: 0.1rem;
       border-radius: 50%;
-      background: var(--ms-muted);
+      background: var(--li-muted);
       transition: transform 120ms ease;
     }
 
     .in-scene[aria-checked='true'] .knob {
       transform: translateX(0.62rem);
-      background: var(--ms-accent);
+      background: var(--li-accent);
     }
 
     .who {
@@ -547,7 +547,7 @@ const PANEL_PUSH_WIDTH = 1100;
       white-space: nowrap;
       text-overflow: ellipsis;
       font-size: 0.85rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .cast-line {
@@ -555,7 +555,7 @@ const PANEL_PUSH_WIDTH = 1100;
       white-space: nowrap;
       text-overflow: ellipsis;
       font-size: 0.74rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .icon {
@@ -565,7 +565,7 @@ const PANEL_PUSH_WIDTH = 1100;
       border: 0;
       border-radius: 50%;
       background: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font: inherit;
       font-size: 0.9rem;
       line-height: 1;
@@ -573,8 +573,8 @@ const PANEL_PUSH_WIDTH = 1100;
     }
 
     .icon:hover {
-      color: var(--ms-ink);
-      background: color-mix(in srgb, var(--ms-accent) 14%, transparent);
+      color: var(--li-ink);
+      background: color-mix(in srgb, var(--li-accent) 14%, transparent);
     }
   `,
   host: {

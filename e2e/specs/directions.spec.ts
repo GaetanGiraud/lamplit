@@ -25,11 +25,11 @@ function directions(page: Page): Locator {
 }
 
 function authorToggle(page: Page): Locator {
-  return page.locator('ms-composer button.author');
+  return page.locator('li-composer button.author');
 }
 
 function authorField(page: Page): Locator {
-  return page.locator('ms-composer .direction textarea');
+  return page.locator('li-composer .direction textarea');
 }
 
 /** The user messages of the last request, which is where a direction shows up. */

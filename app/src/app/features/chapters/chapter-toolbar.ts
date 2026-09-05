@@ -9,7 +9,7 @@ import { chapterTitle } from '../../core/prompt-builder';
  * just above the composer, small enough to ignore until they are wanted.
  */
 @Component({
-  selector: 'ms-chapter-toolbar',
+  selector: 'li-chapter-toolbar',
   imports: [MatTooltipModule],
   template: `
     <div class="row">
@@ -18,7 +18,7 @@ import { chapterTitle } from '../../core/prompt-builder';
       <!-- Closed chapters are continued from the dock, which says so already. -->
       @if (!chapters.isClosed()) {
         <button
-          class="ms-pill"
+          class="li-pill"
           type="button"
           [disabled]="chapters.isEmpty() || chapters.isStreaming()"
           matTooltip="Summarise it into the story so far, keep it, and open the next one"
@@ -28,14 +28,14 @@ import { chapterTitle } from '../../core/prompt-builder';
         </button>
       }
 
-      <button class="ms-pill" type="button" (click)="dialogs.openScene(chapters.chapter().id)">
+      <button class="li-pill" type="button" (click)="dialogs.openScene(chapters.chapter().id)">
         Edit scene
       </button>
     </div>
   `,
   styles: `
     .row {
-      width: min(var(--ms-measure), calc(100% - 2.5rem));
+      width: min(var(--li-measure), calc(100% - 2.5rem));
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -49,23 +49,23 @@ import { chapterTitle } from '../../core/prompt-builder';
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.8rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
-    button.ms-pill {
+    button.li-pill {
       flex: none;
       cursor: pointer;
       font-family: inherit;
     }
 
-    button.ms-pill:hover:not(:disabled) {
-      color: var(--ms-ink-soft);
-      border-color: color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
+    button.li-pill:hover:not(:disabled) {
+      color: var(--li-ink-soft);
+      border-color: color-mix(in srgb, var(--li-accent) 45%, var(--li-border));
     }
 
-    button.ms-pill:disabled {
+    button.li-pill:disabled {
       opacity: 0.45;
       cursor: default;
     }

@@ -12,7 +12,7 @@ import { composer, fillProse, send, waitForTurn } from './helpers';
 
 /** The one scrollport. Everything in the chapter is inside it. */
 function scroller(page: Page) {
-  return page.locator('ms-chapters-page .page');
+  return page.locator('li-chapters-page .page');
 }
 
 function metrics(page: Page): Promise<{ height: number; scrollHeight: number; top: number }> {
@@ -25,7 +25,7 @@ function metrics(page: Page): Promise<{ height: number; scrollHeight: number; to
 
 /** Whether the box is in the scrollport at all, not merely in the document. */
 async function composerOnScreen(page: Page): Promise<boolean> {
-  const box = page.locator('ms-composer .box');
+  const box = page.locator('li-composer .box');
   if (!(await box.count())) return false;
   return box.evaluate((el) => {
     const port = el.closest('.page')!.getBoundingClientRect();
@@ -152,7 +152,7 @@ test('at 390px the chapter is text until the end of it', async ({ page, app }) =
 
   expect(await composerOnScreen(page)).toBe(false);
   // And nothing else is holding the foot of the screen either.
-  const toolbar = await page.locator('ms-chapter-toolbar').evaluate((el) => {
+  const toolbar = await page.locator('li-chapter-toolbar').evaluate((el) => {
     const port = el.closest('.page')!.getBoundingClientRect();
     const own = el.getBoundingClientRect();
     return own.bottom > port.top && own.top < port.bottom;

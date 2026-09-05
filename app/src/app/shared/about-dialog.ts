@@ -13,10 +13,10 @@ import { DialogsService } from './dialogs.service';
  * that number.
  */
 @Component({
-  selector: 'ms-about-dialog',
+  selector: 'li-about-dialog',
   imports: [MatButtonModule, MatDialogModule],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">Lamplit</h2>
+    <h2 mat-dialog-title class="li-dialog-title">Lamplit</h2>
     <mat-dialog-content>
       <p class="version">{{ version() }}</p>
       <p class="build">{{ build() }}</p>
@@ -54,15 +54,15 @@ import { DialogsService } from './dialogs.service';
     }
 
     .version {
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1.35rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .build {
       margin-top: 0.15rem;
       font-size: 0.82rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       /* A SHA and a run number are read character by character. */
       font-variant-numeric: tabular-nums;
     }
@@ -75,15 +75,15 @@ import { DialogsService } from './dialogs.service';
       font-size: 0.72rem;
       letter-spacing: 0.02em;
       text-transform: uppercase;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .path {
-      font-family: var(--ms-mono);
+      font-family: var(--li-mono);
       font-size: 0.78rem;
       letter-spacing: 0;
       text-transform: none;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
       /* A Windows profile path is long and has nowhere natural to break. */
       overflow-wrap: anywhere;
     }
@@ -92,7 +92,7 @@ import { DialogsService } from './dialogs.service';
       margin-top: 1.1rem;
       font-size: 0.9rem;
       line-height: 1.6;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .links {
@@ -103,7 +103,7 @@ import { DialogsService } from './dialogs.service';
     }
 
     .links span {
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .as-link {
@@ -111,7 +111,7 @@ import { DialogsService } from './dialogs.service';
       border: 0;
       background: none;
       font: inherit;
-      color: var(--ms-accent);
+      color: var(--li-accent);
       cursor: pointer;
       text-decoration: underline;
     }

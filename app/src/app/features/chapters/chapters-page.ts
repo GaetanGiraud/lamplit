@@ -37,7 +37,7 @@ const PINNED_SLACK = 96;
  * is one scrollport and it holds all three.
  */
 @Component({
-  selector: 'ms-chapters-page',
+  selector: 'li-chapters-page',
   imports: [MatButtonModule, MatTooltipModule, ChapterToolbar, Composer, MessageList],
   template: `
     <section #scroller class="page" (scroll)="onScroll()">
@@ -65,18 +65,18 @@ const PINNED_SLACK = 96;
               } @else {
                 <h1>{{ title() }}</h1>
                 <p class="scene">{{ chapters.chapter().scene }}</p>
-                <p class="ms-hint">
+                <p class="li-hint">
                   Write the first line below. Answering with {{ settings.connection().model }}.
                 </p>
               }
             </div>
           </div>
         } @else {
-          <ms-message-list />
+          <li-message-list />
         }
 
-        <ms-chapter-toolbar />
-        <ms-composer (startedTyping)="jumpToLatest()" />
+        <li-chapter-toolbar />
+        <li-composer (startedTyping)="jumpToLatest()" />
 
         <!-- Room under the composer, so the last line of the story can be read
              with the box below it rather than against the bottom edge, and so
@@ -132,7 +132,7 @@ const PINNED_SLACK = 96;
       min-height: 100%;
     }
 
-    ms-message-list,
+    li-message-list,
     .welcome {
       flex: 1;
     }
@@ -154,7 +154,7 @@ const PINNED_SLACK = 96;
     .jump-dock {
       position: sticky;
       bottom: 1rem;
-      width: var(--ms-column);
+      width: var(--li-column);
       height: 0;
       margin: 0 auto;
       pointer-events: none;
@@ -172,21 +172,21 @@ const PINNED_SLACK = 96;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: var(--ms-rail);
-      height: var(--ms-rail);
+      width: var(--li-rail);
+      height: var(--li-rail);
       padding: 0;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 50%;
-      background: var(--ms-surface-raised);
-      color: var(--ms-ink-soft);
+      background: var(--li-surface-raised);
+      color: var(--li-ink-soft);
       cursor: pointer;
       box-shadow: 0 6px 18px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 40%));
     }
 
     .jump:hover,
     .jump:focus-visible {
-      color: var(--ms-ink);
-      border-color: color-mix(in srgb, var(--ms-accent) 55%, var(--ms-border));
+      color: var(--li-ink);
+      border-color: color-mix(in srgb, var(--li-accent) 55%, var(--li-border));
     }
 
     .jump svg {
@@ -203,7 +203,7 @@ const PINNED_SLACK = 96;
     @media (min-width: 42rem) {
       .jump {
         right: auto;
-        left: calc(100% + var(--ms-margin-gap));
+        left: calc(100% + var(--li-margin-gap));
       }
     }
 
@@ -213,18 +213,18 @@ const PINNED_SLACK = 96;
     }
 
     h1 {
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-weight: 500;
       font-size: 1.9rem;
       margin: 0 0 0.6rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     p {
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1.02rem;
       line-height: 1.6;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
       margin: 0 0 1rem;
     }
 
@@ -233,12 +233,12 @@ const PINNED_SLACK = 96;
       white-space: pre-wrap;
       text-align: left;
       padding: 0.9rem 1.1rem;
-      border-left: 2px solid color-mix(in srgb, var(--ms-accent) 55%, transparent);
-      background: color-mix(in srgb, var(--ms-surface) 70%, transparent);
+      border-left: 2px solid color-mix(in srgb, var(--li-accent) 55%, transparent);
+      background: color-mix(in srgb, var(--li-surface) 70%, transparent);
     }
 
-    p.ms-hint {
-      font-family: var(--ms-sans);
+    p.li-hint {
+      font-family: var(--li-sans);
       font-size: 0.78rem;
     }
   `,

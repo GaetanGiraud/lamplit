@@ -15,7 +15,7 @@ import { SettingsStore } from '../store/settings-store';
  * nothing, which is right: there is no upgrade to report.
  */
 @Component({
-  selector: 'ms-upgrade-notice',
+  selector: 'li-upgrade-notice',
   imports: [MatButtonModule],
   template: `
     @if (from()) {
@@ -42,10 +42,10 @@ import { SettingsStore } from '../store/settings-store';
       align-items: center;
       gap: 0.75rem;
       padding: 0.35rem 0.5rem 0.35rem 1.1rem;
-      border-bottom: 1px solid var(--ms-border);
-      background: color-mix(in srgb, var(--ms-accent) 12%, var(--ms-surface));
+      border-bottom: 1px solid var(--li-border);
+      background: color-mix(in srgb, var(--li-accent) 12%, var(--li-surface));
       font-size: 0.86rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .what {
@@ -57,7 +57,7 @@ import { SettingsStore } from '../store/settings-store';
 
     .notes {
       flex: none;
-      color: var(--ms-accent);
+      color: var(--li-accent);
     }
 
     /* The dismiss sits at the far end, where a strip's dismiss is looked for. */
@@ -66,7 +66,7 @@ import { SettingsStore } from '../store/settings-store';
       margin-left: auto;
       font-size: 1.1rem;
       line-height: 1;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
   `,
 })

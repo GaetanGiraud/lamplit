@@ -72,7 +72,7 @@ test.describe('a newer version', () => {
     await fakeUpdates(page, NOTHING_NEWER);
     await app.visit();
 
-    await expect(page.locator('ms-top-bar')).toContainText('Chapters');
+    await expect(page.locator('li-top-bar')).toContainText('Chapters');
     await expect(pill(page)).toHaveCount(0);
   });
 
@@ -98,7 +98,7 @@ test.describe('a newer version', () => {
     // The whole point: after a reload nothing asks, so the server never asks
     // GitHub either.
     await page.reload();
-    await expect(page.locator('ms-top-bar')).toContainText('Chapters');
+    await expect(page.locator('li-top-bar')).toContainText('Chapters');
     await expect(pill(page)).toHaveCount(0);
     expect(asked.length).toBe(1);
   });
@@ -110,7 +110,7 @@ test.describe('a newer version', () => {
     // The app is the app: no pill, no error, and a chapter that can be written.
     await expect(pill(page)).toHaveCount(0);
     await expect(composer(page)).toBeVisible();
-    await expect(page.locator('ms-top-bar')).toContainText('The Lighthouse');
+    await expect(page.locator('li-top-bar')).toContainText('The Lighthouse');
   });
 });
 
@@ -122,7 +122,7 @@ test.describe('the release notes', () => {
   test('are in About, with nothing pending', async ({ page, app }) => {
     await fakeUpdates(page, NOTHING_NEWER);
     await app.visit();
-    await expect(page.locator('ms-top-bar')).toContainText('Chapters');
+    await expect(page.locator('li-top-bar')).toContainText('Chapters');
 
     await page.getByRole('button', { name: 'More actions' }).click();
     await page.getByRole('menuitem', { name: /^About Lamplit/ }).click();
@@ -137,7 +137,7 @@ test.describe('the release notes', () => {
   test('say why they are missing rather than showing an empty sheet', async ({ page, app }) => {
     await fakeUpdates(page, { ...NEWER, enabled: false, checked: false, newer: [], releases: [] });
     await app.visit();
-    await expect(page.locator('ms-top-bar')).toContainText('Chapters');
+    await expect(page.locator('li-top-bar')).toContainText('Chapters');
 
     await page.getByRole('button', { name: 'More actions' }).click();
     await page.getByRole('menuitem', { name: /^About Lamplit/ }).click();

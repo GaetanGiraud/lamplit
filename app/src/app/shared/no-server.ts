@@ -11,7 +11,7 @@ import { Persistence } from '../store/persistence';
  * loses the next hour's work.
  */
 @Component({
-  selector: 'ms-no-server',
+  selector: 'li-no-server',
   imports: [MatButtonModule],
   template: `
     <div class="panel">
@@ -47,29 +47,29 @@ import { Persistence } from '../store/persistence';
     }
 
     h1 {
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1.5rem;
       font-weight: 500;
       margin: 0 0 1rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     p {
-      color: var(--ms-muted);
+      color: var(--li-muted);
       line-height: 1.6;
       margin: 0 0 0.9rem;
     }
 
     code {
-      font-family: var(--ms-mono);
+      font-family: var(--li-mono);
       font-size: 0.85em;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .reason {
-      font-family: var(--ms-mono);
+      font-family: var(--li-mono);
       font-size: 0.78rem;
-      color: var(--ms-danger);
+      color: var(--li-danger);
       margin-bottom: 1.4rem;
     }
 

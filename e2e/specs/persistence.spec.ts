@@ -17,7 +17,7 @@ test.describe('persistence', () => {
     // What was seeded is what the app opened; nothing was invented alongside it.
     expect(await server.ids('stories')).toEqual([STORY_ID]);
     expect(await server.ids('chapters')).toEqual([CHAPTER_ID]);
-    await expect(page.locator('ms-top-bar')).toContainText('The Lighthouse');
+    await expect(page.locator('li-top-bar')).toContainText('The Lighthouse');
 
     await send(page, 'Two lines, please.');
     await waitForTurn(page);
@@ -73,7 +73,7 @@ test.describe('persistence', () => {
     const other = await fresh.newPage();
     await other.goto(server.url);
 
-    await expect(other.locator('ms-top-bar')).toContainText('The Lighthouse');
+    await expect(other.locator('li-top-bar')).toContainText('The Lighthouse');
     await expect(other.locator('article[data-role]')).toHaveCount(2);
     await expect(other.locator('article[data-role="user"]')).toContainText('Two lines, please.');
     await fresh.close();
@@ -125,7 +125,7 @@ test.describe('persistence', () => {
       .toBe('The Lantern Room');
 
     await page.reload();
-    await expect(page.locator('ms-top-bar')).toContainText('The Lantern Room');
+    await expect(page.locator('li-top-bar')).toContainText('The Lantern Room');
     await second.close();
   });
 
@@ -153,7 +153,7 @@ test.describe('persistence', () => {
     await expect(page.getByRole('heading', { name: /cannot reach its server/ })).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.locator('ms-top-bar')).toHaveCount(0);
+    await expect(page.locator('li-top-bar')).toHaveCount(0);
     expect(await server.ids('stories')).toEqual([STORY_ID]);
   });
 });

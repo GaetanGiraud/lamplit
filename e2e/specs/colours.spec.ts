@@ -16,7 +16,7 @@ const CAST = [
 ];
 
 function dots(page: Page): Locator {
-  return page.locator('ms-character-swatch .dot');
+  return page.locator('li-character-swatch .dot');
 }
 
 /**

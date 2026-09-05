@@ -14,7 +14,7 @@ import { EditorField, countWords } from './editor-field';
   imports: [EditorField],
   template: `
     @if (shown()) {
-      <ms-editor-field [value]="stored()" [readOnly]="readOnly()" (save)="saved.push($event)" />
+      <li-editor-field [value]="stored()" [readOnly]="readOnly()" (save)="saved.push($event)" />
     }
   `,
 })

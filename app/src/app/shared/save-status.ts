@@ -13,7 +13,7 @@ import { Persistence } from '../store/persistence';
  * in the tooltip: everything else is saved, and this one needs a decision.
  */
 @Component({
-  selector: 'ms-save-status',
+  selector: 'li-save-status',
   imports: [MatTooltipModule],
   template: `
     @if (visible()) {
@@ -43,27 +43,27 @@ import { Persistence } from '../store/persistence';
       background: none;
       font: inherit;
       font-size: 0.78rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       cursor: default;
     }
 
     .status.offline {
-      color: var(--ms-accent);
+      color: var(--li-accent);
       cursor: pointer;
     }
 
     .status.offline:hover {
-      background: color-mix(in srgb, var(--ms-accent) 12%, transparent);
+      background: color-mix(in srgb, var(--li-accent) 12%, transparent);
     }
 
     /* A refusal will not clear itself the way a missing server might. */
     .status.refused {
-      color: var(--ms-danger);
+      color: var(--li-danger);
       cursor: pointer;
     }
 
     .status.refused:hover {
-      background: color-mix(in srgb, var(--ms-danger) 12%, transparent);
+      background: color-mix(in srgb, var(--li-danger) 12%, transparent);
     }
 
     .dot {

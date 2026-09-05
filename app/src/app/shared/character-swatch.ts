@@ -20,7 +20,7 @@ import { SettingsStore } from '../store/settings-store';
  * a decision rather than the default path.
  */
 @Component({
-  selector: 'ms-character-swatch',
+  selector: 'li-character-swatch',
   imports: [MatMenuModule, MatTooltipModule],
   template: `
     <button
@@ -89,13 +89,13 @@ import { SettingsStore } from '../store/settings-store';
        as a gap rather than as an eleventh colour. */
     .choice.on {
       box-shadow:
-        0 0 0 2px var(--ms-surface),
-        0 0 0 4px var(--ms-ink-soft);
+        0 0 0 2px var(--li-surface),
+        0 0 0 4px var(--li-ink-soft);
     }
 
     .choice:hover,
     .choice:focus-visible {
-      border-color: var(--ms-ink-soft);
+      border-color: var(--li-ink-soft);
     }
   `,
 })

@@ -27,14 +27,14 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
  * start-up check is set to: opening it *is* the reader asking.
  */
 @Component({
-  selector: 'ms-whats-new-dialog',
+  selector: 'li-whats-new-dialog',
   imports: [MatButtonModule, MatDialogModule, MatProgressSpinnerModule],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">{{ heading() }}</h2>
+    <h2 mat-dialog-title class="li-dialog-title">{{ heading() }}</h2>
 
     <mat-dialog-content>
       @if (releases().length) {
-        <p class="ms-hint running">You are running {{ running() }}.</p>
+        <p class="li-hint running">You are running {{ running() }}.</p>
 
         @for (release of releases(); track release.tag) {
           <article class="release">
@@ -47,7 +47,7 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
             @if (notes(release); as html) {
               <div class="notes" [innerHTML]="html"></div>
             } @else {
-              <p class="ms-hint empty">This release was published without notes.</p>
+              <p class="li-hint empty">This release was published without notes.</p>
             }
             <a class="source" [href]="release.url" target="_blank" rel="noreferrer noopener">
               On GitHub
@@ -74,7 +74,7 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
           Asking GitHub which versions there are…
         </p>
       } @else {
-        <p class="ms-hint">{{ nothing() }}</p>
+        <p class="li-hint">{{ nothing() }}</p>
         <p class="links">
           <a [href]="releasesPage" target="_blank" rel="noreferrer noopener">
             The releases, on GitHub
@@ -99,9 +99,9 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
     .release {
       margin: 0 0 0.9rem;
       padding: 0.75rem 0.9rem 0.85rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 12px;
-      background: var(--ms-surface-raised);
+      background: var(--li-surface-raised);
     }
 
     header {
@@ -113,15 +113,15 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
     }
 
     .version {
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1.1rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .when {
       flex: none;
       font-size: 0.75rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font-variant-numeric: tabular-nums;
     }
 
@@ -129,7 +129,7 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
     .notes {
       font-size: 0.9rem;
       line-height: 1.6;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
       overflow-wrap: break-word;
     }
 
@@ -142,11 +142,11 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
     }
 
     .notes strong {
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .notes a {
-      color: var(--ms-accent);
+      color: var(--li-accent);
     }
 
     .notes ul,
@@ -156,9 +156,9 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
     }
 
     .notes code {
-      font-family: var(--ms-mono);
+      font-family: var(--li-mono);
       font-size: 0.85em;
-      background: color-mix(in srgb, var(--ms-ink) 8%, transparent);
+      background: color-mix(in srgb, var(--li-ink) 8%, transparent);
       padding: 0.12em 0.35em;
       border-radius: 5px;
     }
@@ -167,7 +167,7 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
       display: inline-block;
       margin-top: 0.6rem;
       font-size: 0.78rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .empty {
@@ -177,24 +177,24 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
     .how {
       margin-top: 1.2rem;
       padding: 0.75rem 0.9rem 0.85rem;
-      border: 1px solid color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
+      border: 1px solid color-mix(in srgb, var(--li-accent) 45%, var(--li-border));
       border-radius: 12px;
-      background: color-mix(in srgb, var(--ms-accent) 7%, transparent);
+      background: color-mix(in srgb, var(--li-accent) 7%, transparent);
     }
 
     h3 {
       margin: 0 0 0.3rem;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1rem;
       font-weight: 600;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .how p {
       margin: 0;
       font-size: 0.86rem;
       line-height: 1.55;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .links {
@@ -205,11 +205,11 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
     }
 
     .links a {
-      color: var(--ms-accent);
+      color: var(--li-accent);
     }
 
     .links span {
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .waiting {
@@ -218,7 +218,7 @@ const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
       gap: 0.6rem;
       margin: 0;
       font-size: 0.88rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
   `,
 })

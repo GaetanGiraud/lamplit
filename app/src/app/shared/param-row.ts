@@ -8,7 +8,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
  * the same as sending its default.
  */
 @Component({
-  selector: 'ms-param-row',
+  selector: 'li-param-row',
   imports: [MatSliderModule, MatSlideToggleModule],
   template: `
     <div class="row" [class.off]="!active()">
@@ -41,7 +41,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
       </div>
 
       @if (hint()) {
-        <p class="ms-hint">{{ hint() }}</p>
+        <p class="li-hint">{{ hint() }}</p>
       }
     </div>
   `,
@@ -59,7 +59,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
     .label {
       font-size: 0.85rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .controls {
@@ -77,24 +77,24 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
     .exact {
       width: 5.5rem;
       padding: 0.35rem 0.5rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 8px;
-      background: var(--ms-surface-raised);
-      color: var(--ms-ink);
+      background: var(--li-surface-raised);
+      color: var(--li-ink);
       font: inherit;
       font-size: 0.82rem;
       text-align: right;
     }
 
     .exact:disabled {
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .row.off .label {
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
-    p.ms-hint {
+    p.li-hint {
       margin: 0.1rem 0 0;
     }
   `,

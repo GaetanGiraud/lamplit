@@ -175,7 +175,7 @@ test('cancelling a rename changes nothing, in either place', async ({ page, serv
   await page.getByRole('menuitem', { name: 'Rename…' }).click();
   await page.getByRole('textbox', { name: 'Title' }).fill('Something else');
   await page.getByRole('button', { name: 'Cancel' }).click();
-  await expect(page.locator('ms-top-bar')).toContainText('The Lighthouse');
+  await expect(page.locator('li-top-bar')).toContainText('The Lighthouse');
 
   // And nothing reached the file either way.
   const story = await server.document('stories', STORY_ID);

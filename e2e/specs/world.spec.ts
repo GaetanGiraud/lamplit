@@ -59,7 +59,7 @@ test('closing the modal saves what was typed into it', async ({ page, app }) => 
 
   await page.getByRole('button', { name: 'World', exact: true }).click();
   const world = page.getByRole('dialog');
-  await world.locator('ms-editor-field textarea').fill('Mara has just arrived on the island.');
+  await world.locator('li-editor-field textarea').fill('Mara has just arrived on the island.');
   // Escape closes and saves: there is no discard anywhere in the app.
   await page.keyboard.press('Escape');
   await expect(world).toBeHidden();
@@ -81,7 +81,7 @@ test('an entry with nothing written in it says so', async ({ page, app }) => {
   await expect(card).toHaveClass(/unwritten/);
   await expect(card).toContainText('nothing to say yet');
 
-  const text = card.locator('ms-editor-field textarea');
+  const text = card.locator('li-editor-field textarea');
   await text.fill('The lighthouse keeper, missing since spring.');
   await text.blur();
   await expect(card).not.toHaveClass(/unwritten/);
@@ -114,15 +114,15 @@ test('entries collapse to one line, and open one at a time', async ({ page, app 
   // A world can hold dozens: they start closed, each one a single row.
   const cards = world.locator('.entry');
   await expect(cards).toHaveCount(2);
-  await expect(world.locator('ms-editor-field')).toHaveCount(0);
+  await expect(world.locator('li-editor-field')).toHaveCount(0);
   await expect(world.locator('.entry', { hasText: 'Old Tomas' })).toContainText('tomas, keeper');
 
   await world.locator('.disclose', { hasText: 'Old Tomas' }).click();
-  await expect(world.locator('ms-editor-field')).toHaveCount(1);
+  await expect(world.locator('li-editor-field')).toHaveCount(1);
   await expect(world.locator('.entry.open')).toContainText('What is true');
 
   await world.locator('.disclose', { hasText: 'Old Tomas' }).click();
-  await expect(world.locator('ms-editor-field')).toHaveCount(0);
+  await expect(world.locator('li-editor-field')).toHaveCount(0);
 });
 
 test('switching to role-play changes the system prompt', async ({ page, app }) => {

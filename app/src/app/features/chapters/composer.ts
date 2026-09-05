@@ -28,13 +28,13 @@ import { TextValue } from '../../shared/text-value';
  * Which is why it also listens for a key pressed with nothing focused: a writer
  * who finished reading half a page up should not have to go and find the box.
  *
- * The prose is written in a `ms-prose-editor`, which shows speech and actions
+ * The prose is written in a `li-prose-editor`, which shows speech and actions
  * as the page will and hands back markdown; `draft` holds that markdown and is
  * what everything else here reads. The author's direction stays a plain field:
  * it is an instruction, and formatting means nothing to it.
  */
 @Component({
-  selector: 'ms-composer',
+  selector: 'li-composer',
   imports: [MatButtonModule, MatTooltipModule, ProseEditor, TextValue],
   host: {
     '(document:keydown)': 'onDocumentKey($event)',
@@ -51,7 +51,7 @@ import { TextValue } from '../../shared/text-value';
             </button>
           } @else {
             <div class="box">
-              <ms-prose-editor
+              <li-prose-editor
                 #input
                 class="prose"
                 style="--rows-min: 3; --rows-max: 14"
@@ -74,7 +74,7 @@ import { TextValue } from '../../shared/text-value';
                     style="--rows-min: 1; --rows-max: 8"
                     aria-label="A direction from the author"
                     placeholder="Where the story goes. The model follows it and never mentions it."
-                    [msText]="direction()"
+                    [liText]="direction()"
                     (input)="direction.set(text($event))"
                     (keydown)="onKey($event)"
                   ></textarea>
@@ -154,7 +154,7 @@ import { TextValue } from '../../shared/text-value';
               <div class="strip">
                 @if (settings.ui().developerMode) {
                   <button
-                    class="ms-pill"
+                    class="li-pill"
                     type="button"
                     (click)="dialogs.openPromptPreview(draft(), direction())"
                     [matTooltip]="contextTooltip"
@@ -163,7 +163,7 @@ import { TextValue } from '../../shared/text-value';
                   </button>
                 }
                 @if (prompt().dropped > 0) {
-                  <span class="ms-hint">
+                  <span class="li-hint">
                     {{ prompt().dropped }} older
                     {{ prompt().dropped === 1 ? 'message' : 'messages' }} left out
                   </span>
@@ -184,7 +184,7 @@ import { TextValue } from '../../shared/text-value';
     }
 
     .column {
-      width: min(var(--ms-measure), calc(100% - 2.5rem));
+      width: min(var(--li-measure), calc(100% - 2.5rem));
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -193,19 +193,19 @@ import { TextValue } from '../../shared/text-value';
 
     .blocked {
       align-self: center;
-      color: var(--ms-accent);
+      color: var(--li-accent);
     }
 
     .box {
       padding: 0.5rem 0.5rem 0.4rem 0.85rem;
-      border: 1px solid var(--ms-border);
-      border-radius: var(--ms-radius);
-      background: var(--ms-surface-raised);
+      border: 1px solid var(--li-border);
+      border-radius: var(--li-radius);
+      background: var(--li-surface-raised);
       transition: border-color 120ms ease;
     }
 
     .box:focus-within {
-      border-color: color-mix(in srgb, var(--ms-accent) 65%, var(--ms-border));
+      border-color: color-mix(in srgb, var(--li-accent) 65%, var(--li-border));
     }
 
     /* The page's own prose rules do the setting; the box only gives it room. */
@@ -244,16 +244,16 @@ import { TextValue } from '../../shared/text-value';
       gap: 0.5rem;
       margin-top: 0.35rem;
       padding-top: 0.4rem;
-      border-top: 1px solid color-mix(in srgb, var(--ms-border) 70%, transparent);
+      border-top: 1px solid color-mix(in srgb, var(--li-border) 70%, transparent);
     }
 
     .direction .tag {
       flex: none;
-      font-family: var(--ms-sans);
+      font-family: var(--li-sans);
       font-size: 0.7rem;
       font-variant-caps: all-small-caps;
       letter-spacing: 0.06em;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     /* Bare inside the box, which draws the frame: no border of its own, no
@@ -267,10 +267,10 @@ import { TextValue } from '../../shared/text-value';
       min-width: 0;
       border-radius: 0;
       background: none;
-      font-family: var(--ms-sans);
+      font-family: var(--li-sans);
       font-size: 0.9rem;
       font-style: italic;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     /* A quiet word, lit when what it stands for is on. */
@@ -279,8 +279,8 @@ import { TextValue } from '../../shared/text-value';
       border: 1px solid transparent;
       border-radius: 999px;
       background: none;
-      color: var(--ms-muted);
-      font-family: var(--ms-sans);
+      color: var(--li-muted);
+      font-family: var(--li-sans);
       font-size: 0.75rem;
       letter-spacing: 0.02em;
       cursor: pointer;
@@ -288,26 +288,26 @@ import { TextValue } from '../../shared/text-value';
 
     .quiet:hover,
     .quiet:focus-visible {
-      color: var(--ms-ink-soft);
-      border-color: var(--ms-border);
+      color: var(--li-ink-soft);
+      border-color: var(--li-border);
     }
 
     .quiet.on {
-      border-color: color-mix(in srgb, var(--ms-accent) 55%, var(--ms-border));
-      background: color-mix(in srgb, var(--ms-accent) 12%, transparent);
-      color: var(--ms-accent);
+      border-color: color-mix(in srgb, var(--li-accent) 55%, var(--li-border));
+      background: color-mix(in srgb, var(--li-accent) 12%, transparent);
+      color: var(--li-accent);
     }
 
     /* Each mark wears its own: the speech colour, the italic, the weight. */
     .mark {
       padding: 0.25rem 0.5rem;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.82rem;
       letter-spacing: 0;
     }
 
     .mark.speech {
-      color: color-mix(in srgb, var(--ms-speech) 65%, var(--ms-muted));
+      color: color-mix(in srgb, var(--li-speech) 65%, var(--li-muted));
     }
 
     .mark.action {
@@ -319,7 +319,7 @@ import { TextValue } from '../../shared/text-value';
     }
 
     .mark.on {
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .send,
@@ -334,13 +334,13 @@ import { TextValue } from '../../shared/text-value';
       min-height: 1.2rem;
     }
 
-    button.ms-pill {
+    button.li-pill {
       cursor: pointer;
       font-family: inherit;
     }
 
-    button.ms-pill:hover {
-      color: var(--ms-ink-soft);
+    button.li-pill:hover {
+      color: var(--li-ink-soft);
     }
   `,
 })

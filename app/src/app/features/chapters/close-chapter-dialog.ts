@@ -31,7 +31,7 @@ export interface ChapterClose {
  * discards anything.
  */
 @Component({
-  selector: 'ms-close-chapter-dialog',
+  selector: 'li-close-chapter-dialog',
   imports: [
     MatButtonModule,
     MatDialogModule,
@@ -41,10 +41,10 @@ export interface ChapterClose {
     TextValue,
   ],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">Close {{ heading() }}</h2>
+    <h2 mat-dialog-title class="li-dialog-title">Close {{ heading() }}</h2>
 
     <mat-dialog-content>
-      <p class="ms-hint">
+      <p class="li-hint">
         This is the whole story so far, rewritten to include the chapter just finished — it replaces
         what was there rather than being added to it. Confirming closes this chapter and opens the
         next one's scene; the chapter itself stays in the Chapters list, readable, and can be
@@ -57,7 +57,7 @@ export interface ChapterClose {
 
       <textarea
         style="--rows-min: 8; --rows-max: 20"
-        [msText]="summary()"
+        [liText]="summary()"
         [readonly]="busy()"
         [placeholder]="
           busy() ? 'Writing the summary…' : 'Write what this chapter should be remembered for.'
@@ -65,7 +65,7 @@ export interface ChapterClose {
         (input)="summary.set(text($event))"
       ></textarea>
 
-      <span class="foot ms-hint">
+      <span class="foot li-hint">
         @if (busy()) {
           <mat-spinner diameter="14" />
           Writing…
@@ -84,7 +84,7 @@ export interface ChapterClose {
         <header>
           <span class="name">Lore from this chapter</span>
           @if (proposing()) {
-            <span class="ms-hint reading"><mat-spinner diameter="14" /> Reading it…</span>
+            <span class="li-hint reading"><mat-spinner diameter="14" /> Reading it…</span>
           } @else {
             <button matButton (click)="propose()">
               {{ proposed() ? 'Propose again' : 'Propose lore' }}
@@ -93,7 +93,7 @@ export interface ChapterClose {
         </header>
 
         @if (loreError()) {
-          <p class="ms-hint failed">{{ loreError() }}</p>
+          <p class="li-hint failed">{{ loreError() }}</p>
         }
 
         @for (proposal of proposals(); track $index) {
@@ -125,9 +125,9 @@ export interface ChapterClose {
           </label>
         } @empty {
           @if (proposed() && !loreError()) {
-            <p class="ms-hint">Nothing in this chapter was worth an entry of its own.</p>
+            <p class="li-hint">Nothing in this chapter was worth an entry of its own.</p>
           } @else if (!proposing()) {
-            <p class="ms-hint">
+            <p class="li-hint">
               Ask the model what this chapter established — people, places, facts — and tick what is
               worth keeping. Nothing is written unless you tick it.
             </p>
@@ -135,7 +135,7 @@ export interface ChapterClose {
         }
 
         @if (loreCost()) {
-          <span class="foot ms-hint">{{ loreCost() }}</span>
+          <span class="foot li-hint">{{ loreCost() }}</span>
         }
       </section>
 
@@ -151,7 +151,7 @@ export interface ChapterClose {
           <p class="preset">{{ defaultInstruction }}</p>
           <button matButton="outlined" (click)="override()">Write my own</button>
         } @else {
-          <ms-editor-field
+          <li-editor-field
             label="Instruction"
             [rows]="5"
             [value]="story().world.summary.prompt"
@@ -159,7 +159,7 @@ export interface ChapterClose {
           />
           <button matButton (click)="restoreDefault()">Back to the default</button>
         }
-        <p class="ms-hint">
+        <p class="li-hint">
           Saved with the story, and used every time a chapter is closed. Change it and write the
           summary again to see the difference.
         </p>
@@ -195,7 +195,7 @@ export interface ChapterClose {
 
     /* The story so far is prose, and set as prose. */
     textarea {
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1rem;
       line-height: 1.6;
     }
@@ -213,7 +213,7 @@ export interface ChapterClose {
       flex-direction: column;
       gap: 0.5rem;
       padding: 0.6rem 0.75rem 0.7rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 12px;
     }
 
@@ -226,9 +226,9 @@ export interface ChapterClose {
     }
 
     .proposals .name {
-      font-family: var(--ms-sans);
+      font-family: var(--li-sans);
       font-size: 0.85rem;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .reading {
@@ -239,7 +239,7 @@ export interface ChapterClose {
 
     .failed {
       margin: 0;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     /* A row is the tick and what it would file. Unticked is the resting state
@@ -250,19 +250,19 @@ export interface ChapterClose {
       align-items: flex-start;
       gap: 0.6rem;
       padding: 0.5rem 0.6rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 10px;
       cursor: pointer;
     }
 
     .proposal.on {
-      border-color: color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
-      background: color-mix(in srgb, var(--ms-accent) 8%, transparent);
+      border-color: color-mix(in srgb, var(--li-accent) 45%, var(--li-border));
+      background: color-mix(in srgb, var(--li-accent) 8%, transparent);
     }
 
     .proposal input {
       margin: 0.15rem 0 0;
-      accent-color: var(--ms-accent);
+      accent-color: var(--li-accent);
     }
 
     .proposal .body {
@@ -280,20 +280,20 @@ export interface ChapterClose {
     }
 
     .proposal .title {
-      font-family: var(--ms-sans);
+      font-family: var(--li-sans);
       font-size: 0.9rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .category {
       padding: 0 0.35rem;
       border-radius: 999px;
-      background: color-mix(in srgb, var(--ms-ink) 8%, transparent);
-      font-family: var(--ms-sans);
+      background: color-mix(in srgb, var(--li-ink) 8%, transparent);
+      font-family: var(--li-sans);
       font-size: 0.65rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .keys {
@@ -304,19 +304,19 @@ export interface ChapterClose {
 
     .key {
       padding: 0 0.35rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 999px;
-      font-family: var(--ms-sans);
+      font-family: var(--li-sans);
       font-size: 0.7rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .proposal .content {
       margin: 0;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.92rem;
       line-height: 1.55;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     /* What the entry says today, beside what it would say instead: an update
@@ -324,16 +324,16 @@ export interface ChapterClose {
     .was {
       margin: 0;
       padding-left: 0.6rem;
-      border-left: 2px solid color-mix(in srgb, var(--ms-muted) 40%, transparent);
-      font-family: var(--ms-serif);
+      border-left: 2px solid color-mix(in srgb, var(--li-muted) 40%, transparent);
+      font-family: var(--li-serif);
       font-size: 0.88rem;
       line-height: 1.5;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .was .tag {
       margin-right: 0.4rem;
-      font-family: var(--ms-sans);
+      font-family: var(--li-sans);
       font-size: 0.65rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -345,33 +345,33 @@ export interface ChapterClose {
          folded to nothing under a long summary rather than scrolled to. */
       flex-shrink: 0;
       background: transparent !important;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 12px !important;
     }
 
     mat-panel-description {
       flex: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font-size: 0.8rem;
     }
 
     .preset {
       margin: 0 0 0.6rem;
       padding: 0.7rem 0.85rem;
-      border: 1px dashed var(--ms-border);
+      border: 1px dashed var(--li-border);
       border-radius: 10px;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.9rem;
       line-height: 1.6;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .error {
       margin: 0;
       padding: 0.6rem 0.8rem;
-      border: 1px solid color-mix(in srgb, var(--ms-danger) 40%, var(--ms-border));
+      border: 1px solid color-mix(in srgb, var(--li-danger) 40%, var(--li-border));
       border-radius: 10px;
-      color: var(--ms-danger);
+      color: var(--li-danger);
       font-size: 0.85rem;
       line-height: 1.5;
     }

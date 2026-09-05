@@ -25,10 +25,10 @@ export interface NewStoryData extends StorySetup {
  * Story, which is why nothing here is required.
  */
 @Component({
-  selector: 'ms-new-story-dialog',
+  selector: 'li-new-story-dialog',
   imports: [MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule, TextValue],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">{{ data.heading }}</h2>
+    <h2 mat-dialog-title class="li-dialog-title">{{ data.heading }}</h2>
 
     <mat-dialog-content>
       <mat-form-field appearance="outline">
@@ -43,26 +43,26 @@ export interface NewStoryData extends StorySetup {
       </mat-form-field>
 
       <span class="label">Who tells it</span>
-      <div class="ms-choices">
+      <div class="li-choices">
         <button
           type="button"
-          class="ms-choice"
+          class="li-choice"
           [class.on]="mode() === 'narrator'"
           (click)="mode.set('narrator')"
         >
           <span class="name">Narrator</span>
-          <span class="ms-hint">
+          <span class="li-hint">
             One voice tells the whole story. You say what you do; it writes what happens.
           </span>
         </button>
         <button
           type="button"
-          class="ms-choice"
+          class="li-choice"
           [class.on]="mode() === 'roleplay'"
           (click)="mode.set('roleplay')"
         >
           <span class="name">Role-play</span>
-          <span class="ms-hint">
+          <span class="li-hint">
             The model plays the other characters and answers in their own words.
           </span>
         </button>
@@ -76,12 +76,12 @@ export interface NewStoryData extends StorySetup {
 
       <textarea
         style="--rows-min: 3; --rows-max: 12"
-        [msText]="description()"
+        [liText]="description()"
         (input)="description.set(text($event))"
         placeholder="A marine biologist, thirty-one, back on the island after nine years."
       ></textarea>
 
-      <p class="ms-hint">
+      <p class="li-hint">
         All of it can be changed later in Story, and in Role-play you add the cast there too. Next
         comes the scene the first chapter opens on.
       </p>
@@ -107,7 +107,7 @@ export interface NewStoryData extends StorySetup {
     .label {
       margin-top: 0.35rem;
       font-size: 0.82rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
   `,
 })

@@ -312,7 +312,7 @@ async function theApp() {
   // the context pill is not part of that.
   await setDeveloperMode(page, true);
   await page
-    .locator('ms-composer')
+    .locator('li-composer')
     .getByRole('button', { name: /^context/ })
     .click();
   await page.getByRole('heading', { name: /model sees/ }).waitFor();
@@ -473,7 +473,7 @@ async function shot(page, name, caption, options = {}) {
 
 /** Another story, from the menu on the title in the top bar. */
 async function switchStory(page, title) {
-  await page.locator('ms-top-bar .here').click();
+  await page.locator('li-top-bar .here').click();
   await page.getByRole('menuitem', { name: title }).click();
   await page.locator('article[data-role]').first().waitFor();
   await page.waitForTimeout(600);
@@ -497,7 +497,7 @@ async function setDeveloperMode(page, on) {
  * is Send.
  */
 async function write(page, text) {
-  const editor = page.locator('ms-composer ms-prose-editor [contenteditable]');
+  const editor = page.locator('li-composer li-prose-editor [contenteditable]');
   await editor.click();
   const lines = text.split('\n');
   for (const [index, line] of lines.entries()) {

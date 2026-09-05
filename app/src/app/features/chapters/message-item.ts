@@ -30,7 +30,7 @@ export interface MessageEdit {
  * over a word.
  */
 @Component({
-  selector: 'ms-message-item',
+  selector: 'li-message-item',
   imports: [MatButtonModule, MatMenuModule, MatTooltipModule, ProseEditor, TextValue],
   template: `
     <article
@@ -52,7 +52,7 @@ export interface MessageEdit {
         <div class="editor">
           <!-- The prose, edited as it is read: the same editor as the
                composer's, with Enter making a paragraph rather than sending. -->
-          <ms-prose-editor
+          <li-prose-editor
             class="prose"
             style="--rows-min: 4; --rows-max: 24"
             label="The message"
@@ -70,7 +70,7 @@ export interface MessageEdit {
               <textarea
                 style="--rows-min: 2; --rows-max: 10"
                 aria-label="The direction from the author"
-                [msText]="draftDirection()"
+                [liText]="draftDirection()"
                 (input)="draftDirection.set(text($event))"
                 (keydown)="onEditorKey($event)"
               ></textarea>
@@ -78,7 +78,7 @@ export interface MessageEdit {
           }
 
           <div class="editor-actions">
-            <span class="ms-hint">Ctrl+Enter saves, Escape cancels.</span>
+            <span class="li-hint">Ctrl+Enter saves, Escape cancels.</span>
             <button matButton (click)="cancelEdit()">Cancel</button>
             <button matButton="filled" (click)="saveEdit()">Save</button>
           </div>
@@ -91,7 +91,7 @@ export interface MessageEdit {
                  sends nothing. "Try again" is still the press that spends. -->
             @if (fits(); as budget) {
               @if (contextSet()) {
-                <span class="ms-hint">Context budget set to {{ budget }}.</span>
+                <span class="li-hint">Context budget set to {{ budget }}.</span>
               } @else {
                 <button matButton="outlined" (click)="applyContext(budget)">
                   Set context to {{ budget }}
@@ -245,16 +245,16 @@ export interface MessageEdit {
     }
 
     .message + .message {
-      border-top: 1px solid color-mix(in srgb, var(--ms-border) 55%, transparent);
+      border-top: 1px solid color-mix(in srgb, var(--li-border) 55%, transparent);
     }
 
     .message.user {
       padding-left: 0.95rem;
-      border-left: 2px solid color-mix(in srgb, var(--ms-accent) 55%, transparent);
+      border-left: 2px solid color-mix(in srgb, var(--li-accent) 55%, transparent);
     }
 
     .message.user .story-prose {
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     /* Keep the user's own block one tone; the italics still set actions apart. */
@@ -270,7 +270,7 @@ export interface MessageEdit {
       align-items: center;
       gap: 0.4rem;
       margin: 0 0 0.3rem;
-      font-family: var(--ms-sans);
+      font-family: var(--li-sans);
       font-size: 0.7rem;
       font-variant-caps: all-small-caps;
       letter-spacing: 0.04em;
@@ -280,7 +280,7 @@ export interface MessageEdit {
     /* The reader's own persona, and a character who is no longer in the cast:
        there is no colour to say it in, so it is said quietly. */
     .speaker.faded {
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .speaker .dot {
@@ -296,12 +296,12 @@ export interface MessageEdit {
     .direction {
       margin: 0.55rem 0 0;
       padding-left: 0.85rem;
-      border-left: 2px solid color-mix(in srgb, var(--ms-muted) 45%, transparent);
-      font-family: var(--ms-sans);
+      border-left: 2px solid color-mix(in srgb, var(--li-muted) 45%, transparent);
+      font-family: var(--li-sans);
       font-size: 0.85rem;
       font-style: italic;
       line-height: 1.5;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .tag {
@@ -311,7 +311,7 @@ export interface MessageEdit {
       font-style: normal;
       font-variant-caps: all-small-caps;
       letter-spacing: 0.06em;
-      color: color-mix(in srgb, var(--ms-muted) 80%, var(--ms-ink));
+      color: color-mix(in srgb, var(--li-muted) 80%, var(--li-ink));
     }
 
     .direction-edit {
@@ -333,10 +333,10 @@ export interface MessageEdit {
       justify-content: space-between;
       gap: 0.75rem;
       margin-top: 0.55rem;
-      font-family: var(--ms-sans);
+      font-family: var(--li-sans);
       font-size: 0.7rem;
       letter-spacing: 0.02em;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     /* -- the actions ------------------------------------------------------
@@ -356,7 +356,7 @@ export interface MessageEdit {
       border: 0;
       border-radius: 6px;
       background: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font: inherit;
       font-size: 0.95rem;
       line-height: 1;
@@ -369,7 +369,7 @@ export interface MessageEdit {
     .message:focus-within .more,
     .more:focus-visible {
       opacity: 1;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .rail {
@@ -378,8 +378,8 @@ export interface MessageEdit {
       top: 0.75rem;
       /* Right of the column by the gap, and padded back across it, so the
          pointer never leaves the message on its way to the icons. */
-      right: calc(-1 * (var(--ms-rail) + var(--ms-margin-gap)));
-      padding-left: var(--ms-margin-gap);
+      right: calc(-1 * (var(--li-rail) + var(--li-margin-gap)));
+      padding-left: var(--li-margin-gap);
       flex-direction: column;
       gap: 0.1rem;
       opacity: 0;
@@ -401,20 +401,20 @@ export interface MessageEdit {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: var(--ms-rail);
-      height: var(--ms-rail);
+      width: var(--li-rail);
+      height: var(--li-rail);
       padding: 0;
       border: 0;
       border-radius: 8px;
       background: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       cursor: pointer;
     }
 
     .act:hover:not(:disabled),
     .act:focus-visible {
-      color: var(--ms-ink);
-      background: color-mix(in srgb, var(--ms-ink) 8%, transparent);
+      color: var(--li-ink);
+      background: color-mix(in srgb, var(--li-ink) 8%, transparent);
     }
 
     .act:disabled {
@@ -458,10 +458,10 @@ export interface MessageEdit {
     .error {
       margin: 0;
       padding: 0.7rem 0.9rem;
-      border: 1px solid color-mix(in srgb, var(--ms-danger) 40%, var(--ms-border));
+      border: 1px solid color-mix(in srgb, var(--li-danger) 40%, var(--li-border));
       border-radius: 10px;
-      background: color-mix(in srgb, var(--ms-danger) 8%, transparent);
-      color: var(--ms-danger);
+      background: color-mix(in srgb, var(--li-danger) 8%, transparent);
+      color: var(--li-danger);
       font-size: 0.85rem;
       line-height: 1.5;
     }
@@ -482,13 +482,13 @@ export interface MessageEdit {
        editor is given the shared text field's frame, since it is not one. */
     .editor .prose {
       padding: 0.6rem 0.75rem;
-      border: 1px solid var(--ms-accent);
+      border: 1px solid var(--li-accent);
       border-radius: 10px;
-      background: var(--ms-surface-raised);
+      background: var(--li-surface-raised);
     }
 
     .editor textarea {
-      border-color: var(--ms-accent);
+      border-color: var(--li-accent);
     }
 
     .editor-actions {
@@ -498,7 +498,7 @@ export interface MessageEdit {
       gap: 0.4rem;
     }
 
-    .editor-actions .ms-hint {
+    .editor-actions .li-hint {
       margin-right: auto;
     }
 
@@ -512,7 +512,7 @@ export interface MessageEdit {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--ms-muted);
+      background: var(--li-muted);
       animation: pulse 1.1s infinite ease-in-out;
     }
 

@@ -29,7 +29,7 @@ interface Group {
 
 /** Everything the story knows: what has happened, and what is simply true. */
 @Component({
-  selector: 'ms-world-dialog',
+  selector: 'li-world-dialog',
   imports: [
     MatButtonModule,
     MatDialogModule,
@@ -43,13 +43,13 @@ interface Group {
     EditorField,
   ],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">The world of {{ story().title }}</h2>
+    <h2 mat-dialog-title class="li-dialog-title">The world of {{ story().title }}</h2>
 
     <mat-dialog-content>
       <mat-tab-group>
         <mat-tab label="Story so far">
           <div class="tab">
-            <ms-editor-field
+            <li-editor-field
               label="Always included in every request"
               hint="Closing a chapter rewrites this, folding the chapter into it. Edit it freely — this is the whole of what the model remembers before the chapter it is writing."
               [rows]="12"
@@ -66,7 +66,7 @@ interface Group {
                 </mat-panel-description>
               </mat-expansion-panel-header>
 
-              <p class="ms-hint">
+              <p class="li-hint">
                 Closing a chapter sends the story so far, the chapter's scene and everything written
                 in it, and then this instruction. What comes back replaces the text above, which is
                 why it asks for the whole summary rather than an addition to it.
@@ -82,7 +82,7 @@ interface Group {
               @if (story().world.summary.useDefault) {
                 <p class="preset">{{ defaultSummaryInstruction }}</p>
               } @else {
-                <ms-editor-field
+                <li-editor-field
                   label="Instruction"
                   [rows]="6"
                   [value]="story().world.summary.prompt"
@@ -98,7 +98,7 @@ interface Group {
             >
               When a chapter closes, propose lore entries from it
             </mat-slide-toggle>
-            <p class="ms-hint extract-hint">
+            <p class="li-hint extract-hint">
               A second request after the summary, asking what the chapter established that is worth
               keeping. Nothing is written without you ticking it. Off by default, because it is a
               second request and a second bill; the review sheet has a button for it either way.
@@ -213,7 +213,7 @@ interface Group {
                       <mat-hint>Comma separated. Any of them fires the entry.</mat-hint>
                     </mat-form-field>
 
-                    <ms-editor-field
+                    <li-editor-field
                       label="What is true (required)"
                       [rows]="3"
                       placeholder="The lighthouse keeper, missing since spring."
@@ -248,7 +248,7 @@ interface Group {
             }
 
             @if (!groups().length) {
-              <p class="ms-hint">
+              <p class="li-hint">
                 {{
                   story().world.entries.length
                     ? 'Nothing matches that search.'
@@ -311,34 +311,34 @@ interface Group {
 
     h3 {
       margin: 0.4rem 0 0;
-      font-family: var(--ms-sans);
+      font-family: var(--li-sans);
       font-size: 0.72rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .instruction {
       background: transparent !important;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 12px !important;
     }
 
     mat-panel-description {
       flex: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font-size: 0.8rem;
     }
 
     .preset {
       margin: 0.6rem 0 0;
       padding: 0.7rem 0.85rem;
-      border: 1px dashed var(--ms-border);
+      border: 1px dashed var(--li-border);
       border-radius: 10px;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.92rem;
       line-height: 1.6;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .extract {
@@ -353,14 +353,14 @@ interface Group {
       display: flex;
       gap: 0.6rem;
       margin: 0.35rem 0 0;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.9rem;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .folded .number {
       flex: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .lore-head {
@@ -379,13 +379,13 @@ interface Group {
       flex-direction: column;
       gap: 0.35rem;
       padding: 0.35rem 0.5rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 12px;
     }
 
     .entry.open {
       padding: 0.5rem 0.8rem 0.7rem;
-      background: color-mix(in srgb, var(--ms-ink) 3%, transparent);
+      background: color-mix(in srgb, var(--li-ink) 3%, transparent);
     }
 
     /* Collapsed, an entry is one line: what it is called, and what fires it. */
@@ -412,13 +412,13 @@ interface Group {
     }
 
     .disclose:hover {
-      background: color-mix(in srgb, var(--ms-ink) 5%, transparent);
+      background: color-mix(in srgb, var(--li-ink) 5%, transparent);
     }
 
     .caret {
       flex: none;
       width: 0.9rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font-size: 0.7rem;
     }
 
@@ -428,9 +428,9 @@ interface Group {
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.98rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .keys {
@@ -440,23 +440,23 @@ interface Group {
       white-space: nowrap;
       text-overflow: ellipsis;
       font-size: 0.75rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .tag {
       flex: none;
       padding: 0.05rem 0.45rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 999px;
       font-size: 0.66rem;
       letter-spacing: 0.03em;
       text-transform: uppercase;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .tag.warn {
-      border-color: color-mix(in srgb, var(--ms-danger) 45%, var(--ms-border));
-      color: var(--ms-danger);
+      border-color: color-mix(in srgb, var(--li-danger) 45%, var(--li-border));
+      color: var(--li-danger);
     }
 
     .entry.off {
@@ -466,14 +466,14 @@ interface Group {
     /* Required, and said out loud: an entry with no text can never fire. */
     .entry.unwritten {
       border-style: dashed;
-      border-color: color-mix(in srgb, var(--ms-danger) 45%, var(--ms-border));
+      border-color: color-mix(in srgb, var(--li-danger) 45%, var(--li-border));
     }
 
     .unfinished {
       margin: 0;
       font-size: 0.78rem;
       line-height: 1.5;
-      color: var(--ms-danger);
+      color: var(--li-danger);
     }
 
     .entry header {
@@ -508,7 +508,7 @@ interface Group {
       gap: 1.2rem;
       margin-top: 0.5rem;
       padding-top: 0.8rem;
-      border-top: 1px solid var(--ms-border);
+      border-top: 1px solid var(--li-border);
     }
 
     .depth {

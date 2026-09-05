@@ -13,7 +13,7 @@ import { TextValue } from './text-value';
 @Component({
   imports: [TextValue],
   template: `
-    <textarea aria-label="The direction" [msText]="stored()" [readOnly]="readOnly()"></textarea>
+    <textarea aria-label="The direction" [liText]="stored()" [readOnly]="readOnly()"></textarea>
   `,
 })
 class Host {

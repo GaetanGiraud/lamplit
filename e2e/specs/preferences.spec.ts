@@ -139,7 +139,7 @@ test.describe('preferences', () => {
 
     await expect.poll(() => faceOf('.story-prose')).toMatch(/Cascadia|Consolas|monospace/i);
     // The wordmark is app furniture and stays in the serif it always was.
-    await expect.poll(() => faceOf('ms-top-bar .wordmark')).toMatch(/Iowan|Palatino|serif/i);
+    await expect.poll(() => faceOf('li-top-bar .wordmark')).toMatch(/Iowan|Palatino|serif/i);
   });
 });
 /**
@@ -153,7 +153,7 @@ test.describe('developer mode', () => {
   });
 
   const pill = (page: Page) =>
-    page.locator('ms-composer').getByRole('button', { name: /^context/ });
+    page.locator('li-composer').getByRole('button', { name: /^context/ });
 
   test('is off on a fresh install, and switching it on is the way to the prompt', async ({
     page,

@@ -35,13 +35,13 @@ export interface PromptPreviewData {
  * through the pill that mode puts back, so being open is the check.
  */
 @Component({
-  selector: 'ms-prompt-preview-dialog',
+  selector: 'li-prompt-preview-dialog',
   imports: [DragDropModule, MatButtonModule, MatDialogModule, MatTooltipModule],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">What the model sees</h2>
+    <h2 mat-dialog-title class="li-dialog-title">What the model sees</h2>
 
     <mat-dialog-content>
-      <p class="ms-hint">
+      <p class="li-hint">
         Rebuilt from the story, the chapter and its messages every time you send.
         {{ totals() }}
       </p>
@@ -112,12 +112,12 @@ export interface PromptPreviewData {
             }
           </ul>
         } @else {
-          <p class="ms-hint empty">
+          <p class="li-hint empty">
             Nothing matched the scene, the last messages or what you are typing.
           </p>
         }
         @if (unwritten()) {
-          <p class="ms-hint empty warn">
+          <p class="li-hint empty warn">
             {{ unwritten() }}
             {{ unwritten() === 1 ? 'entry has' : 'entries have' }} no text yet, so
             {{ unwritten() === 1 ? 'it' : 'they' }} cannot fire. Write them in World.
@@ -130,7 +130,7 @@ export interface PromptPreviewData {
           <span class="name">This chapter</span>
           <span class="tokens">{{ format(prompt().tokens.history) }}</span>
         </header>
-        <p class="ms-hint empty">
+        <p class="li-hint empty">
           {{ sent() }} messages sent
           @if (prompt().dropped) {
             · {{ prompt().dropped }} older left out to fit the budget
@@ -177,9 +177,9 @@ export interface PromptPreviewData {
 
     .block {
       margin: 0.6rem 0 0;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 10px;
-      background: var(--ms-surface-raised);
+      background: var(--li-surface-raised);
       overflow: hidden;
     }
 
@@ -189,29 +189,29 @@ export interface PromptPreviewData {
       justify-content: space-between;
       gap: 1rem;
       padding: 0.4rem 0.7rem;
-      border-bottom: 1px solid var(--ms-border);
-      background: color-mix(in srgb, var(--ms-accent) 6%, transparent);
+      border-bottom: 1px solid var(--li-border);
+      background: color-mix(in srgb, var(--li-accent) 6%, transparent);
     }
 
     .name {
       font-size: 0.78rem;
       letter-spacing: 0.03em;
       text-transform: uppercase;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .tokens {
       font-size: 0.72rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .notes {
       margin: 0;
       padding: 0 0.75rem 0.7rem 1.6rem;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.86rem;
       line-height: 1.5;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     pre {
@@ -219,10 +219,10 @@ export interface PromptPreviewData {
       padding: 0.65rem 0.75rem;
       white-space: pre-wrap;
       overflow-wrap: break-word;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.9rem;
       line-height: 1.55;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .lore {
@@ -230,7 +230,7 @@ export interface PromptPreviewData {
       padding: 0.5rem 0.75rem 0.6rem 1.6rem;
       font-size: 0.85rem;
       line-height: 1.6;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
     }
 
     .empty {
@@ -239,7 +239,7 @@ export interface PromptPreviewData {
     }
 
     .warn {
-      color: var(--ms-danger);
+      color: var(--li-danger);
     }
 
     /* -- reordering ------------------------------------------------------- */
@@ -250,7 +250,7 @@ export interface PromptPreviewData {
       padding: 0 0.15rem;
       border: 0;
       background: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font-size: 0.95rem;
       line-height: 1;
       cursor: grab;
@@ -258,7 +258,7 @@ export interface PromptPreviewData {
 
     .handle:hover,
     .handle:focus-visible {
-      color: var(--ms-accent);
+      color: var(--li-accent);
     }
 
     /* Where a handle would be on a block that has none, so the labels of the
@@ -266,7 +266,7 @@ export interface PromptPreviewData {
     .pin {
       flex: none;
       width: 1.25rem;
-      color: color-mix(in srgb, var(--ms-muted) 55%, transparent);
+      color: color-mix(in srgb, var(--li-muted) 55%, transparent);
       font-size: 0.95rem;
       line-height: 1;
       text-align: center;
@@ -279,14 +279,14 @@ export interface PromptPreviewData {
     .why {
       margin: 0;
       padding: 0.4rem 0.75rem 0.55rem;
-      border-top: 1px dashed color-mix(in srgb, var(--ms-border) 80%, transparent);
+      border-top: 1px dashed color-mix(in srgb, var(--li-border) 80%, transparent);
       font-size: 0.75rem;
       line-height: 1.5;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .movable header {
-      background: color-mix(in srgb, var(--ms-accent) 12%, transparent);
+      background: color-mix(in srgb, var(--li-accent) 12%, transparent);
     }
 
     /* The dragged copy is a clone of the element, so it carries this
@@ -304,9 +304,9 @@ export interface PromptPreviewData {
     /* The gap the block will land in, so a drag has somewhere to aim. */
     .ghost {
       height: 100%;
-      border: 1px dashed color-mix(in srgb, var(--ms-accent) 55%, transparent);
+      border: 1px dashed color-mix(in srgb, var(--li-accent) 55%, transparent);
       border-radius: 10px;
-      background: color-mix(in srgb, var(--ms-accent) 5%, transparent);
+      background: color-mix(in srgb, var(--li-accent) 5%, transparent);
     }
 
     .cdk-drop-list-dragging .block:not(.cdk-drag-placeholder) {
@@ -315,7 +315,7 @@ export interface PromptPreviewData {
 
     .reset {
       margin-right: auto;
-      color: var(--ms-accent);
+      color: var(--li-accent);
     }
   `,
 })

@@ -15,7 +15,7 @@ import { SaveStatusIndicator } from './save-status';
  * model is answering, and the way into everything that opens over the page.
  */
 @Component({
-  selector: 'ms-top-bar',
+  selector: 'li-top-bar',
   imports: [MatButtonModule, MatMenuModule, MatTooltipModule, SaveStatusIndicator],
   template: `
     <header class="bar">
@@ -42,13 +42,13 @@ import { SaveStatusIndicator } from './save-status';
       </div>
 
       <div class="actions">
-        <ms-save-status />
+        <li-save-status />
 
         <!-- Quiet on purpose: a newer Lamplit exists, and that is all. No
              modal, no banner, nothing over the page being written. -->
         @if (updates.available(); as release) {
           <button
-            class="ms-pill available"
+            class="li-pill available"
             type="button"
             (click)="dialogs.openWhatsNew()"
             matTooltip="Read what changed in it"
@@ -97,8 +97,8 @@ import { SaveStatusIndicator } from './save-status';
       gap: 1rem;
       height: 3.25rem;
       padding: 0 0.75rem 0 1.1rem;
-      border-bottom: 1px solid var(--ms-border);
-      background: color-mix(in srgb, var(--ms-surface) 82%, transparent);
+      border-bottom: 1px solid var(--li-border);
+      background: color-mix(in srgb, var(--li-surface) 82%, transparent);
       backdrop-filter: blur(10px);
     }
 
@@ -112,11 +112,11 @@ import { SaveStatusIndicator } from './save-status';
 
     .wordmark {
       flex: none;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1.05rem;
       letter-spacing: 0.01em;
       white-space: nowrap;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     /* Material centres a button's label, which would spill it over the
@@ -137,13 +137,13 @@ import { SaveStatusIndicator } from './save-status';
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .story {
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.95rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .chapter {
@@ -172,7 +172,7 @@ import { SaveStatusIndicator } from './save-status';
     }
 
     .model.unset {
-      color: var(--ms-accent);
+      color: var(--li-accent);
     }
 
     .dot {
@@ -181,7 +181,7 @@ import { SaveStatusIndicator } from './save-status';
       height: 7px;
       margin-right: 0.45rem;
       border-radius: 50%;
-      background: var(--ms-muted);
+      background: var(--li-muted);
     }
 
     .dot.live {
@@ -193,18 +193,18 @@ import { SaveStatusIndicator } from './save-status';
       margin-right: 0.35rem;
       cursor: pointer;
       font-family: inherit;
-      color: var(--ms-accent);
-      border-color: color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
-      background: color-mix(in srgb, var(--ms-accent) 10%, var(--ms-surface));
+      color: var(--li-accent);
+      border-color: color-mix(in srgb, var(--li-accent) 45%, var(--li-border));
+      background: color-mix(in srgb, var(--li-accent) 10%, var(--li-surface));
     }
 
     .available:hover {
-      background: color-mix(in srgb, var(--ms-accent) 18%, var(--ms-surface));
+      background: color-mix(in srgb, var(--li-accent) 18%, var(--li-surface));
     }
 
     hr {
       border: 0;
-      border-top: 1px solid var(--ms-border);
+      border-top: 1px solid var(--li-border);
       margin: 0.25rem 0;
     }
   `,

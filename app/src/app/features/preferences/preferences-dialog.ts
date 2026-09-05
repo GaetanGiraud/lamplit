@@ -32,7 +32,7 @@ import { DialogsService } from '../../shared/dialogs.service';
  * options that come with a warning will live.
  */
 @Component({
-  selector: 'ms-preferences-dialog',
+  selector: 'li-preferences-dialog',
   imports: [
     MatButtonModule,
     MatDialogModule,
@@ -43,7 +43,7 @@ import { DialogsService } from '../../shared/dialogs.service';
     MatSlideToggleModule,
   ],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">Preferences</h2>
+    <h2 mat-dialog-title class="li-dialog-title">Preferences</h2>
 
     <mat-dialog-content>
       <mat-accordion multi>
@@ -97,7 +97,7 @@ import { DialogsService } from '../../shared/dialogs.service';
               <span class="tag">custom</span>
             }
           </div>
-          <p class="ms-hint palette-lead">
+          <p class="li-hint palette-lead">
             @if (editingChapter()) {
               <strong>Chapter {{ chapters.chapter().number }} has a page of its own.</strong> This
               row is editing that one and not the story's. The chapter keeps it when you come back
@@ -140,7 +140,7 @@ import { DialogsService } from '../../shared/dialogs.service';
             <mat-hint>The story itself, not the app around it.</mat-hint>
           </mat-form-field>
 
-          <p class="ms-hint editing">
+          <p class="li-hint editing">
             You are editing the <strong>{{ ui().theme }}</strong> theme. Switch it above and the
             other set is edited instead; each keeps its own colours.
           </p>
@@ -155,7 +155,7 @@ import { DialogsService } from '../../shared/dialogs.service';
                 />
                 <span class="text">
                   <span class="name">{{ swatch.label }}</span>
-                  <span class="ms-hint">{{ swatch.hint }}</span>
+                  <span class="li-hint">{{ swatch.hint }}</span>
                 </span>
               </label>
             }
@@ -176,7 +176,7 @@ import { DialogsService } from '../../shared/dialogs.service';
                somebody comes looking for them. -->
           @if (cast().length) {
             <hr />
-            <p class="ms-hint editing">
+            <p class="li-hint editing">
               <strong>The cast of {{ stories.story().title }}.</strong> Each one has a colour from
               the palette, and the swatch beside their name in the chapter panel is the way to
               another of the ten. Below is the way out of the ten altogether — one colour, used in
@@ -193,7 +193,7 @@ import { DialogsService } from '../../shared/dialogs.service';
                   />
                   <span class="text">
                     <span class="name">{{ character.name || 'Unnamed character' }}</span>
-                    <span class="ms-hint">{{ character.label }}</span>
+                    <span class="li-hint">{{ character.label }}</span>
                   </span>
                   @if (character.colourOverride) {
                     <button
@@ -216,7 +216,7 @@ import { DialogsService } from '../../shared/dialogs.service';
             <mat-panel-description>{{ advancedSummary() }}</mat-panel-description>
           </mat-expansion-panel-header>
 
-          <p class="ms-hint under-the-hood">Options for people who want to look under the hood.</p>
+          <p class="li-hint under-the-hood">Options for people who want to look under the hood.</p>
 
           <div class="stack">
             <mat-slide-toggle
@@ -225,7 +225,7 @@ import { DialogsService } from '../../shared/dialogs.service';
             >
               Check for a new version when Lamplit starts
             </mat-slide-toggle>
-            <p class="ms-hint">
+            <p class="li-hint">
               Once per start, the server asks GitHub which versions have been published and the top
               bar says so if one of them is newer. Switched off, it is not asked at all. Your
               stories never leave this machine either way.
@@ -240,7 +240,7 @@ import { DialogsService } from '../../shared/dialogs.service';
               >
                 Reach the model through this computer’s proxy
               </mat-slide-toggle>
-              <p class="ms-hint">
+              <p class="li-hint">
                 Off, Lamplit connects straight to whichever endpoint you have given it, the same as
                 the zip and a browser tab do. Switch it on if your network only lets you out through
                 a proxy — a work laptop, usually. Lamplit's window then takes a moment to find that
@@ -258,7 +258,7 @@ import { DialogsService } from '../../shared/dialogs.service';
             >
               Developer mode — show how the prompt is built and what the app is doing
             </mat-slide-toggle>
-            <p class="ms-hint">
+            <p class="li-hint">
               Puts the context pill back under the composer, which is the way into what the model
               actually sees, and adds the folder your documents are in to the About sheet. It
               changes nothing about the request itself.
@@ -285,7 +285,7 @@ import { DialogsService } from '../../shared/dialogs.service';
 
     mat-panel-description {
       flex: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font-size: 0.8rem;
     }
 
@@ -303,7 +303,7 @@ import { DialogsService } from '../../shared/dialogs.service';
     hr {
       width: 100%;
       border: 0;
-      border-top: 1px solid var(--ms-border);
+      border-top: 1px solid var(--li-border);
       margin: 0.35rem 0;
     }
 
@@ -317,7 +317,7 @@ import { DialogsService } from '../../shared/dialogs.service';
       display: flex;
       flex-direction: column;
       font-size: 0.8rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .font {
@@ -329,7 +329,7 @@ import { DialogsService } from '../../shared/dialogs.service';
       margin: 1.1rem 0 0.9rem;
 
       strong {
-        color: var(--ms-ink);
+        color: var(--li-ink);
         font-weight: 600;
       }
     }
@@ -343,16 +343,16 @@ import { DialogsService } from '../../shared/dialogs.service';
 
     .row-name {
       font-size: 0.9rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     /* Said rather than implied: a preset with your own colours over it is not
        that preset any more, and Reset is the only way back to one. */
     .tag {
       padding: 0.05rem 0.4rem;
-      border: 1px solid color-mix(in srgb, var(--ms-accent) 45%, var(--ms-border));
+      border: 1px solid color-mix(in srgb, var(--li-accent) 45%, var(--li-border));
       border-radius: 999px;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font-size: 0.7rem;
       letter-spacing: 0.02em;
     }
@@ -361,7 +361,7 @@ import { DialogsService } from '../../shared/dialogs.service';
       margin: 0 0 0.7rem;
 
       strong {
-        color: var(--ms-ink);
+        color: var(--li-ink);
         font-weight: 600;
       }
     }
@@ -381,19 +381,19 @@ import { DialogsService } from '../../shared/dialogs.service';
       border: 1px solid transparent;
       border-radius: 10px;
       background: none;
-      color: var(--ms-muted);
+      color: var(--li-muted);
       font: inherit;
       font-size: 0.75rem;
       text-align: center;
       cursor: pointer;
 
       &:hover {
-        background: color-mix(in srgb, var(--ms-ink) 5%, transparent);
+        background: color-mix(in srgb, var(--li-ink) 5%, transparent);
       }
 
       &.on {
-        border-color: color-mix(in srgb, var(--ms-accent) 60%, transparent);
-        color: var(--ms-ink);
+        border-color: color-mix(in srgb, var(--li-accent) 60%, transparent);
+        color: var(--li-ink);
       }
     }
 
@@ -404,7 +404,7 @@ import { DialogsService } from '../../shared/dialogs.service';
       display: block;
       height: 2.9rem;
       padding: 0.4rem 0.35rem;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 7px;
       overflow: hidden;
     }
@@ -460,12 +460,12 @@ import { DialogsService } from '../../shared/dialogs.service';
       cursor: pointer;
 
       &:hover {
-        background: color-mix(in srgb, var(--ms-ink) 5%, transparent);
+        background: color-mix(in srgb, var(--li-ink) 5%, transparent);
       }
 
       /* A changed colour says so, so that Reset is not the only way to tell. */
       &.custom {
-        border-color: color-mix(in srgb, var(--ms-accent) 45%, transparent);
+        border-color: color-mix(in srgb, var(--li-accent) 45%, transparent);
       }
     }
 
@@ -476,7 +476,7 @@ import { DialogsService } from '../../shared/dialogs.service';
       width: 2.4rem;
       height: 2.4rem;
       padding: 0;
-      border: 1px solid var(--ms-border);
+      border: 1px solid var(--li-border);
       border-radius: 8px;
       background: none;
       cursor: pointer;
@@ -504,18 +504,18 @@ import { DialogsService } from '../../shared/dialogs.service';
 
     .name {
       font-size: 0.9rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .warning {
       margin: 0.9rem 0 0;
       padding: 0.6rem 0.8rem;
-      border: 1px solid color-mix(in srgb, var(--ms-danger) 45%, var(--ms-border));
+      border: 1px solid color-mix(in srgb, var(--li-danger) 45%, var(--li-border));
       border-radius: 10px;
-      color: var(--ms-ink-soft);
+      color: var(--li-ink-soft);
       font-size: 0.8rem;
       line-height: 1.5;
-      background: color-mix(in srgb, var(--ms-danger) 8%, transparent);
+      background: color-mix(in srgb, var(--li-danger) 8%, transparent);
     }
 
     .reset {
@@ -526,7 +526,7 @@ import { DialogsService } from '../../shared/dialogs.service';
 
     hr {
       border: 0;
-      border-top: 1px solid var(--ms-border);
+      border-top: 1px solid var(--li-border);
       margin: 1.1rem 0 0.9rem;
     }
 

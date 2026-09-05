@@ -20,10 +20,10 @@ interface Row {
 
 /** The table of contents. One row per chapter, in the order they were written. */
 @Component({
-  selector: 'ms-chapters-dialog',
+  selector: 'li-chapters-dialog',
   imports: [MatButtonModule, MatDialogModule, MatMenuModule],
   template: `
-    <h2 mat-dialog-title class="ms-dialog-title">{{ stories.story().title }}</h2>
+    <h2 mat-dialog-title class="li-dialog-title">{{ stories.story().title }}</h2>
 
     <mat-dialog-content>
       @for (row of rows(); track row.chapter.id) {
@@ -72,11 +72,11 @@ interface Row {
       display: flex;
       align-items: center;
       gap: 0.25rem;
-      border-bottom: 1px solid color-mix(in srgb, var(--ms-border) 60%, transparent);
+      border-bottom: 1px solid color-mix(in srgb, var(--li-border) 60%, transparent);
     }
 
     .row.active {
-      background: color-mix(in srgb, var(--ms-accent) 8%, transparent);
+      background: color-mix(in srgb, var(--li-accent) 8%, transparent);
     }
 
     .open {
@@ -96,7 +96,7 @@ interface Row {
     }
 
     .open:hover {
-      background: color-mix(in srgb, var(--ms-ink) 5%, transparent);
+      background: color-mix(in srgb, var(--li-ink) 5%, transparent);
     }
 
     .line {
@@ -109,9 +109,9 @@ interface Row {
     .number {
       flex: none;
       width: 1.4rem;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1rem;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .title {
@@ -120,9 +120,9 @@ interface Row {
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 1.02rem;
-      color: var(--ms-ink);
+      color: var(--li-ink);
     }
 
     .state {
@@ -130,11 +130,11 @@ interface Row {
       font-size: 0.68rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: var(--ms-accent);
+      color: var(--li-accent);
     }
 
     .state.closed {
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .opening,
@@ -143,11 +143,11 @@ interface Row {
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      color: var(--ms-muted);
+      color: var(--li-muted);
     }
 
     .opening {
-      font-family: var(--ms-serif);
+      font-family: var(--li-serif);
       font-size: 0.85rem;
     }
 

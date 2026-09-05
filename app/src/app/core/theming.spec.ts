@@ -70,7 +70,7 @@ describe('applyUi', () => {
     const root = document.createElement('html');
 
     applyUi(root, ui({ font: 'mono' }));
-    expect(root.style.getPropertyValue(READING_FAMILY)).toBe('var(--ms-mono)');
+    expect(root.style.getPropertyValue(READING_FAMILY)).toBe('var(--li-mono)');
 
     applyUi(root, ui({ font: 'serif' }));
     expect(root.style.getPropertyValue(READING_FAMILY)).toBe('');
@@ -82,7 +82,7 @@ describe('applyUi', () => {
     applyUi(root, ui({ theme: 'dark', colours }));
 
     expect(root.style.getPropertyValue(propertyOf('page'))).toBe('#101010');
-    expect(root.style.getPropertyValue('--ms-gilding')).toBe('');
+    expect(root.style.getPropertyValue('--li-gilding')).toBe('');
   });
 });
 
@@ -90,6 +90,6 @@ describe('the palette', () => {
   it('names every colour once, and every font stack points at the stylesheet', () => {
     const keys = THEME_COLOURS.map((c) => c.key);
     expect(new Set(keys).size).toBe(keys.length);
-    for (const font of READING_FONTS) expect(font.stack).toMatch(/^var\(--ms-[a-z]+\)$/);
+    for (const font of READING_FONTS) expect(font.stack).toMatch(/^var\(--li-[a-z]+\)$/);
   });
 });
