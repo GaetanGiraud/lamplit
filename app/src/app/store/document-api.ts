@@ -19,6 +19,28 @@ const REQUEST_TIMEOUT = 10_000;
 /** The header the server compares against the last write it applied. */
 const SEQ_HEADER = 'x-doc-seq';
 
+/**
+ * The server's considered no, as opposed to its silence.
+ *
+ * A 4xx is a document this server will never take: a body it cannot parse, an
+ * id it will not have, a document past the body limit, a Host it does not
+ * answer to. Sending it again changes nothing, so whatever is holding it has
+ * to stop and say so rather than retry for ever.
+ *
+ * `status` is the code, or 0 for a write the server took and then dropped for
+ * being older than one it had already applied (`skipped`) — nothing is wrong
+ * with the document, but it is not on disk.
+ */
+export class Refused extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = 'Refused';
+  }
+}
+
 /** Where a storage key lives on the server, or null if it lives nowhere. */
 export function refOf(key: string): DocRef | null {
   if (key === KEYS.settings) return { collection: 'settings', id: KEYS.settings };
@@ -66,11 +88,12 @@ export class DocumentApi {
   }
 
   async put(ref: DocRef, document: unknown, seq: number): Promise<void> {
-    await this.request(this.urlOf(ref), {
+    const response = await this.request(this.urlOf(ref), {
       method: 'PUT',
       headers: { 'content-type': 'application/json', [SEQ_HEADER]: String(seq) },
       body: JSON.stringify(document),
     });
+    await applied(response);
   }
 
   async remove(ref: DocRef, seq: number): Promise<void> {
@@ -80,7 +103,9 @@ export class DocumentApi {
       signal: AbortSignal.timeout(REQUEST_TIMEOUT),
     });
     // A document that is already gone is the outcome we wanted.
-    if (!response.ok && response.status !== 404) throw await failure(response);
+    if (response.status === 404) return;
+    if (!response.ok) throw await failure(response);
+    await applied(response);
   }
 
   /**
@@ -138,5 +163,21 @@ async function failure(response: Response): Promise<Error> {
     typeof body === 'object' && body !== null && 'error' in body && typeof body.error === 'string'
       ? body.error
       : '';
-  return new Error(detail || `${response.status} ${response.statusText}`);
+  const text = detail || `${response.status} ${response.statusText}`;
+  // A 5xx is a server having a bad moment and worth asking again; a 4xx is an
+  // answer about the document itself and will be the same answer next time.
+  return response.status < 500 ? new Refused(text, response.status) : new Error(text);
+}
+
+/**
+ * The server answers 200 to a write it decided not to apply, saying so with
+ * `skipped`. It cannot happen between two writes of one tab — they are
+ * serialised and their sequence numbers rise — but it can between two tabs,
+ * and a write that never reached the disk must not be reported as saved.
+ */
+async function applied(response: Response): Promise<void> {
+  const body: unknown = await response.json().catch(() => undefined);
+  if (typeof body === 'object' && body !== null && 'skipped' in body && body.skipped === true) {
+    throw new Refused('another window has saved a newer version', 0);
+  }
 }

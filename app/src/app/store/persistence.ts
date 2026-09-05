@@ -1,13 +1,14 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { DocRef, DocumentApi, refOf } from './document-api';
+import { DocRef, DocumentApi, Refused, refOf } from './document-api';
 import { StorageBackend } from './storage';
 
 /**
  * saving   a write is on its way
  * saved    every document on disk matches what is on screen
  * offline  the server stopped answering; the session carries on and retries
+ * refused  the server is answering and will not take a document; it is named
  */
-export type SaveStatus = 'saving' | 'saved' | 'offline';
+export type SaveStatus = 'saving' | 'saved' | 'offline' | 'refused';
 
 /** Long enough to coalesce a burst of keystrokes, short enough to feel saved. */
 const DEBOUNCE = 300;
@@ -33,6 +34,12 @@ interface Queued {
   kind: 'write' | 'delete';
 }
 
+/** A document the server said no to, and what it said. */
+interface Rejection {
+  queued: Queued;
+  reason: string;
+}
+
 /**
  * The documents, and the server they came from.
  *
@@ -55,6 +62,11 @@ interface Queued {
  * the server stops answering the queue stops draining and retries with a
  * widening delay; the session keeps working, because everything it needs is
  * already in memory.
+ *
+ * A server that answers and says no is a different thing, and is treated as
+ * one. A refused document leaves the queue instead of standing at the head of
+ * it for ever: everything behind it still saves, and the indicator names the
+ * document and repeats what the server said, rather than blaming the network.
  */
 @Injectable({ providedIn: 'root' })
 export class Persistence implements StorageBackend {
@@ -72,6 +84,8 @@ export class Persistence implements StorageBackend {
   readonly isOffline = computed(() => this.statusState() === 'offline');
 
   private readonly pending = new Map<string, Queued>();
+  /** Documents the server refused, kept so they can be named and tried again. */
+  private readonly rejected = new Map<string, Rejection>();
   private listening = false;
   private draining = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -119,7 +133,12 @@ export class Persistence implements StorageBackend {
     if (this.listening) return;
     this.listening = true;
     window.addEventListener('beforeunload', (event) => {
-      if (!this.pending.size) return;
+      if (!this.pending.size) {
+        // A refused document is not queued and never will be: it is lost on
+        // reload all the same, and that is worth being stopped for.
+        if (this.rejected.size) event.preventDefault();
+        return;
+      }
       // One keepalive request per document is all the browser will still carry.
       // Deletes go too: a chapter deleted and then closed on is a file still on
       // disk, and the next start reads it back as a chapter that is there again.
@@ -143,7 +162,7 @@ export class Persistence implements StorageBackend {
       // Debounced writes almost always make it. A queue that is already failing
       // almost certainly will not, and neither will a chapter too long to carry
       // — and both are worth stopping someone for.
-      if (tooBig || this.statusState() === 'offline') event.preventDefault();
+      if (tooBig || this.rejected.size || this.statusState() === 'offline') event.preventDefault();
     });
     window.addEventListener('online', () => this.retryNow());
   }
@@ -170,9 +189,18 @@ export class Persistence implements StorageBackend {
 
   // -- the queue -------------------------------------------------------------
 
-  /** The offline indicator is a button; this is what it does. */
+  /**
+   * The indicator is a button; this is what it does. Refused documents go back
+   * on the queue: the reason may have been the server's rather than theirs — a
+   * Host it was not yet answering to, a limit that has since been raised — and
+   * asking again is the only way anyone can find out.
+   */
   retryNow(): void {
     this.retryDelay = 0;
+    for (const [key, rejection] of this.rejected) {
+      if (!this.pending.has(key)) this.pending.set(key, rejection.queued);
+    }
+    this.rejected.clear();
     if (this.timer !== null) {
       clearTimeout(this.timer);
       this.timer = null;
@@ -184,9 +212,12 @@ export class Persistence implements StorageBackend {
     const ref = refOf(key);
     if (!ref) return;
     this.pending.set(key, { ref, kind });
-    // Queued is not saved. "Offline" is the truer word while that lasts, and
-    // it has its own way back to "saved" once the queue drains.
-    if (this.statusState() !== 'offline') this.statusState.set('saving');
+    // The document has changed since the server refused it — shorter, perhaps,
+    // or deleted outright — so the answer it was given no longer applies.
+    this.rejected.delete(key);
+    // Queued is not saved. "Offline" and "refused" are the truer words while
+    // they last, and each has its own way back to "saved" as the queue drains.
+    if (!stuck(this.statusState())) this.statusState.set('saving');
     this.schedule(DEBOUNCE);
   }
 
@@ -210,7 +241,20 @@ export class Persistence implements StorageBackend {
         // moment still beacons it and the queue is never seen as empty when it
         // is not. A failure therefore needs nothing done to it: it is already
         // where the retry will find it.
-        await this.send(key, queued);
+        try {
+          await this.send(key, queued);
+        } catch (error) {
+          // Only the server's silence stops the queue. Its refusal stops the
+          // one document, which comes off the queue so the rest can go on.
+          if (!(error instanceof Refused)) throw error;
+          // Written to again while it was in flight: that version has not been
+          // refused, and goes on its own account like any other write.
+          if (this.pending.get(key) !== queued) continue;
+          this.pending.delete(key);
+          this.rejected.set(key, { queued, reason: message(error) });
+          continue;
+        }
+        this.rejected.delete(key);
         // Gone only if this is still the entry that was sent: `enqueue` writes
         // a fresh object every time, so identity is the whole question, and
         // anything queued during the flight has to go on its own account.
@@ -230,11 +274,41 @@ export class Persistence implements StorageBackend {
       return;
     }
     this.retryDelay = 0;
-    this.errorState.set('');
     // Only with nothing left is every document on disk what is on screen,
     // which is what "saved" is written on the indicator to mean.
-    if (this.pending.size) this.schedule(DEBOUNCE);
-    else this.statusState.set('saved');
+    if (this.pending.size) {
+      this.schedule(DEBOUNCE);
+    } else if (this.rejected.size) {
+      this.errorState.set(this.refusal());
+      this.statusState.set('refused');
+    } else {
+      this.errorState.set('');
+      this.statusState.set('saved');
+    }
+  }
+
+  /** What the indicator says: which document, in the server's own words. */
+  private refusal(): string {
+    const [key, rejection] = this.rejected.entries().next().value!;
+    const first = `${this.nameOf(key, rejection.queued)}: ${rejection.reason}`;
+    const others = this.rejected.size - 1;
+    if (!others) return first;
+    return `${first} (and ${others} other ${others === 1 ? 'document' : 'documents'})`;
+  }
+
+  /**
+   * A document by the name its writer would know it by. An id is no use to
+   * anyone reading an indicator, and a deleted document has nothing else left.
+   */
+  private nameOf(key: string, queued: Queued): string {
+    if (queued.ref.collection === 'settings') return 'Your preferences';
+    const document = this.documents.get(key);
+    const title =
+      typeof document === 'object' && document !== null && 'title' in document
+        ? titleOf(document.title)
+        : '';
+    if (title) return title;
+    return queued.ref.collection === 'stories' ? 'A story' : 'A chapter';
   }
 
   private send(key: string, queued: Queued): Promise<void> {
@@ -249,6 +323,16 @@ export class Persistence implements StorageBackend {
     this.lastSeq = Math.max(Date.now(), this.lastSeq + 1);
     return this.lastSeq;
   }
+}
+
+/** A title worth showing, or nothing: a document may carry anything at all. */
+function titleOf(title: unknown): string {
+  return typeof title === 'string' ? title.trim() : '';
+}
+
+/** A state the queue owns until it drains, and that a fresh write must not hide. */
+function stuck(status: SaveStatus): boolean {
+  return status === 'offline' || status === 'refused';
 }
 
 function message(error: unknown): string {

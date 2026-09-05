@@ -10,6 +10,10 @@ class FakeServer {
   failWith: string | null = null;
   /** Takes the request and never answers: a server mid-restart, or a stalled disk. */
   hang = false;
+  /** Keys the server answers with a status and a reason instead of taking them. */
+  readonly refuse = new Map<string, { status: number; error: string }>();
+  /** Keys the server answers 200 to and then drops, as a newer write has won. */
+  readonly skip = new Set<string>();
 
   readonly fetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
     if (this.failWith) throw new TypeError(this.failWith);
@@ -26,6 +30,9 @@ class FakeServer {
     const one = /^\/docs\/(settings|stories|chapters)\/(.+)$/.exec(path);
     if (!one) return this.json({ ok: false }, 404);
     const key = keyOf({ collection: one[1] as 'stories', id: decodeURIComponent(one[2]) });
+    const refusal = this.refuse.get(key);
+    if (refusal) return this.json({ ok: false, error: refusal.error }, refusal.status);
+    if (this.skip.has(key)) return this.json({ ok: true, seq, skipped: true });
     if (method === 'PUT') this.documents.set(key, body);
     if (method === 'DELETE') this.documents.delete(key);
     return this.json({ ok: true, seq, skipped: false });
@@ -315,6 +322,108 @@ describe('Persistence', () => {
     await settle();
 
     expect(server.documents.get('chapter:one')).toEqual({ id: 'one', turn: 2 });
+  });
+
+  it('does not let a document the server refuses hold up the rest', async () => {
+    await persistence.load();
+    // A story the server will not have: an id it refuses, a body past its
+    // limit, a Host it does not answer to. It never becomes acceptable.
+    server.refuse.set('story:bad', { status: 413, error: 'document too large' });
+
+    persistence.write('story:bad', story('bad', 'The Long One'));
+    persistence.write('chapter:one', { id: 'one', turn: 1 });
+    await settle();
+
+    expect(persistence.status()).toBe('refused');
+    // Named, in the server's own words, rather than reported as no network.
+    expect(persistence.error()).toContain('The Long One');
+    expect(persistence.error()).toContain('document too large');
+    // Everything queued behind it went, and goes on going.
+    expect(server.documents.get('chapter:one')).toEqual({ id: 'one', turn: 1 });
+
+    persistence.write('chapter:two', { id: 'two', turn: 1 });
+    await settle();
+    expect(server.documents.get('chapter:two')).toEqual({ id: 'two', turn: 1 });
+    expect(persistence.status()).toBe('refused');
+  });
+
+  it('stops asking for a refused document rather than retrying for ever', async () => {
+    await persistence.load();
+    server.refuse.set('story:bad', { status: 400, error: 'body must be a JSON document' });
+
+    persistence.write('story:bad', story('bad', 'Unparseable'));
+    await settle();
+    const asked = server.requests.filter((request) => request.url.includes('bad')).length;
+    expect(asked).toBe(1);
+
+    // The widening retry would have come round several times over by now.
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(server.requests.filter((request) => request.url.includes('bad'))).toHaveLength(1);
+    expect(persistence.status()).toBe('refused');
+  });
+
+  it('tells a server that will not answer apart from one that will not take this', async () => {
+    await persistence.load();
+    server.failWith = 'Failed to fetch';
+    persistence.write('story:abc', story('abc', 'A'));
+    await settle();
+    expect(persistence.status()).toBe('offline');
+
+    server.failWith = null;
+    server.refuse.set('story:abc', { status: 404, error: 'not found' });
+    persistence.retryNow();
+    await settle();
+
+    expect(persistence.status()).toBe('refused');
+    expect(persistence.error()).toContain('not found');
+  });
+
+  it('tries a refused document again when asked, and settles once it is taken', async () => {
+    await persistence.load();
+    server.refuse.set('chapter:one', { status: 413, error: 'document too large' });
+    persistence.write('chapter:one', { id: 'one', title: 'The Long Scene' });
+    await settle();
+    expect(persistence.status()).toBe('refused');
+
+    // The reader shortened it, or the limit was raised: either way, ask again.
+    server.refuse.delete('chapter:one');
+    persistence.retryNow();
+    await settle();
+
+    expect(persistence.status()).toBe('saved');
+    expect(persistence.error()).toBe('');
+    expect(server.documents.get('chapter:one')).toEqual({ id: 'one', title: 'The Long Scene' });
+  });
+
+  it('does not call a write saved that the server took and dropped', async () => {
+    await persistence.load();
+    // Another window got there first with a higher sequence number, so this
+    // write never reached the disk however cheerful the 200 looked.
+    server.skip.add('story:abc');
+
+    persistence.write('story:abc', story('abc', 'Written here'));
+    await settle();
+
+    expect(persistence.status()).toBe('refused');
+    expect(persistence.error()).toContain('newer version');
+    expect(server.documents.has('story:abc')).toBe(false);
+  });
+
+  it('warns on close about a document the server refused, not only a queue', async () => {
+    await persistence.load();
+    persistence.listen();
+    server.refuse.set('story:bad', { status: 400, error: 'body must be a JSON document' });
+
+    persistence.write('story:bad', story('bad', 'Unparseable'));
+    await settle();
+    expect(persistence.status()).toBe('refused');
+
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+
+    // The queue is empty and everything else is on disk; this one is not, and
+    // closing the tab is the last it will be seen of.
+    expect(event.defaultPrevented).toBe(true);
   });
 
   it('picks the server up again after a failed start', async () => {
