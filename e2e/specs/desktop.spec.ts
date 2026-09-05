@@ -25,6 +25,23 @@ const ELECTRON_DIR = join(ROOT, 'electron');
 
 const ELECTRON_INSTALLED = existsSync(join(ROOT, 'node_modules', 'electron', 'path.txt'));
 
+/**
+ * What Playwright puts in front of the app it launches on Linux, and therefore
+ * what a second launch has to be given too.
+ *
+ * Electron's `chrome-sandbox` arrives from npm without the setuid bit it needs,
+ * and the runner's kernel does not hand out the unprivileged namespaces
+ * Chromium would otherwise use, so a sandboxed Chromium there has no way to
+ * drop privileges and aborts before it has run a line of this app's code. The
+ * second launch below was spawned bare, so on CI it died in Chromium's startup
+ * rather than in `requestSingleInstanceLock`, and this test had never once
+ * passed on Linux — which is issue #45.
+ *
+ * Matching the flag is also the only way the two processes are comparable: one
+ * sandboxed and one not is not the pair a second click makes.
+ */
+const SANDBOX_ARGS = process.platform === 'linux' ? ['--no-sandbox'] : [];
+
 // The whole point of this spec is that it runs before a release. Skipping it
 // because Electron's binary never downloaded would publish installers nothing
 // had opened, so in CI a missing prerequisite is a failure, not a skip.
@@ -103,18 +120,32 @@ test('hands a second launch back to the window already open', async () => {
     'dist',
     (await readFile(join(ROOT, 'node_modules', 'electron', 'path.txt'), 'utf8')).trim(),
   );
-  const asked = app.evaluate(
-    ({ app: electronApp }) =>
-      new Promise<boolean>((resolve_) => electronApp.once('second-instance', () => resolve_(true))),
-  );
+  // Listening before the second process exists, so the event cannot be missed.
+  // The rejection is turned into its message rather than left floating: when
+  // this test failed below, `afterAll` closed the app underneath this promise
+  // and the unhandled rejection was reported *over* the real failure. That is
+  // what made #45 look like a primary killed mid-test, and cost three red runs.
+  const asked = app
+    .evaluate(
+      ({ app: electronApp }) =>
+        new Promise<boolean>((resolve_) =>
+          electronApp.once('second-instance', () => resolve_(true)),
+        ),
+    )
+    .catch((error: Error) => error.message);
 
-  const second = spawn(binary, [ELECTRON_DIR], {
+  const second = spawn(binary, [...SANDBOX_ARGS, ELECTRON_DIR], {
     env: { ...process.env, LAMPLIT_USER_DATA: userData },
-    stdio: 'ignore',
+    stdio: ['ignore', 'ignore', 'pipe'],
   });
+  // Kept so that a second launch which dies says why, in the failure itself.
+  // Without it the only evidence was an exit code with nothing attached to it.
+  let complaint = '';
+  second.stderr.setEncoding('utf8');
+  second.stderr.on('data', (chunk: string) => (complaint += chunk));
   const [code] = (await once(second, 'exit')) as [number | null];
 
-  expect(code).toBe(0);
+  expect(code, complaint.trim()).toBe(0);
   await expect(asked).resolves.toBe(true);
   expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
 });

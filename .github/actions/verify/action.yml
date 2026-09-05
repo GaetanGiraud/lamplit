@@ -3,7 +3,8 @@ description: >
   Everything a change has to pass before it is trusted: install, lint,
   formatting, the docs and release-notes checks, unit tests, the production
   build, a packaged copy started and asked for /api/health, and the end-to-end
-  suite. ci.yml runs it on every push and release.yml runs it before building
+  suite. Whatever fails leaves its Playwright report and traces behind as an
+  artifact. ci.yml runs it on every push and release.yml runs it before building
   installers, so the two cannot drift apart.
 
 # A composite action rather than a reusable workflow because the release job
@@ -112,3 +113,20 @@ runs:
       if: runner.os == 'Linux'
       run: xvfb-run --auto-servernum npm run e2e:quick
       shell: bash
+
+    # The evidence, and the only reason this step exists: a suite that fails
+    # here fails on a machine nobody can log into, and the console tail is not
+    # enough to tell a broken app from a broken test. Issue #45 was three red
+    # runs and a hypothesis for want of these two folders. `failure()` covers
+    # every step above too — a build that will not build leaves nothing to
+    # upload, and `ignore` says so quietly instead of failing the failure.
+    - name: Keep what a failing run saw
+      if: failure()
+      uses: actions/upload-artifact@v7
+      with:
+        name: e2e-${{ runner.os }}
+        path: |
+          e2e/playwright-report
+          e2e/test-results
+        if-no-files-found: ignore
+        retention-days: 14

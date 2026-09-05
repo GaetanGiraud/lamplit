@@ -17,7 +17,13 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   fullyParallel: false,
   workers: 1,
-  reporter: process.env.CI ? 'github' : [['list']],
+  // In CI, `github` is what annotates the failing line in the diff, and the
+  // HTML report is what a person opens afterwards. Both, because a run that
+  // fails only on a machine nobody can log into is a run whose evidence has to
+  // survive it: `.github/actions/verify` uploads this report and the traces
+  // beside it as an artifact, which is what issue #45 spent three red runs
+  // without.
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   use: { trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
