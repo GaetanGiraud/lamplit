@@ -1,13 +1,11 @@
 import { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { STORY_ID, seedConnectedSettings, seedStory } from './helpers';
+import { openPanel, STORY_ID } from './helpers';
 
 /**
  * A colour per character: handed out without anyone choosing, kept across a
  * reload, and changed from the swatch beside the name.
  */
-
-const SCENE = 'The lantern room, an hour before dusk.';
 
 /** As 0.1.0 wrote them: a name, a description, and nothing about colour. */
 const CAST = [
@@ -37,19 +35,8 @@ async function colours(swatches: Locator, expected: number): Promise<string[]> {
   );
 }
 
-/** Idempotent: a reload brings the panel back open, because it remembers. */
-async function openPanel(page: Page): Promise<void> {
-  const handle = page.getByRole('button', { name: 'Open the chapter panel' });
-  if (await handle.count()) await handle.click();
-  await expect(
-    page.locator('ms-chapter-panel').getByRole('button', { name: 'Close the chapter panel' }),
-  ).toBeVisible();
-}
-
-test('four characters get four colours, and nobody was asked', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE, mode: 'roleplay' });
-  await page.goto(server.url);
+test('four characters get four colours, and nobody was asked', async ({ page, app }) => {
+  await app.open({ mode: 'roleplay' });
 
   const sheet = page.getByRole('dialog');
   await page.getByRole('button', { name: 'Story', exact: true }).click();
@@ -59,11 +46,9 @@ test('four characters get four colours, and nobody was asked', async ({ page, se
   expect(new Set(seen).size).toBe(4);
 });
 
-test('the eleventh character wraps round to the first colour', async ({ page, server }) => {
-  await seedConnectedSettings(server);
+test('the eleventh character wraps round to the first colour', async ({ page, app }) => {
   // Ten already, coloured on load from their place in the cast.
-  await seedStory(server, {
-    scene: SCENE,
+  await app.seed({
     mode: 'roleplay',
     characters: Array.from({ length: 10 }, (_, i) => ({
       id: `c${i}`,
@@ -72,7 +57,7 @@ test('the eleventh character wraps round to the first colour', async ({ page, se
       enabled: true,
     })),
   });
-  await page.goto(server.url);
+  await app.visit();
 
   const sheet = page.getByRole('dialog');
   await page.getByRole('button', { name: 'Story', exact: true }).click();
@@ -88,10 +73,9 @@ test('the eleventh character wraps round to the first colour', async ({ page, se
 test('a story from before the palette opens coloured, and stays that way', async ({
   page,
   server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE, mode: 'roleplay', characters: CAST });
-  await page.goto(server.url);
+  await app.open({ mode: 'roleplay', characters: CAST });
 
   await openPanel(page);
   const before = await colours(dots(page), 4);
@@ -111,15 +95,12 @@ test('a story from before the palette opens coloured, and stays that way', async
   expect(await colours(dots(page), 4)).toEqual(before);
 });
 
-test('changing a colour from the swatch redraws the row at once', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, {
-    scene: SCENE,
+test('changing a colour from the swatch redraws the row at once', async ({ page, app }) => {
+  await app.open({
     mode: 'roleplay',
     characters: CAST,
     roleplay: { casting: 'one-at-a-time', activeCharacterId: 'nell' },
   });
-  await page.goto(server.url);
   await openPanel(page);
 
   const swatch = page.getByRole('button', { name: 'Nell is Ember. Change it.' });
@@ -140,11 +121,9 @@ test('changing a colour from the swatch redraws the row at once', async ({ page,
 
 test('a colour of their own is set under Preferences, and given back there', async ({
   page,
-  server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE, mode: 'roleplay', characters: CAST });
-  await page.goto(server.url);
+  await app.open({ mode: 'roleplay', characters: CAST });
   await openPanel(page);
 
   await page.getByRole('button', { name: 'Preferences' }).click();

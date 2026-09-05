@@ -94,6 +94,12 @@ Each test is isolated by construction: nothing carries over, because there is no
 carry over in. That is why `npm run e2e` builds first; `npm run e2e:quick` skips the build, and
 skips everything if there is nothing built.
 
+The seeding itself is the `app` fixture beside it, written once: `app.open()` is a connected app
+with one story, its opening chapter already on a scene, and `app.seed()` and `app.visit()` are the
+two halves of that for the specs that put something else on disk in between. A spec that says
+`app.open({ scene: '' })` is asking for the state before anyone has written a scene, and a spec
+that names a scene of its own is saying the words in it matter.
+
 - **`persistence.spec.ts`** — the disk as the story: documents written as the UI changes them, a
   reload coming back to what is on disk rather than to what was there before, a second browser
   seeing the same story, the server going away mid-chat and catching up, two tabs, deleting a

@@ -1,8 +1,6 @@
 import type { Page, Route } from '@playwright/test';
-import { composer, openPreferences, seedConnectedSettings, seedStory } from './helpers';
+import { composer, openPreferences } from './helpers';
 import { expect, test } from './fixtures';
-
-const SCENE = 'The keeper’s cottage, late afternoon, low tide. The door is unlatched.';
 
 /**
  * What the server would answer if 0.2.0 had been published. The real request to
@@ -43,16 +41,15 @@ async function fakeUpdates(page: Page, body: unknown): Promise<string[]> {
 }
 
 test.describe('a newer version', () => {
-  test.beforeEach(async ({ server }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE });
+  test.beforeEach(async ({ app }) => {
+    await app.seed();
   });
 
   const pill = (page: Page) => page.getByRole('button', { name: /available$/ });
 
-  test('says so quietly in the top bar, and the sheet has the notes', async ({ page, server }) => {
+  test('says so quietly in the top bar, and the sheet has the notes', async ({ page, app }) => {
     await fakeUpdates(page, NEWER);
-    await page.goto(server.url);
+    await app.visit();
 
     // Quiet: a pill, and nothing over the page being written on.
     await expect(pill(page)).toHaveText('0.2.0 available');
@@ -71,17 +68,17 @@ test.describe('a newer version', () => {
     await expect(sheet.locator('.notes br')).toHaveCount(0);
   });
 
-  test('says nothing at all when this is the newest one', async ({ page, server }) => {
+  test('says nothing at all when this is the newest one', async ({ page, app }) => {
     await fakeUpdates(page, NOTHING_NEWER);
-    await page.goto(server.url);
+    await app.visit();
 
     await expect(page.locator('ms-top-bar')).toContainText('Chapters');
     await expect(pill(page)).toHaveCount(0);
   });
 
-  test('is not asked for when the check is switched off', async ({ page, server }) => {
+  test('is not asked for when the check is switched off', async ({ page, server, app }) => {
     const asked = await fakeUpdates(page, NEWER);
-    await page.goto(server.url);
+    await app.visit();
     await expect(pill(page)).toBeVisible();
     expect(asked.length).toBe(1);
 
@@ -106,9 +103,9 @@ test.describe('a newer version', () => {
     expect(asked.length).toBe(1);
   });
 
-  test('carries on as before when nothing answers', async ({ page, server }) => {
+  test('carries on as before when nothing answers', async ({ page, app }) => {
     await page.route('**/api/updates', (route) => route.abort('failed'));
-    await page.goto(server.url);
+    await app.visit();
 
     // The app is the app: no pill, no error, and a chapter that can be written.
     await expect(pill(page)).toHaveCount(0);
@@ -118,14 +115,13 @@ test.describe('a newer version', () => {
 });
 
 test.describe('the release notes', () => {
-  test.beforeEach(async ({ server }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE });
+  test.beforeEach(async ({ app }) => {
+    await app.seed();
   });
 
-  test('are in About, with nothing pending', async ({ page, server }) => {
+  test('are in About, with nothing pending', async ({ page, app }) => {
     await fakeUpdates(page, NOTHING_NEWER);
-    await page.goto(server.url);
+    await app.visit();
     await expect(page.locator('ms-top-bar')).toContainText('Chapters');
 
     await page.getByRole('button', { name: 'More actions' }).click();
@@ -138,9 +134,9 @@ test.describe('the release notes', () => {
     await expect(sheet).toContainText('0.2.0 — the second one');
   });
 
-  test('say why they are missing rather than showing an empty sheet', async ({ page, server }) => {
+  test('say why they are missing rather than showing an empty sheet', async ({ page, app }) => {
     await fakeUpdates(page, { ...NEWER, enabled: false, checked: false, newer: [], releases: [] });
-    await page.goto(server.url);
+    await app.visit();
     await expect(page.locator('ms-top-bar')).toContainText('Chapters');
 
     await page.getByRole('button', { name: 'More actions' }).click();

@@ -8,6 +8,14 @@ export const STORY_ID = 'story-under-test';
 export const CHAPTER_ID = 'chapter-under-test';
 
 /**
+ * The scene a seeded chapter is opened on. One text for the whole suite, so
+ * that a spec writing a scene of its own is saying the words in it matter — as
+ * the palette specs' weather does, and as the “keeper” in this one does to the
+ * lore that fires on it.
+ */
+export const SCENE = 'The keeper’s cottage, late afternoon, low tide. The door is unlatched.';
+
+/**
  * Writes `settings.json` into the server's data folder, so specs start from a
  * connected app without walking the Connection modal every time. One spec does
  * walk it, which is what keeps this shape honest.
@@ -70,6 +78,20 @@ export async function openPromptPreview(page: Page): Promise<void> {
   // still growing is measured against geometry that is about to change — which
   // is how a click lands on the wrong element and a scroll ends up at the foot.
   await expect(page.locator('.mdc-dialog--opening')).toHaveCount(0);
+}
+
+/**
+ * The blocks of the system message, top to bottom; the rest of the sheet is
+ * not one. Read as text content rather than as rendered text, because the
+ * headings are set in small capitals by the stylesheet.
+ */
+export async function promptBlocks(page: Page): Promise<string[]> {
+  const names = await page
+    .locator('mat-dialog-content .block')
+    .filter({ has: page.locator('.handle, .why') })
+    .locator('.name')
+    .allTextContents();
+  return names.map((name) => name.trim());
 }
 
 export interface SeedStory {
@@ -222,6 +244,64 @@ export async function waitForTurn(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: 'Stop' })).toBeHidden({
     timeout: 20_000,
   });
+}
+
+/**
+ * Answers the review sheet a close puts up: the summary the model offered,
+ * rewritten as the writer's own, and the button that ends the chapter.
+ *
+ * Its own function because the sheet has two ways in — the Close chapter
+ * button, and New chapter, which closes this one on the way.
+ */
+export async function confirmClose(page: Page, summary: string): Promise<void> {
+  const review = page.getByRole('dialog');
+  const written = review.locator('textarea');
+  // The model's summary arrives after the sheet does, and filling the box
+  // before it lands is a race the model wins.
+  await expect(written).not.toBeEmpty();
+  await written.fill(summary);
+  await review.getByRole('button', { name: 'Close the chapter' }).click();
+}
+
+/** Closes the chapter being written, from the button that offers it. */
+export async function closeChapter(page: Page, summary: string): Promise<void> {
+  await page.getByRole('button', { name: 'Close chapter' }).click();
+  await confirmClose(page, summary);
+}
+
+/** Writes the scene the sheet on screen is asking for, and opens the chapter. */
+export async function openChapter(page: Page, scene: string): Promise<void> {
+  const sheet = page.getByRole('dialog');
+  await sheet.locator('textarea.scene').fill(scene);
+  await sheet.getByRole('button', { name: 'Open the chapter' }).click();
+}
+
+/** The panel beside the page: the scene, the narrator, the persona and the cast. */
+export function chapterPanel(page: Page): Locator {
+  return page.locator('ms-chapter-panel');
+}
+
+/** One of the panel's sections, by the name it is marked with. */
+export function panelSection(page: Page, name: string): Locator {
+  return chapterPanel(page).locator(`[data-section="${name}"]`);
+}
+
+/** Idempotent: a reload brings the panel back open, because it remembers. */
+export async function openPanel(page: Page): Promise<void> {
+  const handle = page.getByRole('button', { name: 'Open the chapter panel' });
+  if (await handle.count()) await handle.click();
+  await expect(
+    chapterPanel(page).getByRole('button', { name: 'Close the chapter panel' }),
+  ).toBeVisible();
+}
+
+/**
+ * What the page is actually drawn on, whoever put it there. Read off the body
+ * rather than out of the custom property: the property is a `light-dark()` pair
+ * until something overrides it, and these specs compare the two states.
+ */
+export function pageColour(page: Page): Promise<string> {
+  return page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 }
 
 /** Opens Preferences, which arrives with Reading already open. */

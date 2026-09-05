@@ -1,13 +1,6 @@
 import { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import {
-  STORY_ID,
-  captureRequests,
-  seedConnectedSettings,
-  seedStory,
-  send,
-  waitForTurn,
-} from './helpers';
+import { captureRequests, send, STORY_ID, waitForTurn } from './helpers';
 import type { PersistenceServer } from './persistence-server';
 
 /**
@@ -15,8 +8,6 @@ import type { PersistenceServer } from './persistence-server';
  * story says otherwise, proposed rather than written, and never in the way of
  * the close itself.
  */
-
-const SCENE = 'The lantern room, an hour before dusk.';
 
 /** The town the fake endpoint will propose an entry for, planted in the story. */
 const TOWN = 'I ask her how far it is to Ashport.';
@@ -56,11 +47,10 @@ async function entries(server: PersistenceServer): Promise<Record<string, any>[]
   return ((story?.['world'] as Record<string, any>)?.['entries'] ?? []) as Record<string, any>[];
 }
 
-test('off: closing a chapter makes exactly one request', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
+test('off: closing a chapter makes exactly one request', async ({ page, app }) => {
+  await app.seed();
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, TOWN);
   await waitForTurn(page);
@@ -79,11 +69,10 @@ test('off: closing a chapter makes exactly one request', async ({ page, server }
   await expect(review(page).getByRole('button', { name: 'Propose lore' })).toBeVisible();
 });
 
-test('on: the chapter is read back, and what is ticked is filed', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
+test('on: the chapter is read back, and what is ticked is filed', async ({ page, server, app }) => {
+  await app.seed();
   await turnOn(server);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, TOWN);
   await waitForTurn(page);
@@ -116,12 +105,12 @@ test('on: the chapter is read back, and what is ticked is filed', async ({ page,
 test('a filed entry reaches the next chapter’s prompt when it is mentioned', async ({
   page,
   server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
+  await app.seed();
   await turnOn(server);
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, TOWN);
   await waitForTurn(page);
@@ -143,11 +132,14 @@ test('a filed entry reaches the next chapter’s prompt when it is mentioned', a
   expect(system.content).toContain('nine hundred at the mouth of the estuary');
 });
 
-test('an update shows what it would overwrite, and waits to be asked', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE, entries: [TOMAS] });
+test('an update shows what it would overwrite, and waits to be asked', async ({
+  page,
+  server,
+  app,
+}) => {
+  await app.seed({ entries: [TOMAS] });
   await turnOn(server);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, `${TOWN} And whether Old Tomas ever came back.`);
   await waitForTurn(page);
@@ -173,11 +165,10 @@ test('an update shows what it would overwrite, and waits to be asked', async ({ 
   expect(tomas?.['content']).toContain('nineteen years');
 });
 
-test('ticking the update rewrites the entry where it stands', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE, entries: [TOMAS] });
+test('ticking the update rewrites the entry where it stands', async ({ page, server, app }) => {
+  await app.seed({ entries: [TOMAS] });
   await turnOn(server);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, `${TOWN} And whether Old Tomas ever came back.`);
   await waitForTurn(page);
@@ -199,10 +190,8 @@ test('ticking the update rewrites the entry where it stands', async ({ page, ser
   expect((await entries(server)).filter((e) => e['title'] === 'Old Tomas')).toHaveLength(1);
 });
 
-test('the button proposes on a story that never asked for it', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+test('the button proposes on a story that never asked for it', async ({ page, server, app }) => {
+  await app.open();
 
   await send(page, TOWN);
   await waitForTurn(page);
@@ -217,19 +206,18 @@ test('the button proposes on a story that never asked for it', async ({ page, se
   expect(await entries(server)).toEqual([]);
 });
 
-test('an endpoint that refuses response_format still answers', async ({ page, server }) => {
+test('an endpoint that refuses response_format still answers', async ({ page, server, app }) => {
   // The model whose row 400s on `response_format`, the way plenty of local
   // servers do; the retry drops it and the answer comes back fenced.
-  await seedConnectedSettings(server);
+  await app.seed();
   const settings = (await server.document('settings'))!;
   const connection = settings['connection'] as Record<string, unknown>;
   await server.seed({
     settings: { ...settings, connection: { ...connection, model: 'fake/no-json-schema' } },
   });
-  await seedStory(server, { scene: SCENE });
   await turnOn(server);
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, TOWN);
   await waitForTurn(page);
@@ -243,11 +231,14 @@ test('an endpoint that refuses response_format still answers', async ({ page, se
   expect(asked[1]['response_format']).toBeUndefined();
 });
 
-test('a failed extraction is a muted line, and the close still works', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
+test('a failed extraction is a muted line, and the close still works', async ({
+  page,
+  server,
+  app,
+}) => {
+  await app.seed();
   await turnOn(server);
-  await page.goto(server.url);
+  await app.visit();
 
   // !nolore fails the second request and only the second request.
   await send(page, `${TOWN} !nolore`);
@@ -268,11 +259,11 @@ test('a failed extraction is a muted line, and the close still works', async ({ 
 test('cancelling the review leaves the chapter open and the world alone', async ({
   page,
   server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE, storySoFar: 'Mara arrived on the island.' });
+  await app.seed({ storySoFar: 'Mara arrived on the island.' });
   await turnOn(server);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, TOWN);
   await waitForTurn(page);

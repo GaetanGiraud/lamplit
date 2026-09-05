@@ -1,5 +1,31 @@
 import { test as base } from '@playwright/test';
 import { IS_BUILT, PersistenceServer } from './persistence-server';
+import { SCENE, SeedStory, seedConnectedSettings, seedDeveloperMode, seedStory } from './helpers';
+
+/** What a seeded app is, beyond the one story `seedStory` writes. */
+export interface AppOptions extends SeedStory {
+  /**
+   * The scene the chapter is opened on, `SCENE` unless it is said otherwise.
+   * The empty string is the state a chapter starts in before anyone has
+   * written one: the sheet asking for it is the first thing on screen.
+   */
+  scene?: string;
+  /** Developer mode, which the context pill and the prompt preview live behind. */
+  developerMode?: boolean;
+  /** Generation settings other than the ones `seedConnectedSettings` writes. */
+  generation?: Record<string, unknown>;
+}
+
+/**
+ * A connected app with one story in it, which is where all but a handful of
+ * these specs begin. `open` is the whole of it; `seed` and `visit` are the two
+ * halves, for the specs that put something else on disk in between.
+ */
+export interface App {
+  seed(options?: AppOptions): Promise<void>;
+  visit(): Promise<void>;
+  open(options?: AppOptions): Promise<void>;
+}
 
 /**
  * Every spec gets its own server, on its own port, with its own empty data
@@ -11,12 +37,31 @@ import { IS_BUILT, PersistenceServer } from './persistence-server';
  * A side effect worth having: each test is isolated by construction. Nothing
  * carries over, because there is nowhere for it to carry over in.
  */
-export const test = base.extend<{ server: PersistenceServer }>({
+export const test = base.extend<{ server: PersistenceServer; app: App }>({
   server: async ({}, use) => {
     const server = await PersistenceServer.create();
     await server.start();
     await use(server);
     await server.dispose();
+  },
+
+  app: async ({ page, server }, use) => {
+    const app: App = {
+      async seed({ developerMode, generation, ...story } = {}) {
+        await seedConnectedSettings(server, 'test-key', generation);
+        // After the settings document, which it reads and writes back.
+        if (developerMode) await seedDeveloperMode(server);
+        await seedStory(server, { scene: SCENE, ...story });
+      },
+      async visit() {
+        await page.goto(server.url);
+      },
+      async open(options) {
+        await app.seed(options);
+        await app.visit();
+      },
+    };
+    await use(app);
   },
 });
 

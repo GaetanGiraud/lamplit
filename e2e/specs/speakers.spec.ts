@@ -1,6 +1,6 @@
 import { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { CHAPTER_ID, seedConnectedSettings, seedStory, send, waitForTurn } from './helpers';
+import { CHAPTER_ID, openPanel, panelSection, send, waitForTurn } from './helpers';
 import type { PersistenceServer } from './persistence-server';
 
 /**
@@ -8,8 +8,6 @@ import type { PersistenceServer } from './persistence-server';
  * own colour, once per run of turns — and nothing at all where the page has no
  * name to put on a line.
  */
-
-const SCENE = 'The lantern room, an hour before dusk. Rain on the seaward glass.';
 
 const CAST = [
   { id: 'nell', name: 'Nell', description: 'Kept the light with Tomas.', enabled: true },
@@ -55,10 +53,9 @@ async function seedMessages(
 test('one at a time: each speaker is named, and a run of theirs is named once', async ({
   page,
   server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, {
-    scene: SCENE,
+  await app.seed({
     mode: 'roleplay',
     characters: CAST,
     persona: MARA,
@@ -71,7 +68,7 @@ test('one at a time: each speaker is named, and a run of theirs is named once', 
     said('user', 'I put the lantern down.'),
     said('assistant', 'The old man on the stair says nothing.', CAST[1]),
   ]);
-  await page.goto(server.url);
+  await app.visit();
 
   await expect(page.locator('article[data-role]')).toHaveCount(5);
   // Five messages, four labels: Nell's second turn is Nell still talking.
@@ -85,26 +82,21 @@ test('one at a time: each speaker is named, and a run of theirs is named once', 
 test('switching mid-chapter signs the next answer, and leaves the last one alone', async ({
   page,
   server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, {
-    scene: SCENE,
+  await app.open({
     mode: 'roleplay',
     characters: CAST,
     persona: MARA,
     roleplay: { casting: 'one-at-a-time', activeCharacterId: 'nell' },
   });
-  await page.goto(server.url);
 
   await send(page, 'I climb the stairs.');
   await waitForTurn(page);
   await expect(speakers(page)).toHaveText(['Mara', 'Nell']);
 
-  await page.getByRole('button', { name: 'Open the chapter panel' }).click();
-  await page
-    .locator('ms-chapter-panel [data-section="cast"]')
-    .getByRole('button', { name: 'Play Tomas' })
-    .click();
+  await openPanel(page);
+  await panelSection(page, 'cast').getByRole('button', { name: 'Play Tomas' }).click();
 
   await send(page, 'I try the latch.');
   await waitForTurn(page);
@@ -120,25 +112,22 @@ test('switching mid-chapter signs the next answer, and leaves the last one alone
     .toBe('Tomas');
 });
 
-test('the narrator’s page carries no labels at all', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE, mode: 'narrator', characters: CAST, persona: MARA });
+test('the narrator’s page carries no labels at all', async ({ page, server, app }) => {
+  await app.seed({ mode: 'narrator', characters: CAST, persona: MARA });
   await seedMessages(server, [
     said('user', 'I climb the stairs.'),
     // Written when the story was cast, and read back after switching to a
     // narrator: the page is the narrator's and the reader knows it.
     said('assistant', 'You took your time.', CAST[0]),
   ]);
-  await page.goto(server.url);
+  await app.visit();
 
   await expect(page.locator('article[data-role]')).toHaveCount(2);
   await expect(speakers(page)).toHaveCount(0);
 });
 
-test('a rename leaves what she already said in her old name', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, {
-    scene: SCENE,
+test('a rename leaves what she already said in her old name', async ({ page, server, app }) => {
+  await app.seed({
     mode: 'roleplay',
     characters: CAST,
     persona: MARA,
@@ -148,7 +137,7 @@ test('a rename leaves what she already said in her old name', async ({ page, ser
     said('user', 'I climb the stairs.'),
     said('assistant', 'You took your time.', CAST[0]),
   ]);
-  await page.goto(server.url);
+  await app.visit();
 
   const sheet = page.getByRole('dialog');
   await page.getByRole('button', { name: 'Story', exact: true }).click();
@@ -166,10 +155,8 @@ test('a rename leaves what she already said in her old name', async ({ page, ser
   await expect(speakers(page)).toHaveText(['Mara', 'Nell', 'Mara', 'Anna']);
 });
 
-test('a character who has been deleted is still named, quietly', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, {
-    scene: SCENE,
+test('a character who has been deleted is still named, quietly', async ({ page, server, app }) => {
+  await app.seed({
     mode: 'roleplay',
     characters: CAST,
     persona: MARA,
@@ -179,7 +166,7 @@ test('a character who has been deleted is still named, quietly', async ({ page, 
     said('user', 'I climb the stairs.'),
     said('assistant', 'You took your time.', CAST[0]),
   ]);
-  await page.goto(server.url);
+  await app.visit();
 
   const nellsInk = await inkOf(speakers(page).nth(1));
   const readersInk = await inkOf(speakers(page).first());

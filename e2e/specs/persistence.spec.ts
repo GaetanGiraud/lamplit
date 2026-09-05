@@ -1,14 +1,5 @@
-import {
-  CHAPTER_ID,
-  STORY_ID,
-  seedConnectedSettings,
-  seedStory,
-  send,
-  waitForTurn,
-} from './helpers';
+import { CHAPTER_ID, send, STORY_ID, waitForTurn } from './helpers';
 import { expect, test } from './fixtures';
-
-const SCENE = 'The lantern room at dusk. The lamp is cold and the stairs are wet.';
 
 /**
  * The disk is the story. Every assertion here is made against the JSON files
@@ -16,10 +7,12 @@ const SCENE = 'The lantern room at dusk. The lamp is cold and the stairs are wet
  * wrong — and the file is the only copy there is.
  */
 test.describe('persistence', () => {
-  test('writes each document to its own file, as the app changes it', async ({ page, server }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE });
-    await page.goto(server.url);
+  test('writes each document to its own file, as the app changes it', async ({
+    page,
+    server,
+    app,
+  }) => {
+    await app.open();
 
     // What was seeded is what the app opened; nothing was invented alongside it.
     expect(await server.ids('stories')).toEqual([STORY_ID]);
@@ -43,10 +36,8 @@ test.describe('persistence', () => {
     expect(messages[1].content.length).toBeGreaterThan(0);
   });
 
-  test('a reload comes back to what is on disk, and only that', async ({ page, server }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE });
-    await page.goto(server.url);
+  test('a reload comes back to what is on disk, and only that', async ({ page, server, app }) => {
+    await app.open();
 
     await send(page, 'Two lines, please.');
     await waitForTurn(page);
@@ -69,10 +60,9 @@ test.describe('persistence', () => {
     page,
     browser,
     server,
+    app,
   }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE, title: 'The Lighthouse' });
-    await page.goto(server.url);
+    await app.open({ title: 'The Lighthouse' });
     await send(page, 'Two lines, please.');
     await waitForTurn(page);
     await expect
@@ -92,10 +82,9 @@ test.describe('persistence', () => {
   test('keeps writing while the server is down, and catches up when it is back', async ({
     page,
     server,
+    app,
   }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE });
-    await page.goto(server.url);
+    await app.open();
 
     await server.stop();
 
@@ -120,10 +109,9 @@ test.describe('persistence', () => {
     page,
     context,
     server,
+    app,
   }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE });
-    await page.goto(server.url);
+    await app.open();
 
     const second = await context.newPage();
     await second.goto(server.url);
@@ -141,10 +129,8 @@ test.describe('persistence', () => {
     await second.close();
   });
 
-  test('deleting a story takes its files with it', async ({ page, server }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE });
-    await page.goto(server.url);
+  test('deleting a story takes its files with it', async ({ page, server, app }) => {
+    await app.open();
 
     await page.getByRole('button', { name: /The Lighthouse/ }).click();
     await page.getByRole('menuitem', { name: 'Delete story…' }).click();
@@ -156,12 +142,11 @@ test.describe('persistence', () => {
     await expect.poll(() => server.ids('chapters')).not.toContain(CHAPTER_ID);
   });
 
-  test('says so plainly when the documents cannot be read', async ({ page, server }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE });
+  test('says so plainly when the documents cannot be read', async ({ page, server, app }) => {
+    await app.seed();
     // The app is served; the documents behind it are not.
     await page.route(/\/api\/docs\//, (route) => route.abort());
-    await page.goto(server.url);
+    await app.visit();
 
     // No documents means no app: an empty one would look like a fresh install
     // and would be written over the real story on the next keystroke.

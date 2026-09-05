@@ -1,13 +1,6 @@
 import { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import {
-  composer,
-  fillProse,
-  seedConnectedSettings,
-  seedStory,
-  send,
-  waitForTurn,
-} from './helpers';
+import { composer, fillProse, send, waitForTurn } from './helpers';
 
 /**
  * The composer is the end of the page, not a dock under it.
@@ -16,8 +9,6 @@ import {
  * long answer streams, what is on screen once the reader has scrolled up out of
  * it, and how a writer gets back to the box without going to look for it.
  */
-
-const SCENE = 'The lantern room, an hour before dusk.';
 
 /** The one scrollport. Everything in the chapter is inside it. */
 function scroller(page: Page) {
@@ -47,11 +38,9 @@ const jump = (page: Page) => page.getByRole('button', { name: 'Jump to latest' }
 
 test('pinned at the bottom, the composer is on screen the whole way through a long answer', async ({
   page,
-  server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+  await app.open();
 
   await send(page, '!long');
   // Mid-stream, not only after it: the point is that it never goes away.
@@ -70,11 +59,9 @@ test('pinned at the bottom, the composer is on screen the whole way through a lo
 
 test('scrolled up, the page is text to the bottom edge, and Jump brings the end back', async ({
   page,
-  server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+  await app.open();
 
   await send(page, '!long');
   await waitForTurn(page);
@@ -92,10 +79,8 @@ test('scrolled up, the page is text to the bottom edge, and Jump brings the end 
   );
 });
 
-test('a chapter opens at its end, however the last one was left', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+test('a chapter opens at its end, however the last one was left', async ({ page, app }) => {
+  await app.open();
 
   await send(page, '!long');
   await waitForTurn(page);
@@ -126,11 +111,9 @@ test('a chapter opens at its end, however the last one was left', async ({ page,
 
 test('typing with nothing focused goes into the composer, wherever the reader is', async ({
   page,
-  server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+  await app.open();
 
   await send(page, '!long');
   await waitForTurn(page);
@@ -148,10 +131,8 @@ test('typing with nothing focused goes into the composer, wherever the reader is
   await expect(jump(page)).toBeHidden();
 });
 
-test('a letter pressed inside a dialog stays in the dialog', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+test('a letter pressed inside a dialog stays in the dialog', async ({ page, app }) => {
+  await app.open();
 
   await page.getByRole('button', { name: 'Story', exact: true }).click();
   const sheet = page.getByRole('dialog');
@@ -161,11 +142,9 @@ test('a letter pressed inside a dialog stays in the dialog', async ({ page, serv
   await expect(composer(page)).toHaveText('');
 });
 
-test('at 390px the chapter is text until the end of it', async ({ page, server }) => {
+test('at 390px the chapter is text until the end of it', async ({ page, app }) => {
   await page.setViewportSize({ width: 390, height: 780 });
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+  await app.open();
 
   await send(page, '!long');
   await waitForTurn(page);
@@ -183,12 +162,10 @@ test('at 390px the chapter is text until the end of it', async ({ page, server }
 
 test('the composer grows as it is written into without pushing itself off the page', async ({
   page,
-  server,
+  app,
 }) => {
   await page.setViewportSize({ width: 900, height: 560 });
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+  await app.open();
 
   await send(page, '!long');
   await waitForTurn(page);
@@ -208,10 +185,8 @@ test('the composer grows as it is written into without pushing itself off the pa
  * it, all of it, and that the page it renders into is still a page. What the
  * paragraphs cost is measured in `core.spec.ts`, where a budget can be fixed.
  */
-test('a looping answer streams without taking the page with it', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+test('a looping answer streams without taking the page with it', async ({ page, app }) => {
+  await app.open();
 
   await send(page, '!loop');
   // Mid-stream, not only after it: the page is still drawing and still ends

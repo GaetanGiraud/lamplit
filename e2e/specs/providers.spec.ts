@@ -1,5 +1,5 @@
 import { expect, test } from './fixtures';
-import { FAKE_API_URL, seedConnectedSettings, seedStory } from './helpers';
+import { FAKE_API_URL } from './helpers';
 
 /**
  * The provider list is data (`app/src/app/core/providers.ts`), and the unit
@@ -8,10 +8,8 @@ import { FAKE_API_URL, seedConnectedSettings, seedStory } from './helpers';
  * belonged to the endpoint just left.
  */
 test.describe('choosing a provider', () => {
-  test.beforeEach(async ({ page, server }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: 'A quiet room.' });
-    await page.goto(server.url);
+  test.beforeEach(async ({ page, app }) => {
+    await app.open();
     await page.keyboard.press('Control+k');
     await expect(page.getByRole('dialog').getByText('Connection')).toBeVisible();
   });
@@ -80,10 +78,8 @@ test.describe('choosing a provider', () => {
  * A shortcut that answers while its own sheet is on screen stacks a second
  * one over the first — and a key held down stacks one per repeat.
  */
-test('opens one Connection sheet however many times it is asked for', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: 'A quiet room.' });
-  await page.goto(server.url);
+test('opens one Connection sheet however many times it is asked for', async ({ page, app }) => {
+  await app.open();
 
   await page.keyboard.press('Control+k');
   await expect(page.locator('mat-dialog-container')).toHaveCount(1);

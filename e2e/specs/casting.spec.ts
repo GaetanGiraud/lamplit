@@ -1,13 +1,12 @@
 import { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import {
-  CHAPTER_ID,
   captureRequests,
+  CHAPTER_ID,
   notesOf,
+  openPanel,
   openPromptPreview,
-  seedConnectedSettings,
-  seedDeveloperMode,
-  seedStory,
+  panelSection,
   send,
   systemOf,
   waitForTurn,
@@ -18,36 +17,23 @@ import {
  * character at a time it can send instead.
  */
 
-const SCENE = 'The lantern room, an hour before dusk. Rain on the seaward glass.';
-
 const CAST = [
   { id: 'nell', name: 'Nell', description: 'Kept the light with Tomas.', enabled: true },
   { id: 'tomas', name: 'Tomas', description: 'The keeper before her father.', enabled: true },
   { id: 'isa', name: 'Isa', description: 'The harbourmaster’s daughter.', enabled: true },
 ];
 
-function panel(page: Page): Locator {
-  return page.locator('ms-chapter-panel');
-}
-
-function cast(page: Page): Locator {
-  return panel(page).locator('[data-section="cast"]');
-}
-
-async function openPanel(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Open the chapter panel' }).click();
-  await expect(panel(page).getByRole('button', { name: 'Close the chapter panel' })).toBeVisible();
-}
+/** The panel's cast list, which is where a character is switched to. */
+const cast = (page: Page): Locator => panelSection(page, 'cast');
 
 test('an ensemble is played by everyone, and there is nobody to switch to', async ({
   page,
-  server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
   // No `roleplay` in the document at all: a story from before casting existed.
-  await seedStory(server, { scene: SCENE, mode: 'roleplay', characters: CAST });
+  await app.seed({ mode: 'roleplay', characters: CAST });
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, 'I climb the stairs.');
   await waitForTurn(page);
@@ -63,18 +49,16 @@ test('an ensemble is played by everyone, and there is nobody to switch to', asyn
 
 test('one at a time: the model is told who it is, and who it may only watch', async ({
   page,
-  server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, {
-    scene: SCENE,
+  await app.seed({
     mode: 'roleplay',
     characters: CAST,
     persona: { name: 'Mara', description: 'a marine biologist' },
     roleplay: { casting: 'one-at-a-time', activeCharacterId: 'nell' },
   });
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, 'I climb the stairs.');
   await waitForTurn(page);
@@ -88,17 +72,16 @@ test('one at a time: the model is told who it is, and who it may only watch', as
 test('switching mid-chapter is told to the model, and the next answer is signed', async ({
   page,
   server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedDeveloperMode(server);
-  await seedStory(server, {
-    scene: SCENE,
+  await app.seed({
+    developerMode: true,
     mode: 'roleplay',
     characters: CAST,
     roleplay: { casting: 'one-at-a-time', activeCharacterId: 'nell' },
   });
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, 'I climb the stairs.');
   await waitForTurn(page);
@@ -137,17 +120,15 @@ test('switching mid-chapter is told to the model, and the next answer is signed'
 
 test('a character leaves the scene and comes back, and both are in the prompt', async ({
   page,
-  server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, {
-    scene: SCENE,
+  await app.seed({
     mode: 'roleplay',
     characters: CAST,
     roleplay: { casting: 'one-at-a-time', activeCharacterId: 'nell' },
   });
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, 'I climb the stairs.');
   await waitForTurn(page);
@@ -174,19 +155,14 @@ test('a character leaves the scene and comes back, and both are in the prompt', 
   ]);
 });
 
-test('changing your mind before writing anything leaves no record of it', async ({
-  page,
-  server,
-}) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, {
-    scene: SCENE,
+test('changing your mind before writing anything leaves no record of it', async ({ page, app }) => {
+  await app.seed({
     mode: 'roleplay',
     characters: CAST,
     roleplay: { casting: 'one-at-a-time', activeCharacterId: 'nell' },
   });
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await send(page, 'I climb the stairs.');
   await waitForTurn(page);
@@ -203,9 +179,12 @@ test('changing your mind before writing anything leaves no record of it', async 
   expect(notesOf(bodies[bodies.length - 1])).toEqual([]);
 });
 
-test('a chapter written before any of this reads exactly as it did', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE, mode: 'roleplay', characters: CAST });
+test('a chapter written before any of this reads exactly as it did', async ({
+  page,
+  server,
+  app,
+}) => {
+  await app.seed({ mode: 'roleplay', characters: CAST });
   // Messages as 0.1.0 wrote them: no kind, no speaker, nothing else.
   const chapter = (await server.document('chapters', CHAPTER_ID))!;
   await server.seed({
@@ -227,7 +206,7 @@ test('a chapter written before any of this reads exactly as it did', async ({ pa
       ],
     },
   });
-  await page.goto(server.url);
+  await app.visit();
 
   await expect(page.locator('article[data-role]')).toHaveCount(2);
   await expect(page.locator('article[data-role="assistant"]')).toContainText('Nobody answers.');

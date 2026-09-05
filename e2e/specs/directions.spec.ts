@@ -6,10 +6,8 @@ import {
   composer,
   fillProse,
   openPromptPreview,
+  promptBlocks,
   proseEditor,
-  seedConnectedSettings,
-  seedDeveloperMode,
-  seedStory,
   send,
   systemOf,
   waitForTurn,
@@ -20,8 +18,6 @@ import {
  * the persona's words rather than inside them, and kept out of everything the
  * story is later summarised from.
  */
-
-const SCENE = 'The lantern room, an hour before dusk. Rain on the seaward glass.';
 
 /** The author's half of a message, as the page draws it. */
 function directions(page: Page): Locator {
@@ -45,12 +41,11 @@ function userLines(body: Record<string, unknown> | undefined): string[] {
 
 test('[AUTHOR] splits the message before it is sent, and both halves go out', async ({
   page,
-  server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
+  await app.seed();
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   // Typed as one line of text; the composer takes the tag out of the prose the
   // moment it closes and the rest is typed where the caret went — into the
@@ -82,12 +77,11 @@ test('[AUTHOR] splits the message before it is sent, and both halves go out', as
 
 test('the Author button opens the field directly, and sends a direction alone', async ({
   page,
-  server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
+  await app.seed();
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await authorToggle(page).click();
   await authorField(page).fill('The storm arrives tonight.');
@@ -107,12 +101,11 @@ test('the Author button opens the field directly, and sends a direction alone', 
 
 test('closing the field throws the direction away rather than sending it quietly', async ({
   page,
-  server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
+  await app.seed();
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await authorToggle(page).click();
   await authorField(page).fill('She should refuse.');
@@ -126,22 +119,14 @@ test('closing the field throws the direction away rather than sending it quietly
   expect(systemOf(bodies[0])).not.toContain('[Author: …]');
 });
 
-test('the Author block sits last and has no handle', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedDeveloperMode(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+test('the Author block sits last and has no handle', async ({ page, app }) => {
+  await app.open({ developerMode: true });
 
   await authorToggle(page).click();
   await authorField(page).fill('The room is empty.');
   await openPromptPreview(page);
 
-  // The blocks of the system message, top to bottom; the rest of the sheet is
-  // not one.
-  const blocks = page
-    .locator('mat-dialog-content .block')
-    .filter({ has: page.locator('.handle, .why') });
-  const names = (await blocks.locator('.name').allTextContents()).map((n) => n.trim());
+  const names = await promptBlocks(page);
   expect(names.at(-1)).toBe('Author');
   expect(names.at(-2)).toBe('Style');
 
@@ -158,11 +143,10 @@ test('the Author block sits last and has no handle', async ({ page, server }) =>
   ).toContainText('[Author: The room is empty.]');
 });
 
-test('a direction is not in the summary the chapter closes with', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
+test('a direction is not in the summary the chapter closes with', async ({ page, app }) => {
+  await app.seed();
   const bodies = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await fillProse(composer(page), 'Mara pushes the door open.\n[AUTHOR] The room is empty.');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
@@ -179,10 +163,8 @@ test('a direction is not in the summary the chapter closes with', async ({ page,
   expect(summaryRequest).not.toContain('[Author:');
 });
 
-test('editing a message edits both halves of it', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { scene: SCENE });
-  await page.goto(server.url);
+test('editing a message edits both halves of it', async ({ page, server, app }) => {
+  await app.open();
 
   await fillProse(composer(page), 'Mara pushes the door open.\n[AUTHOR] The room is empty.');
   await page.getByRole('button', { name: 'Send', exact: true }).click();

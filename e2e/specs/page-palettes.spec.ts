@@ -1,11 +1,10 @@
 import { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import {
-  CHAPTER_ID,
   captureRequests,
+  CHAPTER_ID,
   openPreferences,
-  seedConnectedSettings,
-  seedStory,
+  pageColour,
   send,
   waitForTurn,
 } from './helpers';
@@ -28,15 +27,6 @@ const CLUB = 'A jazz club at two in the morning. Neon through the window, and no
 const FROST_PAGE = 'rgb(15, 20, 26)';
 const NOCTURNE_PAGE = 'rgb(17, 16, 24)';
 
-/**
- * What the page is actually drawn on, whoever put it there. Read off the body
- * rather than out of the custom property: the property is a `light-dark()` pair
- * until something overrides it, and this has to compare the two states.
- */
-function pageColour(page: Page): Promise<string> {
-  return page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-}
-
 /** Writes the scene sheet and confirms it, which is what asks the question. */
 async function writeScene(page: Page, scene: string): Promise<void> {
   const sheet = page.getByRole('dialog');
@@ -50,11 +40,10 @@ async function chapter(server: PersistenceServer): Promise<Record<string, any>> 
   return (await server.document('chapters', CHAPTER_ID)) as Record<string, any>;
 }
 
-test('off: opening a chapter asks nothing and the page does not move', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server);
+test('off: opening a chapter asks nothing and the page does not move', async ({ page, app }) => {
+  await app.seed({ scene: '' });
   const requests = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   const before = await pageColour(page);
   await writeScene(page, WINTER);
@@ -72,10 +61,9 @@ test('off: opening a chapter asks nothing and the page does not move', async ({ 
 test('on: a winter scene is read on a cold page, and the chapter keeps it', async ({
   page,
   server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { autoTheme: true });
-  await page.goto(server.url);
+  await app.open({ scene: '', autoTheme: true });
 
   await writeScene(page, WINTER);
 
@@ -89,10 +77,8 @@ test('on: a winter scene is read on a cold page, and the chapter keeps it', asyn
   await expect.poll(() => pageColour(page)).toBe(FROST_PAGE);
 });
 
-test('switching chapters switches pages', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { autoTheme: true, scene: WINTER, palette: 'frost' });
-  await page.goto(server.url);
+test('switching chapters switches pages', async ({ page, app }) => {
+  await app.open({ autoTheme: true, scene: WINTER, palette: 'frost' });
   await expect.poll(() => pageColour(page)).toBe(FROST_PAGE);
 
   // A second chapter, with a scene of quite another mood.
@@ -108,16 +94,19 @@ test('switching chapters switches pages', async ({ page, server }) => {
   await expect.poll(() => pageColour(page)).toBe(FROST_PAGE);
 });
 
-test('an endpoint that cannot do schemas is asked again without one', async ({ page, server }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { autoTheme: true });
+test('an endpoint that cannot do schemas is asked again without one', async ({
+  page,
+  server,
+  app,
+}) => {
+  await app.seed({ scene: '', autoTheme: true });
   const settings = (await server.document('settings'))!;
   const connection = settings['connection'] as Record<string, unknown>;
   await server.seed({
     settings: { ...settings, connection: { ...connection, model: 'fake/no-json-schema' } },
   });
   const requests = await captureRequests(page);
-  await page.goto(server.url);
+  await app.visit();
 
   await writeScene(page, WINTER);
 
@@ -131,10 +120,9 @@ test('an endpoint that cannot do schemas is asked again without one', async ({ p
 test('the palette row overrules the model, and says whose page it is editing', async ({
   page,
   server,
+  app,
 }) => {
-  await seedConnectedSettings(server);
-  await seedStory(server, { autoTheme: true, scene: WINTER, palette: 'frost' });
-  await page.goto(server.url);
+  await app.open({ autoTheme: true, scene: WINTER, palette: 'frost' });
   await expect.poll(() => pageColour(page)).toBe(FROST_PAGE);
 
   await openPreferences(page);

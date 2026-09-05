@@ -4,28 +4,13 @@ import {
   composer,
   fillProse,
   openPreferences,
-  seedConnectedSettings,
+  pageColour,
   seedDeveloperMode,
-  seedStory,
   send,
   systemOf,
   waitForTurn,
 } from './helpers';
 import { expect, test } from './fixtures';
-
-const SCENE = 'The lantern room at dusk. The lamp is cold and the stairs are wet.';
-
-/**
- * What the page is actually painted in.
- *
- * The body's background is `var(--ms-page)`, so this is the token resolved all
- * the way through `light-dark()` by the browser — reading the custom property
- * itself would hand back the unresolved `light-dark(…, …)` and say the same
- * thing in both themes.
- */
-function paperColour(page: Page): Promise<string> {
-  return page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-}
 
 /** A hex as the browser reports it back. */
 function rgb(hex: string): string {
@@ -44,9 +29,8 @@ function rgb(hex: string): string {
  * every run of the suite rather than once in a spec of its own.
  */
 test.describe('preferences', () => {
-  test.beforeEach(async ({ server }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE });
+  test.beforeEach(async ({ app }) => {
+    await app.seed();
   });
 
   /** The native picker is not clickable, so the value is set the way a browser would. */
@@ -60,8 +44,8 @@ test.describe('preferences', () => {
       }, colour);
   }
 
-  test('opens on Reading, holding what the Reading menu held', async ({ page, server }) => {
-    await page.goto(server.url);
+  test('opens on Reading, holding what the Reading menu held', async ({ page, server, app }) => {
+    await app.visit();
     await openPreferences(page);
 
     // The first section is open on arrival, with all four of its settings.
@@ -79,16 +63,20 @@ test.describe('preferences', () => {
       .toBe(false);
   });
 
-  test('a colour is on the page at once, and on disk after a reload', async ({ page, server }) => {
-    await page.goto(server.url);
-    const shipped = await paperColour(page);
+  test('a colour is on the page at once, and on disk after a reload', async ({
+    page,
+    server,
+    app,
+  }) => {
+    await app.visit();
+    const shipped = await pageColour(page);
 
     await openPreferences(page);
     await page.getByRole('button', { name: 'Colours' }).first().click();
     await paint(page, '#123456');
 
     // Immediately, with the dialog still open over it.
-    await expect.poll(() => paperColour(page)).toBe(rgb('#123456'));
+    await expect.poll(() => pageColour(page)).toBe(rgb('#123456'));
     expect(shipped).not.toBe(rgb('#123456'));
 
     await expect
@@ -101,14 +89,11 @@ test.describe('preferences', () => {
 
     // The browser keeps nothing of its own, so this is the file coming back.
     await page.reload();
-    await expect.poll(() => paperColour(page)).toBe(rgb('#123456'));
+    await expect.poll(() => pageColour(page)).toBe(rgb('#123456'));
   });
 
-  test('each theme keeps its own set, and reset returns the shipped one', async ({
-    page,
-    server,
-  }) => {
-    await page.goto(server.url);
+  test('each theme keeps its own set, and reset returns the shipped one', async ({ page, app }) => {
+    await app.visit();
     await openPreferences(page);
     await page.getByRole('button', { name: 'Colours' }).first().click();
 
@@ -116,25 +101,25 @@ test.describe('preferences', () => {
     await page.getByRole('switch', { name: 'Dark theme' }).click();
 
     // Switching the theme switched the palette with it: light is untouched.
-    await expect.poll(() => paperColour(page)).not.toBe(rgb('#123456'));
-    const shippedLight = await paperColour(page);
+    await expect.poll(() => pageColour(page)).not.toBe(rgb('#123456'));
+    const shippedLight = await pageColour(page);
     await paint(page, '#fedcba');
-    await expect.poll(() => paperColour(page)).toBe(rgb('#fedcba'));
+    await expect.poll(() => pageColour(page)).toBe(rgb('#fedcba'));
 
     await page.getByRole('button', { name: 'Reset the light colours' }).click();
     await page.getByRole('button', { name: 'Reset', exact: true }).click();
 
     // Exactly the shipped colour, because the override is gone rather than
     // replaced by a copy of it.
-    await expect.poll(() => paperColour(page)).toBe(shippedLight);
+    await expect.poll(() => pageColour(page)).toBe(shippedLight);
 
     // And the dark set survived the reset of the light one.
     await page.getByRole('switch', { name: 'Dark theme' }).click();
-    await expect.poll(() => paperColour(page)).toBe(rgb('#123456'));
+    await expect.poll(() => pageColour(page)).toBe(rgb('#123456'));
   });
 
-  test('the reading font changes the story and leaves the app alone', async ({ page, server }) => {
-    await page.goto(server.url);
+  test('the reading font changes the story and leaves the app alone', async ({ page, app }) => {
+    await app.visit();
     // The reading face is only visible on prose, so there has to be some.
     await send(page, 'Two lines, please.');
     await waitForTurn(page);
@@ -163,9 +148,8 @@ test.describe('preferences', () => {
  * that is checked here rather than left to reasoning about the template.
  */
 test.describe('developer mode', () => {
-  test.beforeEach(async ({ server }) => {
-    await seedConnectedSettings(server);
-    await seedStory(server, { scene: SCENE });
+  test.beforeEach(async ({ app }) => {
+    await app.seed();
   });
 
   const pill = (page: Page) =>
@@ -174,8 +158,9 @@ test.describe('developer mode', () => {
   test('is off on a fresh install, and switching it on is the way to the prompt', async ({
     page,
     server,
+    app,
   }) => {
-    await page.goto(server.url);
+    await app.visit();
 
     // Neither door: the pill is gone and the toolbar button it replaced is too.
     await expect(pill(page)).toHaveCount(0);
@@ -203,8 +188,8 @@ test.describe('developer mode', () => {
     await expect(pill(page)).toBeVisible();
   });
 
-  test('changes nothing about what the model is sent', async ({ page, server }) => {
-    await page.goto(server.url);
+  test('changes nothing about what the model is sent', async ({ page, server, app }) => {
+    await app.visit();
     const off = await captureRequests(page);
     await send(page, 'I knock twice and wait.');
     await waitForTurn(page);
@@ -224,8 +209,8 @@ test.describe('developer mode', () => {
     expect(systemOf(on[on.length - 1])).toBe(systemOf(off[off.length - 1]));
   });
 
-  test('adds the folder the documents are in to About', async ({ page, server }) => {
-    await page.goto(server.url);
+  test('adds the folder the documents are in to About', async ({ page, server, app }) => {
+    await app.visit();
     await page.getByRole('button', { name: 'More actions' }).click();
     await page.getByRole('menuitem', { name: /^About Lamplit/ }).click();
     const about = page.getByRole('dialog');

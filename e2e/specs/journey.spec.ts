@@ -69,7 +69,7 @@ test.describe('a story from nothing, told by a narrator', () => {
   const lastSystem = () => systemOf(requests[requests.length - 1]);
 
   /**
-   * Shuts a modal by its own button. Escape saves and closes too — story.spec
+   * Shuts a modal by its own button. Escape saves and closes too — world.spec
    * covers that — but it only reaches the dialog when focus is still inside it,
    * and half of these stages have just blurred a field to commit what they
    * typed.
