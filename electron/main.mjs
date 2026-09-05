@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu, app, dialog, ipcMain, shell } from 'electron';
+import { BrowserWindow, Menu, app, dialog, ipcMain, session, shell } from 'electron';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -127,6 +127,7 @@ async function start() {
     console.warn(`backup failed: ${error.message}`),
   );
 
+  denyPermissions();
   ipcMain.handle('lamplit:open-data-folder', openDataFolder);
   // The page asks for the update check rather than the shell taking it: the
   // switch that governs it is in the app's settings.json, which the shell
@@ -137,6 +138,30 @@ async function start() {
   });
   Menu.setApplicationMenu(buildMenu());
   await openWindow(url);
+}
+
+/**
+ * The one thing the app asks the browser for, and it asks for it on a click:
+ * Copy, on a message and on the prompt preview. Everything else on Chromium's
+ * list — the camera, the microphone, the location, notifications, reading the
+ * clipboard rather than writing it — this app has never used and has no reason
+ * to, and Electron grants all of them by default. A page that got in here
+ * could ask; now it is told no before anyone is.
+ *
+ * Both handlers, because they answer different questions: `request` is a page
+ * asking for something, `check` is `navigator.permissions.query` and the
+ * silent grant behind `navigator.clipboard.writeText`.
+ */
+const ALLOWED_PERMISSIONS = new Set(['clipboard-sanitized-write']);
+
+function denyPermissions() {
+  const { defaultSession } = session;
+  defaultSession.setPermissionRequestHandler((_contents, permission, callback) =>
+    callback(ALLOWED_PERMISSIONS.has(permission)),
+  );
+  defaultSession.setPermissionCheckHandler((_contents, permission) =>
+    ALLOWED_PERMISSIONS.has(permission),
+  );
 }
 
 /** Port 0: the operating system hands back one that is free. */

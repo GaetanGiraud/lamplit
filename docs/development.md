@@ -47,7 +47,7 @@ usefully — why each decision went the way it did.
 
 | | |
 |---|---|
-| `npm start` | Both halves: persistence server on 4177, dev server on 4200 proxying `/api` to it |
+| `npm start` | Both halves: persistence server on 4177, dev server on 4200 proxying `/api` to it. The proxy is why the API authorises no cross-origin request: nothing calls across. `LAMPLIT_DEV_CORS=1` puts the localhost allowance back for a dev server run without it |
 | `npm run server` | Just the server (and the built app, if there is one). The front end has no standalone mode: it reads its documents from the server or does not start |
 | `npm run build` | Angular production build into `app/dist` |
 | `npm run package` | The runnable zip — see [Running it anywhere](running-anywhere.md) |

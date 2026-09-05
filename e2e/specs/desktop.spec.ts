@@ -72,6 +72,44 @@ test('starts its own server on a port it picked, and answers on it', async () =>
   expect(health.dataDir).toBe(join(userData, 'data'));
 });
 
+/**
+ * Electron grants every permission Chromium can ask for unless it is told not
+ * to, so a packaged Lamplit answered `granted` for the camera, the microphone
+ * and the reader's location — none of which it has ever asked for. The one
+ * exception is the silent grant behind the Copy buttons.
+ */
+test('asks the browser for nothing it does not use', async () => {
+  const states = await window.evaluate(async () => {
+    const names = [
+      'geolocation',
+      'notifications',
+      'camera',
+      'microphone',
+      'clipboard-read',
+      'clipboard-write',
+    ];
+    const answers: Record<string, string> = {};
+    for (const name of names) {
+      answers[name] = await navigator.permissions.query({ name: name as PermissionName }).then(
+        (status) => status.state,
+        () => 'not asked',
+      );
+    }
+    return answers;
+  });
+
+  expect(states).toEqual({
+    geolocation: 'denied',
+    notifications: 'denied',
+    camera: 'denied',
+    microphone: 'denied',
+    'clipboard-read': 'denied',
+    // Copy, on a message and on the prompt preview. Writing the clipboard on a
+    // click is the whole of what this app asks the browser for.
+    'clipboard-write': 'granted',
+  });
+});
+
 test('opens on the connection sheet, as a fresh install does', async () => {
   await expect(window.getByRole('heading', { name: /somewhere to send the story/ })).toBeVisible({
     timeout: 20_000,

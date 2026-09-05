@@ -48,7 +48,10 @@ of it is something that was wrong. The ones you could have noticed:
   the switch said. `LAMPLIT_UPDATE_CHECK=0` stops it now as well.
 
 And underneath, where a reader would only notice them going wrong: the API answers only to this
-machine's own names, so a page on the web cannot reach it by pointing a domain at your loopback;
+machine's own names, so a page on the web cannot reach it by pointing a domain at your loopback,
+and it now authorises no cross-origin request at all, so a page open on another port of your own
+machine cannot read your stories or your key either; the page is served under a content security
+policy, which leaves where the story is sent entirely your choice and forbids everything else;
 `index.html` is never cached, so an upgrade cannot leave a browser asking for files that are gone;
 a backup that fails says so instead of reporting one that is not there; an interrupted archive is
 written again rather than kept; a write that cannot be renamed cleans up after itself; one
@@ -59,7 +62,8 @@ release it precedes.
 The desktop build carries the version it was built at, so an update can be published at all; a
 portable copy no longer installs itself; the browser's own cache lives in a folder of its own
 rather than beside your writing; and a start that fails says why instead of leaving a process with
-no window. The licences of everything bundled into the app now ship with it.
+no window. The window now refuses the camera, the microphone, your location and notifications —
+none of which Lamplit has ever asked for, and all of which it was granting by default. The licences of everything bundled into the app now ship with it.
 
 **What you type looks like what will be read.** The box you write in is a prose editor now, set in
 the reading face at the reading size, and a line is coloured as it is written: `"speech"` in the

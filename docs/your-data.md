@@ -105,5 +105,6 @@ It is in `data/settings.json`, in plain text. That is a deliberate choice for a 
 on your own machine: a local file you control beats a secret store you have to unlock every time.
 
 The server listens on `127.0.0.1` only, so nothing else on your network can reach it, and it
-refuses cross-origin requests from anywhere but localhost. Don't run it on a shared machine, don't
-put it behind a public port, and don't commit your `data` folder to a public repo.
+authorises no cross-origin request at all — a page open on another port of your own machine cannot
+read your stories or your key either. Don't run it on a shared machine, don't put it behind a
+public port, and don't commit your `data` folder to a public repo.

@@ -8,7 +8,7 @@ import { createApp } from '../src/app.js';
 import { createUpdateChecker } from '../src/updates.js';
 
 /** Starts the real app on a free port and hands back a `fetch` bound to it. */
-async function serve({ withApp = false, updates } = {}) {
+async function serve({ withApp = false, updates, devCors = false } = {}) {
   const dataDir = await mkdtemp(join(tmpdir(), 'lamplit-api-'));
   let publicDir;
   if (withApp) {
@@ -28,6 +28,7 @@ async function serve({ withApp = false, updates } = {}) {
       channel: 'zip',
     },
     previousVersion: '9.9.8',
+    devCors,
     ...(updates ? { updates } : {}),
   });
   await app.locals.store.init();
@@ -72,6 +73,28 @@ describe('GET /api/health', () => {
     assert.equal(body.build, '42');
     assert.equal(body.channel, 'zip');
     assert.equal(body.previousVersion, '9.9.8');
+    await api.close();
+  });
+
+  it('tells the app where the writing is kept', async () => {
+    const api = await serve();
+    // No Origin is what a browser sends on a same-origin GET, and what curl
+    // sends always. Naming this server is the same answer said out loud.
+    assert.equal((await (await api.call('/api/health')).json()).dataDir, api.dataDir);
+    const named = await api.call('/api/health', { headers: { origin: api.base } });
+    assert.equal((await named.json()).dataDir, api.dataDir);
+    await api.close();
+  });
+
+  it('does not tell another page on this machine, whose path it is not', async () => {
+    const api = await serve({ devCors: true });
+    // On Windows that path carries the account name. Everything else about the
+    // build is still answered: which version, which commit, which channel.
+    const body = await (
+      await api.call('/api/health', { headers: { origin: 'http://localhost:4200' } })
+    ).json();
+    assert.equal(body.dataDir, undefined);
+    assert.equal(body.version, '9.9.9');
     await api.close();
   });
 
@@ -373,8 +396,26 @@ describe('the Host header', () => {
 });
 
 describe('CORS', () => {
-  it('lets a localhost dev server through and nobody else', async () => {
+  it('authorises nobody by default, which is every packaged copy', async () => {
     const api = await serve();
+    await api.put('/api/docs/stories/abc', { id: 'abc' }, 1);
+
+    // A page on some other loopback port asking to read the stories, or the
+    // settings the API key is in. Nothing comes back that would let it.
+    for (const path of ['/api/health', '/api/docs/stories/abc']) {
+      const response = await api.call(path, { headers: { origin: 'http://localhost:4200' } });
+      assert.equal(response.headers.get('access-control-allow-origin'), null, path);
+    }
+    const preflight = await api.call('/api/docs/stories/abc', {
+      method: 'OPTIONS',
+      headers: { origin: 'http://localhost:4200' },
+    });
+    assert.equal(preflight.headers.get('access-control-allow-methods'), null);
+    await api.close();
+  });
+
+  it('lets a localhost dev server through when it was asked to, and nobody else', async () => {
+    const api = await serve({ devCors: true });
     const allowed = await api.call('/api/health', { headers: { origin: 'http://localhost:4200' } });
     assert.equal(allowed.headers.get('access-control-allow-origin'), 'http://localhost:4200');
 
@@ -384,13 +425,45 @@ describe('CORS', () => {
   });
 
   it('answers a preflight without reaching the routes', async () => {
-    const api = await serve();
+    const api = await serve({ devCors: true });
     const response = await api.call('/api/docs/stories/abc', {
       method: 'OPTIONS',
       headers: { origin: 'http://127.0.0.1:4200' },
     });
     assert.equal(response.status, 204);
     assert.match(response.headers.get('access-control-allow-methods'), /PUT/);
+    await api.close();
+  });
+});
+
+describe('the content security policy', () => {
+  it('travels with the page it governs, and with the API beside it', async () => {
+    const api = await serve({ withApp: true });
+    for (const path of ['/', '/api/health']) {
+      const policy = (await api.call(path)).headers.get('content-security-policy');
+      assert.match(policy, /default-src 'self'/, path);
+    }
+    await api.close();
+  });
+
+  it('allows no script the app did not ship, and no page but its own', async () => {
+    const api = await serve({ withApp: true });
+    const policy = (await api.call('/')).headers.get('content-security-policy');
+    assert.match(policy, /script-src 'self'/);
+    assert.doesNotMatch(policy, /script-src[^;]*unsafe-inline/);
+    assert.match(policy, /object-src 'none'/);
+    assert.match(policy, /frame-ancestors 'none'/);
+    assert.match(policy, /base-uri 'self'/);
+    await api.close();
+  });
+
+  it('leaves the endpoint open, because whose it is was never ours to say', async () => {
+    // Any OpenAI-compatible URL the reader types into Connection.
+    const api = await serve({ withApp: true });
+    const policy = (await api.call('/')).headers.get('content-security-policy');
+    assert.match(policy, /connect-src \*/);
+    // And Angular writes a component's styles onto the page as it renders it.
+    assert.match(policy, /style-src 'self' 'unsafe-inline'/);
     await api.close();
   });
 });

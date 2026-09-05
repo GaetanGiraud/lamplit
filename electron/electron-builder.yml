@@ -30,6 +30,15 @@ extraResources:
   - from: ../build/desktop-stage/package.json
     to: app/package.json
 
+# Electron will load an app folder sitting beside app.asar in preference to the
+# asar itself, which is a way in for anything that can write next to the
+# binary. This build has both — the shell in the asar, the server unpacked in
+# `resources/app` — and loads the shell from the asar, so saying "only ever the
+# asar" removes an ambiguity rather than changing what runs. The server is
+# imported by that shell at runtime and is not what this fuse governs.
+electronFuses:
+  onlyLoadAppFromAsar: true
+
 # Where the installers look for a new version. Nothing else is configured for
 # it: the release workflow uploads to this same repository's releases.
 publish:

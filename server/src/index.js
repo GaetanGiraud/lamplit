@@ -49,7 +49,10 @@ const updates = createUpdateChecker({
 
 // A host it was told to bind to is a name it should answer to as well.
 const hosts = host === '0.0.0.0' ? [] : [host];
-const app = createApp({ dataDir, publicDir, build, previousVersion, updates, hosts });
+// Off unless asked for: the app calls its own origin, and `npm start` proxies
+// rather than calling across. See corsFor in app.js.
+const devCors = process.env['LAMPLIT_DEV_CORS'] === '1';
+const app = createApp({ dataDir, publicDir, build, previousVersion, updates, hosts, devCors });
 const store = app.locals['store'];
 
 await store.init();

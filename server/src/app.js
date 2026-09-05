@@ -8,6 +8,45 @@ import { createUpdateChecker } from './updates.js';
 const SEQ_HEADER = 'x-doc-seq';
 
 /**
+ * What the page is allowed to load, and from where. Nothing here is load-bearing
+ * against a threat this app has today — it serves its own bundle to its own
+ * window — but it is the difference between one injected script and none, for
+ * the price of a header.
+ *
+ * The two that are not the strictest thing they could be, and why:
+ *
+ * - `connect-src *`, because where the story is sent is the reader's own
+ *   choice: a URL typed into Connection, any OpenAI-compatible endpoint on the
+ *   web. Anything narrower would be this app deciding which providers exist.
+ * - `style-src 'unsafe-inline'`, because Angular puts a component's styles on
+ *   the page as a `<style>` element when the component is first rendered. The
+ *   alternative is a nonce, which means a per-response index.html and a build
+ *   that knows about it.
+ *
+ * `script-src 'self'` is why `optimization.styles.inlineCritical` is off in
+ * app/angular.json: that step rewrites the stylesheet link into a deferred one
+ * with an `onload=""` attribute, which is an inline script and is forbidden
+ * here — and a stylesheet that never applies is an unreadable app.
+ *
+ * `base-uri 'self'` rather than `'none'`: index.html carries `<base href="/">`,
+ * which the router reads. `'self'` still refuses an injected `<base>` pointing
+ * anywhere else, which is the trick this directive exists for.
+ *
+ * Only pages served from here get this. `ng serve` serves its own, and a
+ * development server is not what anything ships.
+ */
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  'connect-src *',
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+  "form-action 'none'",
+].join('; ');
+
+/**
  * The whole API, and the built app in front of it.
  *
  * Deliberately tiny: the client owns the document shapes, the server owns
@@ -22,12 +61,18 @@ export function createApp({
   updates = createUpdateChecker({ version: build.version ?? '0.0.0', enabled: false }),
   /** Names the API answers to besides the machine's own; see sameMachineOnly. */
   hosts = [],
+  /** Whether another page on this machine may call the API; see devCors. */
+  devCors = false,
 }) {
   const store = new DocumentStore(dataDir);
   const app = express();
 
   app.disable('x-powered-by');
-  app.use(localhostCors);
+  app.use((request, response, next) => {
+    response.set('Content-Security-Policy', CONTENT_SECURITY_POLICY);
+    next();
+  });
+  app.use(corsFor(devCors));
   app.use('/api', sameMachineOnly(hosts));
   // An empty body parses as `{}`, which would then be written over a document
   // as if somebody had meant it; nobody sends nothing on purpose.
@@ -57,7 +102,10 @@ export function createApp({
       build: build.build ?? 'local',
       channel: build.channel ?? 'dev',
       previousVersion,
-      dataDir,
+      // Where the writing is kept — a path that on Windows carries the account
+      // name — so About can show it under developer mode. To the app itself
+      // and to a command line, not to another page that happened to ask.
+      ...(sameOrigin(request) ? { dataDir } : {}),
     });
   });
 
@@ -219,10 +267,45 @@ function isOwnHost(hostname, allowed) {
 }
 
 /**
- * The app is served from this same origin in a packaged run, so CORS only
- * matters while developing, when `ng serve` is on another port. Localhost
- * only: the API holds an API key in plain text and is nobody else's business.
+ * Whether a request came from the app itself: a browser sends no `Origin` on a
+ * same-origin GET, and always sends one cross-origin. No `Origin` at all is
+ * curl, or the app; an `Origin` naming this server is the app; anything else is
+ * some other page that happens to be running on this machine.
  */
+function sameOrigin(request) {
+  const origin = request.get('origin');
+  if (!origin) return true;
+  try {
+    return new URL(origin).host === request.get('host');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether another page on this machine may read what this API answers.
+ *
+ * Off, because nothing needs it on: the app asks for `/api/...` relative to
+ * wherever it was served, so a packaged copy is same-origin, and `npm start`
+ * proxies `/api` from the dev server (app/proxy.conf.json) rather than calling
+ * across. What was on the other side of that allowance was every story, every
+ * setting and the API key in plain text, readable by any page the reader
+ * happened to have open on any loopback port.
+ *
+ * `LAMPLIT_DEV_CORS=1` puts it back, for a dev server run without the proxy.
+ * Localhost origins only, even then.
+ */
+function corsFor(enabled) {
+  return enabled ? localhostCors : noCors;
+}
+
+function noCors(request, response, next) {
+  // Answered, but with nothing that authorises anything: a browser refuses the
+  // request it was asking permission for, which is the point.
+  if (request.method === 'OPTIONS') return response.sendStatus(204);
+  next();
+}
+
 function localhostCors(request, response, next) {
   const origin = request.get('origin');
   if (origin && /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)) {
