@@ -45,7 +45,7 @@ export const CUSTOM_PROVIDER_ID = 'custom';
 export const DEFAULT_PROVIDER_ID = 'nanogpt';
 
 /** Sent to providers that credit the apps calling them. */
-export const ATTRIBUTION_HEADERS: Readonly<Record<string, string>> = {
+const ATTRIBUTION_HEADERS: Readonly<Record<string, string>> = {
   'HTTP-Referer': 'https://gaetangiraud.github.io/lamplit/',
   'X-Title': 'Lamplit',
 };

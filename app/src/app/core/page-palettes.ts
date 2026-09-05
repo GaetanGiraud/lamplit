@@ -377,7 +377,7 @@ export function paletteLabel(name: string | null | undefined): string {
  * codes to no purpose, and a model asked to match a scene to a mood does it
  * better than one asked to match a scene to `#1d140c`.
  */
-export function paletteCatalogue(palettes: readonly PagePalette[] = PAGE_PALETTES): string {
+function paletteCatalogue(palettes: readonly PagePalette[] = PAGE_PALETTES): string {
   return palettes
     .map((p) => `- ${p.name} — ${p.description} Tags: ${p.tags.join(', ')}.`)
     .join('\n');
@@ -387,7 +387,7 @@ export function paletteCatalogue(palettes: readonly PagePalette[] = PAGE_PALETTE
  * Asked for in the prompt whether or not the endpoint enforces a schema, so the
  * fallback is the same request asked less formally rather than a different one.
  */
-export function paletteInstruction(palettes: readonly PagePalette[] = PAGE_PALETTES): string {
+function paletteInstruction(palettes: readonly PagePalette[] = PAGE_PALETTES): string {
   return [
     'Choose the one palette whose mood best fits this scene.',
     'Go by what the scene feels like, not by a colour it happens to mention:',

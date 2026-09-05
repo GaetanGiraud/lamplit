@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..', '..');
-export const ENTRY = join(ROOT, 'server', 'src', 'index.js');
+const ENTRY = join(ROOT, 'server', 'src', 'index.js');
 export const BUILT_APP = join(ROOT, 'app', 'dist', 'app', 'browser');
 
 /** The specs skip rather than fail when the app has not been built. */

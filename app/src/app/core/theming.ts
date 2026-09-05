@@ -58,7 +58,7 @@ export function propertyOf(key: ColourKey): string {
 }
 
 /** The property holding what the stylesheet ships for that name in that theme. */
-export function shippedPropertyOf(key: ColourKey, theme: ThemeName): string {
+function shippedPropertyOf(key: ColourKey, theme: ThemeName): string {
   return `--ms-${key}-${theme}`;
 }
 

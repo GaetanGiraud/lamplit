@@ -14,7 +14,7 @@ import { chapterTranscript } from './prompt-builder';
  * unticked one leaves no trace.
  */
 
-export const LORE_CATEGORIES: readonly LoreCategory[] = ['fact', 'person', 'place', 'other'];
+const LORE_CATEGORIES: readonly LoreCategory[] = ['fact', 'person', 'place', 'other'];
 
 /**
  * Asked for in the prompt whether or not the endpoint enforces a schema, so the
@@ -22,7 +22,7 @@ export const LORE_CATEGORIES: readonly LoreCategory[] = ['fact', 'person', 'plac
  * one. `updates` is required and empty for a new entry: a schema in strict mode
  * has no optional properties, and "" is a clearer nothing than a missing key.
  */
-export const LORE_INSTRUCTION = [
+const LORE_INSTRUCTION = [
   'List what this chapter established that is worth remembering after it —',
   'the people, places and facts a later chapter would be poorer for forgetting.',
   'Leave out anything the entries below already cover, unless this chapter changed it:',
