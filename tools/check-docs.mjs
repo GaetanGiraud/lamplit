@@ -67,6 +67,16 @@ const FETCHED = [
   [/!\[[^\]]*\]\(\s*([^)\s]+)/g, 'a picture'],
 ];
 
+/**
+ * Liquid does not know what an HTML comment is. `{%` inside <!-- --> is parsed
+ * like any other tag, so an `if` written out in a note about the template it
+ * came from is an `if` that is never closed, and the Pages build stops with it.
+ * Nothing here catches that at review time — the file reads as a comment — and
+ * every local check passes, because none of them is Jekyll. Broke the deploy
+ * once, on 2026-09-05, in this file's neighbour `_includes/head.html`.
+ */
+const LIQUID_IN_COMMENT = /<!--[\s\S]*?-->/g;
+
 /** `https://x`, `http://x` and `//x` — anything with a host of its own. */
 const ANOTHER_HOST = /^(?:[a-z][a-z0-9+.-]*:)?\/\//i;
 
@@ -136,11 +146,23 @@ for (const file of files) {
 }
 
 for (const file of served) {
+  const raw = normalise(await readFile(join(DOCS, file), 'utf8'));
+
+  // Liquid reads its own tags inside an HTML comment, so a note that quotes one
+  // is a tag: see LIQUID_IN_COMMENT above, and the build it stopped.
+  for (const comment of raw.matchAll(LIQUID_IN_COMMENT)) {
+    const tag = comment[0].match(/\{%-?\s*([a-z]+)/i);
+    if (!tag) continue;
+    problems.push(
+      `${file}: the comment at character ${comment.index} contains {% ${tag[1]} %}. ` +
+        `Liquid parses its own tags inside <!-- -->, so this one runs, and an if or ` +
+        `a for with no end stops the Pages build. Say it without the braces.`,
+    );
+  }
+
   // Markdown hides its examples in code fences; HTML hides its notes in
   // comments. Neither is fetched by anybody.
-  const source = file.endsWith('.md')
-    ? withoutCode(normalise(await readFile(join(DOCS, file), 'utf8')))
-    : normalise(await readFile(join(DOCS, file), 'utf8')).replace(/<!--[\s\S]*?-->/g, '');
+  const source = file.endsWith('.md') ? withoutCode(raw) : raw.replace(LIQUID_IN_COMMENT, '');
 
   for (const [pattern, what] of FETCHED) {
     for (const [, target] of source.matchAll(pattern)) {
@@ -162,7 +184,7 @@ if (problems.length) {
 }
 console.log(
   `check:docs — ${files.length} pages, every link resolves and will be rewritten, ` +
-    `and nothing in ${served.length} files is fetched from another host.`,
+    `and nothing in ${served.length} files hides a Liquid tag in a comment or is fetched from another host.`,
 );
 
 function normalise(text) {

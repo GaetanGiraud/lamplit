@@ -9,14 +9,18 @@
 
     - the favicons, from `custom-head.html`, which the landing layout includes
       too, so both halves of the site have the same tab;
-    - minima's `{% if site.google_analytics %}` block is gone rather than left
-      unused, because a site whose rule is written at the top of _config.yml
-      should not carry the hook that breaks it, waiting for someone to fill in
-      one config key.
+    - minima's google_analytics block is gone rather than left unused, because a
+      site whose rule is written at the top of _config.yml should not carry the
+      hook that breaks it, waiting for someone to fill in one config key.
 
   Plus one cosmetic difference: the stylesheet path is quoted with ' where
   minima uses ", which Liquid reads the same way and prettier can parse. If the
   theme is ever updated, this file is what to compare against.
+
+  Nothing in this comment may contain a Liquid tag. Liquid does not know what an
+  HTML comment is: it parses its own tags anywhere in the file, so quoting
+  minima's if-block here is what failed the Pages build on 2026-09-05 — every
+  local check green, the deploy red. check:docs now refuses one.
 -->
 <head>
   <meta charset="utf-8" />
