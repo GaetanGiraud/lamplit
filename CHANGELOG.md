@@ -39,6 +39,10 @@ of it is something that was wrong. The ones you could have noticed:
 - **The colours the model picks** are the ones it named, not the first name in our own list.
 - **A link in an answer opens beside the story**, in a new tab, instead of navigating the app away
   from the page you were writing on and taking the reply still arriving with it.
+- **A long answer arrives without slowing the page down.** Every message was read from its first
+  word again on every frame of the stream, and the markdown parser is very slow on the unclosed
+  `**` a model writes once it starts repeating itself — slow enough to stop the tab while the
+  words were still coming. Each paragraph is read once now, and remembered.
 - **Switching the update check off switches it off in the desktop app too.** It used to keep
   asking GitHub, downloading the new version and installing it the next time you quit, whatever
   the switch said. `LAMPLIT_UPDATE_CHECK=0` stops it now as well.

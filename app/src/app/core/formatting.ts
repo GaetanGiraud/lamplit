@@ -152,17 +152,220 @@ function escapeText(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
+// -- a message, parsed in pieces ---------------------------------------------
+
+/**
+ * Why a message is not handed to marked in one go.
+ *
+ * A streaming answer is rendered again on every frame, and marked is
+ * superlinear on unbalanced emphasis — `**a **b** ` over and over, which is
+ * what a model that has lost the thread writes. Thirty thousand characters of
+ * that is seconds in a single parse, and it was being parsed sixty times a
+ * second on the thread that should have been drawing the words as they landed.
+ *
+ * So the message is parsed where markdown itself divides it, block by block,
+ * and each block's HTML is remembered by the text it came from. Only the block
+ * the words are still arriving into is new on any given frame; everything above
+ * it is a lookup. The same cache makes the one parse at the end of a turn
+ * nearly free, because streaming has already done it a block at a time.
+ *
+ * `PIECE` is the longest run of prose marked is given at once. Past it a block
+ * is cut again, at a line ending where there is one, which costs an emphasis
+ * that spanned that ending. Fifteen hundred characters is a very long
+ * paragraph — a page of a book is about two thousand — so what gets cut is a
+ * model repeating itself, or nothing.
+ */
+const PIECE = 1500;
+
+/**
+ * Room for the chapter on screen and then some, and little enough that a story
+ * left open all day is not a leak. Oldest out first: what is being written
+ * into is what is asked for most.
+ */
+const CACHE_LIMIT = 600;
+const parsed = new Map<string, string>();
+
+function recall(key: string, parse: () => string): string {
+  const known = parsed.get(key);
+  if (known !== undefined) return known;
+  const html = parse();
+  if (parsed.size >= CACHE_LIMIT) {
+    const oldest = parsed.keys().next();
+    if (!oldest.done) parsed.delete(oldest.value);
+  }
+  parsed.set(key, html);
+  return html;
+}
+
+/**
+ * A reference definition — `[key]: https://…` — is read by the parse that
+ * meets the `[key]` using it, so a cut between the two would leave the link as
+ * its own literal text. Rare enough in story prose to be worth one regular
+ * expression and a whole parse, rather than a special case in the splitting.
+ */
+const REFERENCE_DEFINITION = /^ {0,3}\[[^\]]+\]:/m;
+
+/** One block of markdown -> HTML. */
+function blockHtml(block: string): string {
+  if (block.length <= PIECE || !isProse(block)) return toHtml(marked, block);
+
+  // A paragraph too long to parse at once, cut up and put back together as the
+  // one paragraph it is: the pieces are parsed as inline markdown, and what
+  // separated them becomes what `breaks: true` would have made of it anyway —
+  // a line ending is a `<br>`, a space is a space. Every piece but the last is
+  // remembered, for the same reason the blocks above it are.
+  const pieces = piecesOf(block);
+  const html = pieces.map(({ text, gap }, i) => {
+    const parse = () => toInlineHtml(marked, text);
+    return (i < pieces.length - 1 ? recall(`piece:${text}`, parse) : parse()) + gap;
+  });
+  return `<p>${html.join('')}</p>`;
+}
+
+/** Inline markdown, with the same answer to a parse that will not finish. */
+function toInlineHtml(parser: Marked, source: string): string {
+  try {
+    return parser.parseInline(source, { async: false });
+  } catch {
+    return escapeText(source);
+  }
+}
+
+/**
+ * A line that opens something a blank line does not close: a list item, a
+ * quotation, or the indented continuation of either. With one of those on both
+ * sides of a blank line, the blank line is inside a single block — a list whose
+ * items are set apart, a quotation of two paragraphs — and cutting there would
+ * make two lists where the writer meant one, and start the numbering again.
+ */
+const CONTAINER = /^(?: {0,3}(?:[-*+]|\d{1,9}[.)])\s|\s*>| {4}|\t)/;
+
+/** Anything markdown reads as more than a run of words. */
+const NOT_PROSE =
+  /^(?: {0,3}(?:[-*+]|\d{1,9}[.)])\s| {0,3}(?:>|#{1,6}\s|`{3,}|~{3,}|\||-{3,}$|={3,}$)| {4}|\t)/;
+
+/** The message at its blank lines, wherever cutting there means what it said. */
+function blocksOf(source: string): string[] {
+  const lines = source.split('\n');
+  const blocks: string[] = [];
+  let current: string[] = [];
+  let fence = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+
+    // Inside a fenced block a blank line is part of the code, and only a
+    // closing fence of the same kind and at least as long ends it.
+    const opening = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+    if (fence) {
+      current.push(line);
+      const closing = opening?.[1] ?? '';
+      if (closing.startsWith(fence[0]!) && closing.length >= fence.length) fence = '';
+      continue;
+    }
+    if (opening) fence = opening[1]!;
+
+    if (line.trim()) {
+      current.push(line);
+      continue;
+    }
+    // Blank lines before anything has started are not a block of their own.
+    if (!current.length) continue;
+
+    // A blank line, and what follows it decides whether it is a cut.
+    let next = i;
+    while (next < lines.length && !lines[next]!.trim()) next++;
+    if (CONTAINER.test(current[0] ?? '') && CONTAINER.test(lines[next] ?? '')) {
+      current.push(line);
+      continue;
+    }
+
+    blocks.push(current.join('\n'));
+    current = [];
+    i = next - 1;
+  }
+
+  if (current.length) blocks.push(current.join('\n'));
+  return blocks.length ? blocks : [source];
+}
+
+/** Words and line endings, and nothing markdown builds a box out of. */
+function isProse(block: string): boolean {
+  return !block.split('\n').some((line) => NOT_PROSE.test(line));
+}
+
+/**
+ * A long paragraph, packed greedily into pieces of at most `PIECE` characters
+ * from the front, so that appending to the end never moves a cut already made
+ * — which is what makes remembering them worth anything while an answer is
+ * still arriving.
+ *
+ * A cut lands on a line ending when there is one inside the piece, because
+ * that is where prose can best afford to be interrupted; failing that on a
+ * space, and failing that mid-word, which only one long unbroken string can
+ * reach.
+ */
+function piecesOf(block: string): { text: string; gap: string }[] {
+  const pieces: { text: string; gap: string }[] = [];
+  let from = 0;
+
+  while (from < block.length) {
+    const rest = block.slice(from);
+    if (rest.length <= PIECE) {
+      pieces.push({ text: rest, gap: '' });
+      break;
+    }
+    const window = rest.slice(0, PIECE);
+    const at = after(window, '\n') || after(window, ' ') || PIECE;
+    const text = window.slice(0, at);
+    // What the cut took out, said in HTML: the line ending `breaks: true`
+    // would have made a `<br>` of, the space that was only a space, or — cut
+    // mid-word — nothing at all.
+    const cut = text.slice(-1);
+    pieces.push({ text: text.trimEnd(), gap: cut === '\n' ? '<br>' : cut === ' ' ? ' ' : '' });
+    from += at;
+  }
+
+  return pieces;
+}
+
+/** One past the last `mark` in `window`, or 0 when there is none. */
+function after(window: string, mark: string): number {
+  const at = window.lastIndexOf(mark);
+  return at < 0 ? 0 : at + 1;
+}
+
 /**
  * Story text -> safe HTML: markdown first, then sanitising, then a formatting
  * pass over the resulting text nodes (never over the markup) that marks speech
  * and italic "actions" so the stylesheet can set them like a book.
+ *
+ * All of it a block at a time, and every block but the last remembered — see
+ * `PIECE` above for why. Each of the three steps is local to the block it is
+ * working on: a quotation is marked inside the text node holding it, an action
+ * inside its own `<em>`, a spoken line inside its own paragraph. So a message
+ * rendered in blocks and a message rendered whole are the same message.
  */
 export function renderStoryHtml(source: string, options: RenderOptions): string {
   if (!source) return '';
-  const clean = DOMPurify.sanitize(toHtml(marked, source), PURIFY_CONFIG);
+  if (REFERENCE_DEFINITION.test(source)) return finish(toHtml(marked, source), options);
 
+  const blocks = blocksOf(source);
+  const setting = options.bookStyleDialogue ? 'book' : 'plain';
+  return blocks
+    .map((block, i) => {
+      const render = () => finish(blockHtml(block), options);
+      // Not the last one: that is where the next delta lands, and remembering
+      // it would fill the cache with the answer at every length it has had.
+      return i < blocks.length - 1 ? recall(`${setting}:${block}`, render) : render();
+    })
+    .join('');
+}
+
+/** Sanitising and the book-setting, which cost as much again as the parse. */
+function finish(html: string, options: RenderOptions): string {
   const host = document.createElement('div');
-  host.innerHTML = clean;
+  host.innerHTML = DOMPurify.sanitize(html, PURIFY_CONFIG);
   markSpeech(host);
   markActions(host);
   if (options.bookStyleDialogue) splitSpokenLines(host);

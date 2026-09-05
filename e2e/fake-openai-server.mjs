@@ -8,6 +8,9 @@
  *   "!error"  answer 500 before streaming
  *   "!401"    answer 401
  *   "!long"   stream a long passage
+ *   "!loop"   stream a long passage of emphasis that never closes, which is
+ *             what a model that has started repeating itself writes and what
+ *             a markdown parser is slowest on
  *   "!nolore" answer 500 to the lore request only, and stream as usual
  * Anything else gets a short canned scene with speech and an action in it,
  * suffixed with a counter so a regenerated answer is visibly different.
@@ -45,6 +48,14 @@ const SCENE = [
 ];
 
 const LONG = Array.from({ length: 60 }, (_, i) => `Sentence ${i + 1} of the long passage.`);
+
+/**
+ * Thirty thousand characters of emphasis that never closes, which is what a
+ * markdown parser is slowest on and what the app now renders a paragraph at a
+ * time rather than whole. Here so that the shape a model produces when it has
+ * lost the thread is a shape the app is known to draw.
+ */
+const LOOPING = Array.from({ length: 300 }, () => '**a **b** '.repeat(10)).join('\n\n');
 
 /** Everything in one paragraph, the way plenty of real models answer. */
 const PROSE = [
@@ -255,6 +266,7 @@ function lore(response, body, prompt) {
 
 /** The passage this turn answers with, before it is cut into deltas. */
 function pick(prompt) {
+  if (prompt.includes('!loop')) return LOOPING;
   if (prompt.includes('!long')) return LONG.join('\n\n');
   if (prompt.includes('!prose')) return PROSE;
   return [...SCENE, `(take ${++turn})`].join('\n\n');

@@ -361,6 +361,105 @@ describe('renderStoryHtml', () => {
   });
 });
 
+/**
+ * A message is parsed and set a block at a time, and every block but the last
+ * is remembered, so that a streaming answer costs the words that just arrived
+ * rather than the whole of what has arrived so far.
+ *
+ * Two halves: that cutting a message into blocks does not change what the
+ * message says, and that the cutting is what makes the worst message a model
+ * can write affordable at all.
+ */
+describe('renderStoryHtml, block by block', () => {
+  const plain = { bookStyleDialogue: false };
+  const book = { bookStyleDialogue: true };
+
+  /** What marked is slowest on, and what a model repeating itself writes. */
+  const looping = (length: number, separator: string, salt: string) =>
+    `${salt}\n\n${`**a **b**${separator}`.repeat(Math.ceil(length / 10)).slice(0, length)}`;
+
+  it('keeps a paragraph too long to parse at once as one paragraph', () => {
+    // Cut into pieces and put back together: one <p>, the line endings still
+    // the <br>s `breaks: true` makes of them, the words still in order.
+    const line = 'She crossed the lantern room and said nothing at all about it.';
+    const html = renderStoryHtml(Array.from({ length: 60 }, () => line).join('\n'), plain);
+    expect(html.match(/<p>/g)).toHaveLength(1);
+    expect(html.match(/<br>/g)).toHaveLength(59);
+    expect(html.match(/lantern room/g)).toHaveLength(60);
+  });
+
+  it('does not restart a list whose items are set apart by blank lines', () => {
+    // A blank line between two items is inside one list, not between two of
+    // them, and cutting there would start the second list at 1 again.
+    const html = renderStoryHtml('1. first\n\n2. second\n\n3. third', plain);
+    expect(html.match(/<ol/g)).toHaveLength(1);
+    expect(html).toContain('third');
+  });
+
+  it('keeps a quotation of two paragraphs as one quotation', () => {
+    const html = renderStoryHtml('> the first part\n>\n> and the second', plain);
+    expect(html.match(/<blockquote>/g)).toHaveLength(1);
+    expect(html).toContain('and the second');
+  });
+
+  it('keeps a blank line inside a fenced block inside the block', () => {
+    const html = renderStoryHtml('```\nconst a = 1;\n\nconst b = 2;\n```', plain);
+    expect(html.match(/<pre>/g)).toHaveLength(1);
+    // Both statements and the empty line between them, inside the one block.
+    expect(html).toContain('a = ');
+    expect(html).toContain('b = ');
+  });
+
+  it('still resolves a link written as a reference somewhere else', () => {
+    // The definition and the use are read by one parse, or by neither.
+    const html = renderStoryHtml('Read [the notice][n].\n\n[n]: https://example.com/n', plain);
+    expect(html).toContain('href="https://example.com/n"');
+    expect(html).not.toContain('[n]');
+  });
+
+  it('marks speech and actions in every block, not only the first', () => {
+    const html = renderStoryHtml('*He turned.*\n\n"After you," she said.\n\n*She went.*', plain);
+    expect(html.match(/class="action"/g)).toHaveLength(2);
+    expect(html).toContain('<span class="speech">"After you,"</span>');
+  });
+
+  it('gives the same answer whether it is asked once or twice', () => {
+    // The second render is mostly cache; it must not be a different message.
+    const source = 'He grinned. "Hello." "And you?"\n\n*She went.*\n\n```\nfour()\n```';
+    expect(renderStoryHtml(source, book)).toBe(renderStoryHtml(source, book));
+    // The setting is part of what was remembered, not something it forgot.
+    expect(renderStoryHtml(source, book).match(/<p>/g)).toHaveLength(4);
+    expect(renderStoryHtml(source, plain).match(/<p>/g)).toHaveLength(2);
+  });
+
+  /**
+   * Budgets, not stopwatches. One parse of thirty thousand characters of
+   * unbalanced emphasis was about four and a half seconds on the machine this
+   * was written on, and it happened again on every animation frame of a
+   * streaming answer. The numbers below are three times what that machine now
+   * takes, so a slower one still passes and only losing the blocks fails.
+   */
+  it('renders the worst message a model can write inside a budget', () => {
+    // One paragraph with no line ending anywhere in it to cut at: the shape
+    // that costs the most, rendered cold, with none of it remembered.
+    const worst = looping(30_000, ' ', 'the worst of it');
+    const started = performance.now();
+    const html = renderStoryHtml(worst, plain);
+    expect(performance.now() - started).toBeLessThan(1500);
+    expect(html).toContain('<strong>');
+  });
+
+  it('streams one without reading again everything that already arrived', () => {
+    // Sixty frames of the same answer growing, the way a turn arrives.
+    const answer = looping(30_000, '\n\n', 'streamed');
+    const started = performance.now();
+    for (let frame = 1; frame <= 60; frame++) {
+      renderStoryHtml(answer.slice(0, (answer.length * frame) / 60), plain);
+    }
+    expect(performance.now() - started).toBeLessThan(1500);
+  });
+});
+
 describe('renderMarkdown', () => {
   it('leaves a wrapped line as one paragraph, unlike story prose', () => {
     // Release notes come out of a changelog a formatter has hard-wrapped, so a

@@ -200,3 +200,31 @@ test('the composer grows as it is written into without pushing itself off the pa
   const { height, scrollHeight, top } = await metrics(page);
   expect(scrollHeight - top - height).toBeLessThan(8);
 });
+
+/**
+ * A model that has started repeating itself writes emphasis that never closes,
+ * and markdown parsers are slowest on exactly that. The app renders it a
+ * paragraph at a time for that reason; this is the check that it still renders
+ * it, all of it, and that the page it renders into is still a page. What the
+ * paragraphs cost is measured in `core.spec.ts`, where a budget can be fixed.
+ */
+test('a looping answer streams without taking the page with it', async ({ page, server }) => {
+  await seedConnectedSettings(server);
+  await seedStory(server, { scene: SCENE });
+  await page.goto(server.url);
+
+  await send(page, '!loop');
+  // Mid-stream, not only after it: the page is still drawing and still ends
+  // where the reader is, rather than parsing all of it again.
+  await expect(page.locator('article[data-role="assistant"]')).toBeVisible();
+  expect(await composerOnScreen(page)).toBe(true);
+  await waitForTurn(page);
+
+  // All of it arrived, and it is set as markdown rather than shown raw.
+  await expect(page.locator('article[data-role="assistant"] strong').first()).toBeVisible();
+  expect(await page.locator('article[data-role="assistant"] p').count()).toBeGreaterThan(250);
+
+  // And it is still a page: the box takes what is typed next.
+  await fillProse(composer(page), 'And then?');
+  await expect(composer(page)).toContainText('And then?');
+});
