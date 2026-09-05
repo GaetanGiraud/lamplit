@@ -1,0 +1,28 @@
+<!--
+  minima's own `head.html`, copied here so that a favicon can go in it.
+
+  The theme's version — v2.5.1, which is what github-pages pins — has no
+  `custom-head.html` hook; that arrived in minima 3, which GitHub Pages does not
+  serve. Jekyll resolves an include from the site before the theme, so this file
+  is the whole of the guide pages' <head> now. It is minima's, line for line,
+  with two changes:
+
+    - the favicons, from `custom-head.html`, which the landing layout includes
+      too, so both halves of the site have the same tab;
+    - minima's `{% if site.google_analytics %}` block is gone rather than left
+      unused, because a site whose rule is written at the top of _config.yml
+      should not carry the hook that breaks it, waiting for someone to fill in
+      one config key.
+
+  Plus one cosmetic difference: the stylesheet path is quoted with ' where
+  minima uses ", which Liquid reads the same way and prettier can parse. If the
+  theme is ever updated, this file is what to compare against.
+-->
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {%- seo -%}
+  <link rel="stylesheet" href="{{ '/assets/main.css' | relative_url }}" />
+  {%- feed_meta -%} {%- include custom-head.html -%}
+</head>
