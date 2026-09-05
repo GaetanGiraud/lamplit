@@ -196,15 +196,28 @@ describe('DocumentStore', () => {
 
   it('queues two spellings of one id on the chain the disk makes them share', async () => {
     const store = await freshStore();
-    // On a case-insensitive filesystem these are one file, and the point of
-    // folding the key is that the two writes are ordered rather than racing.
+    // Windows and macOS give `abc.json` and `ABC.json` the same file; Linux
+    // gives two. Asked rather than assumed, because which one is running this
+    // is the whole subject of the test.
+    await store.write('stories', 'Probe', { probe: true });
+    const oneFile = (await store.read('stories', 'probe')) !== null;
+
+    // Enqueued in this order, and folding the key puts them on one chain, so
+    // they are ordered rather than racing.
     const [first, second] = await Promise.all([
       store.write('stories', 'abc', { title: 'first' }),
       store.write('stories', 'ABC', { title: 'second' }),
     ]);
     assert.equal(first.ok, true);
     assert.equal(second.ok, true);
-    assert.deepEqual(written(await store.read('stories', 'abc')), { title: 'second' });
+
+    // Where the two spellings are one file, that ordering is what decides
+    // which write is the one left on disk; where they are two, each keeps its
+    // own and there was never anything to order.
+    assert.deepEqual(written(await store.read('stories', 'ABC')), { title: 'second' });
+    assert.deepEqual(written(await store.read('stories', 'abc')), {
+      title: oneFile ? 'second' : 'first',
+    });
   });
 
   it('leaves no temporary file behind when the rename itself fails', async () => {
