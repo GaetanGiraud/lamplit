@@ -289,6 +289,24 @@ describe('buildPrompt: lore', () => {
   });
 });
 
+/**
+ * What the dearest of cl100k and o200k was measured to charge (#30): a token
+ * for every 0.83 characters of Han, Kana or Hangul, and one for every 3.6 of
+ * anything else. Written out here rather than taken from the estimator, so
+ * that this asks the question the endpoint asks — does it fit? — instead of
+ * asking the estimator whether it agrees with itself.
+ */
+function dearestCount(messages: readonly { content: string }[]): number {
+  return messages.reduce((total, message) => {
+    let cjk = 0;
+    for (const character of message.content) {
+      const code = character.codePointAt(0)!;
+      if ((code >= 0x2e80 && code < 0xa000) || (code >= 0xac00 && code < 0xd800)) cjk++;
+    }
+    return total + 4 + Math.ceil(cjk / 0.83 + (message.content.length - cjk) / 3.6);
+  }, 0);
+}
+
 describe('buildPrompt: the budget', () => {
   const params = { ...DEFAULT_GENERATION, maxContextTokens: 1200, maxResponseTokens: 800 };
 
@@ -320,6 +338,22 @@ describe('buildPrompt: the budget', () => {
     const last = built.messages[built.messages.length - 1];
     expect(last).toEqual({ role: 'user', content: 'And now this.' });
     expect(built.dropped).toBe(1);
+  });
+
+  it('trims a story in Chinese to something the endpoint will take', () => {
+    // Under one rate for every script this was the bug in #30: the budget
+    // counted a Chinese chapter at a quarter of its price, sent three or four
+    // times the window, and got back a 400 it had nothing smaller to answer.
+    const scene = '港口墙上的灯已经连续三个晚上没有亮了，村里没有人愿意说出原因。';
+    const built = buildPrompt({
+      story: story(),
+      chapter: chapter({ messages: Array.from({ length: 60 }, () => said('user', scene)) }),
+      params: { ...DEFAULT_GENERATION, maxContextTokens: 4096, maxResponseTokens: 1024 },
+      estimator: heuristicEstimator,
+    });
+
+    expect(built.dropped).toBeGreaterThan(0);
+    expect(dearestCount(built.messages)).toBeLessThanOrEqual(4096 - 1024);
   });
 
   it('skips failed turns and empty placeholders', () => {

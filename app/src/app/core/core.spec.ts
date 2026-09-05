@@ -261,11 +261,112 @@ describe('errorFromResponse', () => {
   });
 });
 
+/**
+ * A paragraph of each script, with the fewest characters a token was measured
+ * to buy across cl100k and o200k — the dearest either of them charges, which
+ * is the number the estimate has to be able to pay.
+ *
+ * Fewer characters to the token means more tokens counted, so the estimate is
+ * safe when it is at or *under* the figure in the middle column and wasteful
+ * when it is far under: half again is the most that is worth trimming for.
+ */
+const PARAGRAPHS: readonly [script: string, dearest: number, text: string][] = [
+  [
+    'English',
+    4.46,
+    'The lamp on the harbour wall had been out for three nights running, and nobody in the village would say why. Mira walked the sea road at dusk with her coat buttoned to the throat, counting the boats that had not come back.',
+  ],
+  [
+    'markdown',
+    3.89,
+    '## The Lighthouse\n\n**Mira** stood at the door. *Nothing* answered.\n\n- the lamp was cold\n- the stair was wet\n- the log book stopped on the ninth\n\n> "You should not have come," said the keeper, and shut the book.',
+  ],
+  [
+    'French',
+    3.6,
+    "La lampe du phare était éteinte depuis trois nuits, et personne au village ne voulait dire pourquoi. Mira longeait la route côtière au crépuscule, le col relevé, comptant les barques qui n'étaient pas rentrées.",
+  ],
+  [
+    'German',
+    3.6,
+    'Die Lampe auf der Hafenmauer war seit drei Nächten erloschen, und niemand im Dorf wollte sagen, warum. Mira ging in der Dämmerung die Küstenstraße entlang und zählte die Boote, die nicht zurückgekommen waren.',
+  ],
+  [
+    'Russian',
+    1.91,
+    'Фонарь на молу не горел уже третью ночь, и никто в деревне не хотел говорить почему. Мира шла по приморской дороге в сумерках, застегнув пальто до горла, и считала лодки, которые не вернулись.',
+  ],
+  [
+    'Greek',
+    1.12,
+    'Ο φάρος στον μόλο ήταν σβηστός τρεις νύχτες στη σειρά, και κανείς στο χωριό δεν ήθελε να πει γιατί. Η Μίρα περπατούσε τον παραλιακό δρόμο το σούρουπο, με το παλτό κουμπωμένο ως τον λαιμό.',
+  ],
+  [
+    'Arabic',
+    1.44,
+    'كان المصباح على حائط الميناء مطفأً منذ ثلاث ليالٍ متتالية، ولم يرد أحد في القرية أن يقول لماذا. سارت ميرا على طريق البحر عند الغسق وقد أزرَّت معطفها حتى حلقها، تعد القوارب التي لم تعد.',
+  ],
+  [
+    'Hindi',
+    1.04,
+    'बंदरगाह की दीवार पर लगा दीपक लगातार तीन रातों से बुझा हुआ था, और गाँव में कोई नहीं बताना चाहता था कि क्यों। मीरा शाम के धुँधलके में समुद्र की सड़क पर चली, कोट गले तक बंद किए हुए।',
+  ],
+  [
+    'Chinese',
+    0.83,
+    '港口墙上的灯已经连续三个晚上没有亮了，村里没有人愿意说出原因。黄昏时分，米拉沿着海边的路走着，外套一直扣到喉咙，数着那些还没有回来的船。',
+  ],
+  [
+    'Japanese',
+    0.86,
+    '港の防波堤の灯りは三晩続けて消えたままで、村の誰もその理由を語ろうとしなかった。夕暮れのなか、ミラは外套を喉元まで留めて海沿いの道を歩き、帰ってこない舟の数を数えていた。',
+  ],
+  [
+    'Korean',
+    0.97,
+    '항구 벽의 등불은 사흘 밤 내내 꺼져 있었고, 마을의 누구도 그 이유를 말하려 하지 않았다. 미라는 해질 무렵 외투를 목까지 여미고 바닷가 길을 걸으며 돌아오지 않은 배를 세었다.',
+  ],
+  [
+    'emoji',
+    1.91,
+    'she wrote back 🌊🚨 and then 👩‍🚒👨‍👩‍👧 turned up at the door 🏮🏮 with ❤️ and a note that said 🔦🕯️🚤 — nobody laughed 😐',
+  ],
+  [
+    'digits',
+    1.8,
+    'Log 2026-09-05 14:32:07 — entries 118293, 118294, 118295 closed at 1,204,338 units; ids 8f3a91c2, 4471, 90210, 33128, 60622 and 1998-03-14 07:45.',
+  ],
+];
+
+const charsPerToken = (text: string) => text.length / heuristicEstimator.count(text);
+
 describe('token estimates', () => {
   it('counts per message plus its role overhead', () => {
     expect(heuristicEstimator.count('')).toBe(0);
     expect(heuristicEstimator.countMessages([{ role: 'user', content: '' }])).toBe(4);
     expect(heuristicEstimator.countMessages([{ role: 'user', content: 'a'.repeat(36) }])).toBe(14);
+  });
+
+  it('charges at least what the dearest tokenizer does, whatever the script', () => {
+    for (const [script, dearest, text] of PARAGRAPHS) {
+      expect(charsPerToken(text), script).toBeLessThanOrEqual(dearest);
+    }
+  });
+
+  it('does not throw away context by charging far more than it has to', () => {
+    for (const [script, dearest, text] of PARAGRAPHS) {
+      expect(charsPerToken(text), script).toBeGreaterThan(dearest / 1.6);
+    }
+  });
+
+  it('counts a code point once, however many UTF-16 units it takes', () => {
+    // An ideograph from a later plane and an emoji are one character each, not
+    // two, and are charged as the one thing they are.
+    expect(heuristicEstimator.count('𠀋')).toBe(2);
+    expect(heuristicEstimator.count('🌊')).toBe(3);
+    // A lone surrogate is nobody's character: charged the once, as the odd
+    // thing it is, without reading past the end of the string looking for it.
+    expect(heuristicEstimator.count('\ud83c')).toBe(2);
   });
 
   it('formats for the pill', () => {
