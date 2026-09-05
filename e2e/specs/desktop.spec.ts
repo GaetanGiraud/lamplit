@@ -1,6 +1,8 @@
 import { ElectronApplication, Page, _electron as electron, expect, test } from '@playwright/test';
+import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { once } from 'node:events';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,6 +42,8 @@ test.describe.configure({ mode: 'serial' });
 let app: ElectronApplication;
 let window: Page;
 let userData: string;
+/** What the window was showing before the server it belongs to was listening. */
+let splash: { shown: boolean; line: string };
 
 test.beforeAll(async () => {
   // A profile of its own, so this is a first run every time — which is the
@@ -50,12 +54,69 @@ test.beforeAll(async () => {
     env: { ...process.env, LAMPLIT_USER_DATA: userData },
   });
   window = await app.firstWindow();
+
+  // The window is created and shown before the server is so much as imported,
+  // so the first document in it is the shell's own page. What this spec has to
+  // say about it is recorded here rather than in a test of its own, because by
+  // the time that test ran the app would rightly have replaced it.
+  await window.waitForURL(/splash\.html$/);
+  splash = {
+    shown: await app.evaluate(
+      ({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible() ?? false,
+    ),
+    line: await window.locator('.booting-line').innerText(),
+  };
+
+  await window.waitForURL(/^http:\/\/127\.0\.0\.1:\d+\//, { timeout: 30_000 });
   await window.waitForLoadState('domcontentloaded');
 });
 
 test.afterAll(async () => {
   await app?.close();
   await rm(userData, { recursive: true, force: true });
+});
+
+/**
+ * Clicking the icon used to do nothing visible for as long as it took to import
+ * the server, open the store, listen, and load and bootstrap Angular — long
+ * enough that people clicked again, or decided it was broken. The window now
+ * comes first and says what it is doing.
+ */
+test('is on screen, saying so, before its server is listening', () => {
+  expect(splash.shown).toBe(true);
+  // The same words `app/src/index.html` shows until Angular boots, so nothing
+  // on screen changes when the window navigates from one page to the other.
+  expect(splash.line).toBe('Lighting the lamp…');
+});
+
+/**
+ * The behaviour that made the slow start look broken: a second click. It quits
+ * at once and hands the window it did not open to the copy that did — including
+ * while that window is still the splash, which is the whole point of it being
+ * up early.
+ */
+test('hands a second launch back to the window already open', async () => {
+  const binary = join(
+    ROOT,
+    'node_modules',
+    'electron',
+    'dist',
+    (await readFile(join(ROOT, 'node_modules', 'electron', 'path.txt'), 'utf8')).trim(),
+  );
+  const asked = app.evaluate(
+    ({ app: electronApp }) =>
+      new Promise<boolean>((resolve_) => electronApp.once('second-instance', () => resolve_(true))),
+  );
+
+  const second = spawn(binary, [ELECTRON_DIR], {
+    env: { ...process.env, LAMPLIT_USER_DATA: userData },
+    stdio: 'ignore',
+  });
+  const [code] = (await once(second, 'exit')) as [number | null];
+
+  expect(code).toBe(0);
+  await expect(asked).resolves.toBe(true);
+  expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
 });
 
 test('starts its own server on a port it picked, and answers on it', async () => {

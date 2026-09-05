@@ -13,6 +13,15 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   </head>
   <body>
-    <app-root></app-root>
+    <!-- Angular replaces everything inside <app-root> when it bootstraps, and
+         until it does this is the whole page. In the desktop window it carries
+         on from the shell's splash without a word changing; in a browser tab it
+         is the only thing between the navigation and the app. -->
+    <app-root>
+      <div class="booting">
+        <p class="booting-mark">Lamplit</p>
+        <p class="booting-line">Lighting the lamp…</p>
+      </div>
+    </app-root>
   </body>
 </html>

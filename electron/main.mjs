@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu, app, dialog, ipcMain, session, shell } from 'electron';
+import { BrowserWindow, Menu, app, dialog, ipcMain, nativeTheme, session, shell } from 'electron';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -59,6 +59,16 @@ const DATA_DIR = join(app.getPath('userData'), 'data');
 const BACKUPS_DIR = join(app.getPath('userData'), 'backups');
 const WINDOW_STATE = join(app.getPath('userData'), 'window.json');
 
+/**
+ * The app's own page colour, both halves of it, copied from the palette in
+ * *app/src/styles.scss*. The window is painted in it from the moment it opens,
+ * before there is a page in it at all, so there is no white flash and no empty
+ * grey rectangle. Which half is Chromium's answer, not Preferences': the shell
+ * is not allowed to read the app's settings, and `nativeTheme` is the same
+ * signal the splash page reads as `prefers-color-scheme`.
+ */
+const PAGE = { light: '#f6f3ec', dark: '#14151a' };
+
 const DEFAULT_WINDOW = { width: 1180, height: 820 };
 /** Small enough for a laptop, wide enough that the reading column is not squeezed. */
 const MINIMUM_WINDOW = { width: 720, height: 520 };
@@ -82,10 +92,32 @@ let server = null;
 let finished = false;
 /** @type {BrowserWindow | null} */
 let window = null;
+/**
+ * The app's own address, once there is one. Null while the splash is up, which
+ * is what the navigation guard reads it for: before the server is listening
+ * there is no address that counts as staying inside the app.
+ *
+ * @type {string | null}
+ */
+let appUrl = null;
 /** @type {{version: string, commit: string, builtAt: string, build: string, channel: string} | null} */
 let build = null;
 
+/**
+ * The window first, the server second.
+ *
+ * Everything below the `openWindow` line — importing the server, opening its
+ * store, listening, then Chromium loading and Angular bootstrapping — takes a
+ * fraction of a second on a warm machine and a great deal longer on the first
+ * run after installing, where Windows is also scanning a new program. A
+ * launcher that shows nothing for that long is a launcher people click again,
+ * or give up on. So the window is created and shown before any of it, with a
+ * page of its own saying what is happening, and navigates to the app when
+ * there is an app to navigate to.
+ */
 async function start() {
+  await openWindow();
+
   if (!existsSync(join(PUBLIC_DIR, 'index.html'))) {
     return fatal(new Error(`no built app at ${PUBLIC_DIR} — run \`npm run build\` first.`));
   }
@@ -137,7 +169,13 @@ async function start() {
     void checkForUpdates(setting);
   });
   Menu.setApplicationMenu(buildMenu());
-  await openWindow(url);
+
+  // Same window, same background colour, so the hand-over is a change of
+  // words rather than a flash. `loadURL` from here does not fire
+  // `will-navigate`, so the guard below only ever sees the page's own
+  // navigations — but it needs the address first.
+  appUrl = url;
+  await window?.loadURL(url);
 }
 
 /**
@@ -173,14 +211,17 @@ function listen(expressApp) {
   });
 }
 
-async function openWindow(url) {
+async function openWindow() {
   const state = await readWindowState();
   window = new BrowserWindow({
     ...state,
     minWidth: MINIMUM_WINDOW.width,
     minHeight: MINIMUM_WINDOW.height,
-    show: false,
-    backgroundColor: '#14151a',
+    // Not `ready-to-show`, which waits for the first paint of a page that is
+    // waiting for the server: Electron's own advice for anything bigger than a
+    // simple page is to show the window at once on its background colour.
+    show: true,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? PAGE.dark : PAGE.light,
     title: 'Lamplit',
     webPreferences: {
       preload: join(HERE, 'preload.cjs'),
@@ -196,7 +237,7 @@ async function openWindow(url) {
     return { action: 'deny' };
   });
   window.webContents.on('will-navigate', (event, target) => {
-    if (!target.startsWith(url)) {
+    if (!appUrl || !target.startsWith(appUrl)) {
       event.preventDefault();
       openExternal(target);
     }
@@ -223,11 +264,10 @@ async function openWindow(url) {
     if (answer === 1) event.preventDefault();
   });
 
-  window.once('ready-to-show', () => window?.show());
   window.on('close', rememberWindow);
   window.on('closed', () => (window = null));
 
-  await window.loadURL(url);
+  await window.loadFile(join(HERE, 'splash.html'));
 }
 
 /** The one thing the shell does that the web app cannot do for itself. */
@@ -413,7 +453,20 @@ function fatal(error) {
   // A packaged app has no console anyone is watching, and a launcher that
   // appears to do nothing is the worst way to say something went wrong.
   if (app.isPackaged) {
-    dialog.showErrorBox('Lamplit could not start', String(error.message ?? error));
+    const said = String(error.message ?? error);
+    // Parented to the window when there is one — which, since the window now
+    // opens before anything that can fail, there almost always is. A box with
+    // no parent is a box that can end up behind the very window it is about.
+    if (window && !window.isDestroyed()) {
+      dialog.showMessageBoxSync(window, {
+        type: 'error',
+        title: 'Lamplit could not start',
+        message: 'Lamplit could not start',
+        detail: said,
+      });
+    } else {
+      dialog.showErrorBox('Lamplit could not start', said);
+    }
   }
   app.exit(1);
 }

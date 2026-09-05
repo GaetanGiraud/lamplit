@@ -12,6 +12,8 @@ files:
   - main.mjs
   - updates.mjs
   - preload.cjs
+  # What the window shows while the server behind it is still starting.
+  - splash.html
   - package.json
 
 # The staged folder from tools/package.mjs, copied in whole: the same server,

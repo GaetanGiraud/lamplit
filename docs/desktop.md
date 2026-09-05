@@ -59,6 +59,10 @@ browser rather than taking the app's window away from you.
 Opening Lamplit a second time brings the window you already have to the front. One app, one
 set of files, no chance of two of them writing over each other.
 
+The window appears as soon as you click, showing **Lighting the lamp…** while the rest of the app
+gets ready behind it. The very first start after installing takes longer than the ones after it,
+because Windows checks a new program the first time it runs.
+
 ## Updates
 
 It checks the project's releases once when it starts, and downloads a new version quietly in the

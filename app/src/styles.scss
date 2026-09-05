@@ -175,6 +175,33 @@ app-root {
   height: 100%;
 }
 
+// The two lines index.html puts inside <app-root>, which stand in for the app
+// until Angular replaces them. Same words, same shape and the same page colour
+// as `electron/splash.html`, so the desktop window's hand-over from the shell's
+// page to this one is invisible.
+.booting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+}
+
+.booting-mark {
+  margin: 0 0 0.9rem;
+  font-family: var(--ms-serif);
+  font-size: 2.6rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.booting-line {
+  margin: 0;
+  color: var(--ms-muted);
+  font-size: 0.95rem;
+}
+
 // ---------------------------------------------------------------------------
 // Story prose. Applied to the rendered markdown of every message.
 // ---------------------------------------------------------------------------

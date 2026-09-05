@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Lamplit</title>
+    <!--
+      What the window says while the server behind it is still starting.
+
+      One file, no network, no external asset, because it has to be on screen
+      before anything else exists. The colours and the serif stack are copied
+      from `app/src/styles.scss` rather than read from it: the shell is not
+      allowed to know anything about the app, and this page is loaded from
+      `file:` before there is a server to ask. Light or dark follows the
+      operating system through Chromium's own `prefers-color-scheme`, which in
+      Electron is `nativeTheme` — the shell may not read Preferences, and a
+      window that guessed would flash the wrong colour at the reader.
+
+      The words are the same ones `app/src/index.html` shows until Angular
+      boots, so nothing changes on screen when the window navigates.
+    -->
+    <style>
+      :root {
+        color-scheme: dark light;
+
+        --page: light-dark(#f6f3ec, #14151a);
+        --ink: light-dark(#22201c, #e7e4dd);
+        --muted: light-dark(#8a8478, #7c8090);
+        --glow: light-dark(rgba(214, 154, 74, 0.18), rgba(255, 198, 128, 0.14));
+        --serif:
+          'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--page);
+        color: var(--ink);
+        font-family: system-ui, 'Segoe UI', sans-serif;
+        overflow: hidden;
+        user-select: none;
+      }
+
+      /* The lamp: one soft warm circle behind the wordmark, breathing slowly. */
+      .glow {
+        position: fixed;
+        top: 42%;
+        left: 50%;
+        width: 44rem;
+        height: 44rem;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(closest-side, var(--glow), transparent 70%);
+        animation: breathe 7s ease-in-out infinite alternate;
+      }
+
+      @keyframes breathe {
+        from {
+          opacity: 0.65;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .booting {
+        position: relative;
+        text-align: center;
+      }
+
+      .booting-mark {
+        margin: 0 0 0.9rem;
+        font-family: var(--serif);
+        font-size: 2.6rem;
+        font-weight: 400;
+        letter-spacing: 0.04em;
+      }
+
+      .booting-line {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      /*
+        A slow disk should not look like a hang. Positioned rather than in the
+        flow so that its arrival does not move the two lines above it, and so
+        that the block is centred the same way with it and without it — the
+        same way `.booting` is centred on the app's own first paint.
+      */
+      .booting-later {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
+        margin: 0.9rem 0 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+        opacity: 0;
+        animation: appear 1.2s ease-out 8s forwards;
+      }
+
+      @keyframes appear {
+        to {
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .glow {
+          animation: none;
+        }
+
+        .booting-later {
+          animation-duration: 0.01s;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+    <div class="booting">
+      <p class="booting-mark">Lamplit</p>
+      <p class="booting-line">Lighting the lamp…</p>
+      <p class="booting-later">Still lighting…</p>
+    </div>
+  </body>
+</html>
