@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { renderMarkdown } from '../../core/formatting';
+import { REPOSITORY, WEBSITE } from '../../core/project';
 import { BuildInfoStore } from '../../store/build-info';
 import { Release, UpdatesStore } from '../../store/updates-store';
 
@@ -12,8 +13,6 @@ export interface WhatsNewData {
   all: boolean;
 }
 
-const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
-const WEBSITE = 'https://gaetangiraud.github.io/lamplit/';
 /** Unversioned on purpose, so this link keeps pointing at the newest one. */
 const ZIP = `${REPOSITORY}/releases/latest/download/Lamplit.zip`;
 

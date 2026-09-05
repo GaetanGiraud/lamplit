@@ -129,14 +129,14 @@ describe('UpgradeNotice', () => {
     health({ version: '0.2.0', build: '42', previousVersion: '0.1.0' });
     let fixture = await open();
     expect(part(fixture, '.notes').getAttribute('href')).toBe(
-      'https://github.com/GaetanGiraud/lamplit/releases/tag/v0.2.0',
+      'https://github.com/lamplit-app/lamplit/releases/tag/v0.2.0',
     );
 
     // A build nobody tagged has no page of its own to send anyone to.
     health({ version: '0.2.0', build: 'local', previousVersion: '0.1.0' });
     fixture = await open();
     expect(part(fixture, '.notes').getAttribute('href')).toBe(
-      'https://github.com/GaetanGiraud/lamplit/releases',
+      'https://github.com/lamplit-app/lamplit/releases',
     );
   });
 });

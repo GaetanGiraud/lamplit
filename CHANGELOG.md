@@ -327,7 +327,7 @@ counts, text size — and it is open when the sheet opens.
 installers: the whole app in about a megabyte, for any machine that already has
 Node.js 20.19 or newer. 0.1.0's notes promised it and the release did not have
 it — this is that, and
-[the link](https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.zip)
+[the link](https://github.com/lamplit-app/lamplit/releases/latest/download/Lamplit.zip)
 always points at the newest one. It is also the way in on a Mac, which has no
 installer of its own.
 
@@ -353,10 +353,21 @@ the same line, and `/api/health` returns every field of it.
   older one and it says so, once, at the top of the page, with a link to what
   changed. Dismiss it and it never comes back for that version. A fresh install
   has nothing to compare against and stays quiet.
-- **[Upgrading](https://gaetangiraud.github.io/lamplit/upgrading.html)** is a
+- **[Upgrading](https://lamplit-app.github.io/lamplit/upgrading.html)** is a
   new page in the guide: how to get the new version on each channel, how to
   carry your stories across when you run the zip, and where every way of
   running it keeps them.
+
+**Lamplit has moved to an address of its own.** The project used to live under the personal account
+that started it, so every link to it — the download page, the releases, the issues — was somebody's
+name. It is now at [github.com/lamplit-app/lamplit](https://github.com/lamplit-app/lamplit), and
+the download page at [lamplit-app.github.io/lamplit](https://lamplit-app.github.io/lamplit/).
+
+- **Nothing you have installed breaks.** The old addresses redirect, so a 0.1.0 that is already
+  running still finds its update check and its downloads. Bookmarks and clones keep working.
+- **Your provider no longer hears a name.** The apps that credit the tools calling them —
+  OpenRouter among them — are told where Lamplit lives with every request. That line used to carry
+  the author's own site. It carries the project's now.
 
 ## 0.1.0 — the first release
 

@@ -18,9 +18,9 @@
     "electron-builder": "^26.15.3"
   },
   "author": {
-    "name": "Gaetan Giraud",
-    "url": "https://github.com/GaetanGiraud/lamplit"
+    "name": "Lamplit",
+    "url": "https://github.com/lamplit-app/lamplit"
   },
-  "homepage": "https://gaetangiraud.github.io/lamplit/",
+  "homepage": "https://lamplit-app.github.io/lamplit/",
   "license": "MIT"
 }

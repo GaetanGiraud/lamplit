@@ -1,6 +1,6 @@
 appId: com.lamplit.app
 productName: Lamplit
-copyright: MIT — https://github.com/GaetanGiraud/lamplit
+copyright: MIT — https://github.com/lamplit-app/lamplit
 
 directories:
   output: ../build/desktop
@@ -45,7 +45,7 @@ electronFuses:
 # it: the release workflow uploads to this same repository's releases.
 publish:
   provider: github
-  owner: GaetanGiraud
+  owner: lamplit-app
   repo: lamplit
   # A draft, always: nothing here is signed, so a person looks at what arrived
   # before anyone can download it.
@@ -89,7 +89,7 @@ linux:
   # A .deb has to name a maintainer, and this project's only contact is its
   # issues. GitHub's noreply address is the nearest thing to saying so in a
   # field that will not take "open an issue" for an answer.
-  maintainer: Lamplit <GaetanGiraud@users.noreply.github.com>
+  maintainer: Lamplit <lamplit-app@users.noreply.github.com>
   artifactName: Lamplit.${ext}
 # macOS is deliberately not built: an unsigned build is refused by Gatekeeper,
 # and notarising it needs an Apple Developer licence this project does not hold.

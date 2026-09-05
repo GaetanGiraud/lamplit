@@ -13,7 +13,7 @@ function release(tag, patch = {}) {
     name: `Lamplit ${tag}`,
     published_at: `2026-0${minor}-0${Number(point) + 1}T00:00:00Z`,
     body: `What changed in ${tag}.`,
-    html_url: `https://github.com/GaetanGiraud/lamplit/releases/tag/${tag}`,
+    html_url: `https://github.com/lamplit-app/lamplit/releases/tag/${tag}`,
     draft: false,
     prerelease: false,
     assets: [

@@ -414,8 +414,8 @@ function versionLine() {
   return detail ? `${version} (${detail})` : version;
 }
 
-const WEBSITE = 'https://gaetangiraud.github.io/lamplit/';
-const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
+const WEBSITE = 'https://lamplit-app.github.io/lamplit/';
+const REPOSITORY = 'https://github.com/lamplit-app/lamplit';
 
 // -- updates -----------------------------------------------------------------
 

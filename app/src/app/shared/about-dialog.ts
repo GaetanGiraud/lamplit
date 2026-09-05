@@ -1,12 +1,10 @@
 import { Component, computed, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
+import { REPOSITORY } from '../core/project';
 import { BuildInfoStore } from '../store/build-info';
 import { SettingsStore } from '../store/settings-store';
 import { DialogsService } from './dialogs.service';
-
-/** Where the release notes and the issues are. Also in the desktop Help menu. */
-const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
 
 /**
  * One sheet, and no settings on it: what this is, which build of it is running,

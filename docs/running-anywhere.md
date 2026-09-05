@@ -9,7 +9,7 @@ server and the same built app the [desktop app](desktop.md) wraps, without the b
 This is the way in on a Mac, where there is no installer, and the way in on a machine with no
 desktop to speak of.
 
-**[Download Lamplit.zip](https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.zip)**
+**[Download Lamplit.zip](https://github.com/lamplit-app/lamplit/releases/latest/download/Lamplit.zip)**
 — that link always points at the newest release. The version is inside, in `package.json` and
 `README.txt`.
 

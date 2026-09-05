@@ -15,6 +15,7 @@
  */
 
 import type { ModelInfo } from './models';
+import { WEBSITE } from './project';
 
 export type ProviderGroup = 'Hosted' | 'Aggregators' | 'Run locally' | 'Other';
 
@@ -46,7 +47,7 @@ export const DEFAULT_PROVIDER_ID = 'nanogpt';
 
 /** Sent to providers that credit the apps calling them. */
 const ATTRIBUTION_HEADERS: Readonly<Record<string, string>> = {
-  'HTTP-Referer': 'https://gaetangiraud.github.io/lamplit/',
+  'HTTP-Referer': WEBSITE,
   'X-Title': 'Lamplit',
 };
 

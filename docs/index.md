@@ -111,28 +111,28 @@ images, no marketplace, no feed. Somewhere to write a long story, and keep it.
   <li id="ms-windows">
     <h3>Windows</h3>
     <p class="ms-here-note">For this computer</p>
-    <a class="ms-get" href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit-Setup.exe">Download the installer</a>
+    <a class="ms-get" href="https://github.com/lamplit-app/lamplit/releases/latest/download/Lamplit-Setup.exe">Download the installer</a>
     <p>
       The first time you run it, Windows says <b>“Windows protected your PC”</b>. That warning is
       about who paid for a signing certificate, not about what is in the file. Click
       <b>More info</b>, then <b>Run anyway</b>.
     </p>
     <p>
-      Or the <a href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit-portable.exe">portable version</a>,
+      Or the <a href="https://github.com/lamplit-app/lamplit/releases/latest/download/Lamplit-portable.exe">portable version</a>,
       which installs nothing and keeps your stories beside it — a USB stick can carry both.
     </p>
   </li>
   <li id="ms-linux">
     <h3>Linux</h3>
     <p class="ms-here-note">For this computer</p>
-    <a class="ms-get" href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.AppImage">Download the AppImage</a>
+    <a class="ms-get" href="https://github.com/lamplit-app/lamplit/releases/latest/download/Lamplit.AppImage">Download the AppImage</a>
     <p>
       An AppImage installs nothing. Once it has downloaded, make it runnable —
       <b>Properties → Permissions → Allow executing</b>, or
       <code>chmod +x Lamplit.AppImage</code> — and open it like anything else.
     </p>
     <p>
-      Or the <a href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.deb">.deb package</a>,
+      Or the <a href="https://github.com/lamplit-app/lamplit/releases/latest/download/Lamplit.deb">.deb package</a>,
       for Debian, Ubuntu and their relatives.
     </p>
   </li>
@@ -147,7 +147,7 @@ images, no marketplace, no feed. Somewhere to write a long story, and keep it.
     </p>
     <p>
       <b>If you have that licence and would like to contribute the builds,</b>
-      <a href="https://github.com/GaetanGiraud/lamplit/issues">open an issue</a> — that is the
+      <a href="https://github.com/lamplit-app/lamplit/issues">open an issue</a> — that is the
       one way to reach this project, and it would be very welcome.
     </p>
     <p>
@@ -170,7 +170,7 @@ why uninstalling leaves them alone.
     <b>Node.js 20.19 or newer</b> on the machine instead. This is the way in on a Mac, and the way
     in on a server or anything else with no desktop to speak of.
   </p>
-  <a class="ms-get" href="https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.zip">Download the zip</a>
+  <a class="ms-get" href="https://github.com/lamplit-app/lamplit/releases/latest/download/Lamplit.zip">Download the zip</a>
   <p>
     Unzip it anywhere and run <code>start.bat</code> (Windows), <code>start.command</code> (macOS)
     or <code>start.sh</code> (Linux). It starts the server and opens the app in your browser; your
@@ -261,8 +261,8 @@ check sends and how to switch it off.
 
 <p class="ms-note">
 Free and open source, MIT licensed, on
-<a href="https://github.com/GaetanGiraud/lamplit">GitHub</a> — which is also where to
-<a href="https://github.com/GaetanGiraud/lamplit/issues">report anything wrong</a>. To run it
+<a href="https://github.com/lamplit-app/lamplit">GitHub</a> — which is also where to
+<a href="https://github.com/lamplit-app/lamplit/issues">report anything wrong</a>. To run it
 from the source, or build it yourself, start at <a href="development.html">Development</a>.
 </p>
 

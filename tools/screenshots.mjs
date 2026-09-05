@@ -96,7 +96,7 @@ const NEWER_VERSION = {
         '- **The prompt’s blocks can be reordered** per story, in What the model sees.',
         '- **Developer mode**, for the parts of the app that are about the app.',
       ].join('\n'),
-      url: 'https://github.com/GaetanGiraud/lamplit/releases/tag/v0.2.0',
+      url: 'https://github.com/lamplit-app/lamplit/releases/tag/v0.2.0',
       assets: [],
     },
   ],

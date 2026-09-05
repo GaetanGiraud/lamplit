@@ -1,7 +1,7 @@
 <h1 align="center">Lamplit</h1>
 
 <p align="center">
-  <a href="https://github.com/GaetanGiraud/lamplit/actions/workflows/ci.yml"><img src="https://github.com/GaetanGiraud/lamplit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/lamplit-app/lamplit/actions/workflows/ci.yml"><img src="https://github.com/lamplit-app/lamplit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
 ![The reading surface: a chapter of a story, set like a page of a book](docs/images/reading.png)
 
 <p align="center">
-  <b><a href="https://gaetangiraud.github.io/lamplit/">Download it for Windows or Linux →</a></b><br>
+  <b><a href="https://lamplit-app.github.io/lamplit/">Download it for Windows or Linux →</a></b><br>
   <sub>No Node.js, no terminal. macOS is not built; that page says why.</sub>
 </p>
 
@@ -73,7 +73,7 @@ who want to *read what comes out*. Two things follow from that:
 ## Quick start
 
 Nothing below is needed to *use* Lamplit — the
-[download page](https://gaetangiraud.github.io/lamplit/) has installers that carry Node
+[download page](https://lamplit-app.github.io/lamplit/) has installers that carry Node
 inside them. This is the way in for people who want the source.
 
 Node 20.19+, 22.12+ or 24+.
@@ -91,7 +91,7 @@ npm run package
 ```
 
 builds a self-contained folder and a ~1 MB zip — the same one every release publishes as
-[Lamplit.zip](https://github.com/GaetanGiraud/lamplit/releases/latest/download/Lamplit.zip).
+[Lamplit.zip](https://github.com/lamplit-app/lamplit/releases/latest/download/Lamplit.zip).
 Unzip it anywhere, run `start.bat` (Windows), `start.command` (macOS) or `./start.sh` (Linux), and
 the app opens in your browser with no install step at all.
 See [Running it anywhere](docs/running-anywhere.md).

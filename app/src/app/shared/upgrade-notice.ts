@@ -1,9 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { REPOSITORY } from '../core/project';
 import { BuildInfoStore } from '../store/build-info';
 import { SettingsStore } from '../store/settings-store';
-
-const REPOSITORY = 'https://github.com/GaetanGiraud/lamplit';
 
 /**
  * One line, once, after an upgrade: this is a newer Lamplit than the one that

@@ -13,7 +13,7 @@
  * the app, and the next start tries again.
  */
 
-const RELEASES_URL = 'https://api.github.com/repos/GaetanGiraud/lamplit/releases';
+const RELEASES_URL = 'https://api.github.com/repos/lamplit-app/lamplit/releases';
 const TIMEOUT = 5000;
 /** GitHub refuses a request without one, and this says who is asking. */
 const USER_AGENT = 'lamplit-update-check';
