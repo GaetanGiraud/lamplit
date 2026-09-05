@@ -97,6 +97,10 @@ test('on: the chapter is read back, and what is ticked is filed', async ({ page,
   await expect(town.locator('input')).toBeChecked();
 
   await review(page).getByRole('button', { name: 'Close the chapter' }).click();
+  // The next chapter's scene sheet, which is the proof the close went through
+  // rather than being answered a second time on its way out. Escape is for
+  // that sheet, and pressing it before it is there lands on this one.
+  await expect(page.getByRole('heading', { name: /Chapter 2/ })).toBeVisible();
   await page.keyboard.press('Escape');
 
   await expect
@@ -157,6 +161,10 @@ test('an update shows what it would overwrite, and waits to be asked', async ({ 
   await expect(update.locator('input')).not.toBeChecked();
 
   await review(page).getByRole('button', { name: 'Close the chapter' }).click();
+  // The next chapter's scene sheet, which is the proof the close went through
+  // rather than being answered a second time on its way out. Escape is for
+  // that sheet, and pressing it before it is there lands on this one.
+  await expect(page.getByRole('heading', { name: /Chapter 2/ })).toBeVisible();
   await page.keyboard.press('Escape');
 
   // Unticked, so it was not applied — and the new entry beside it was.
@@ -178,6 +186,10 @@ test('ticking the update rewrites the entry where it stands', async ({ page, ser
   const update = proposals(page).filter({ hasText: 'Old Tomas' });
   await update.locator('input').check();
   await review(page).getByRole('button', { name: 'Close the chapter' }).click();
+  // The next chapter's scene sheet, which is the proof the close went through
+  // rather than being answered a second time on its way out. Escape is for
+  // that sheet, and pressing it before it is there lands on this one.
+  await expect(page.getByRole('heading', { name: /Chapter 2/ })).toBeVisible();
   await page.keyboard.press('Escape');
 
   await expect

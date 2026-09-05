@@ -56,8 +56,9 @@ policy, which leaves where the story is sent entirely your choice and forbids ev
 a backup that fails says so instead of reporting one that is not there; an interrupted archive is
 written again rather than kept; a write that cannot be renamed cleans up after itself; one
 unreadable file costs that file rather than the whole collection; a body that is empty or a list is
-refused rather than saved over your story; and a pre-release version compares as older than the
-release it precedes.
+refused rather than saved over your story; a chapter you closed stays closed even if you hit Escape
+in the same instant, which used to throw the close away and keep only the lore entries; and a
+pre-release version compares as older than the release it precedes.
 
 The desktop build carries the version it was built at, so an update can be published at all; a
 portable copy no longer installs itself; the browser's own cache lives in a folder of its own

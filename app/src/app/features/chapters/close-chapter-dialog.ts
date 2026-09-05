@@ -523,7 +523,21 @@ export class CloseChapterDialog {
    * read as an answer here, and closed the chapter on a summary of nothing.
    */
   protected cancel(): void {
-    this.ref.close(undefined);
+    this.answer(undefined);
+  }
+
+  /**
+   * The sheet is answered once, and the answer stands.
+   *
+   * A dialog goes on listening for Escape and for a click outside while it is
+   * closing, and Material treats either as a fresh close with no result — so a
+   * key pressed in the fraction of a second after Close the chapter threw away
+   * the summary and the entries on their way out, and the chapter stayed open.
+   * Refusing further closes is what makes the decision a decision.
+   */
+  private answer(result: ChapterClose | undefined): void {
+    this.ref.disableClose = true;
+    this.ref.close(result);
   }
 
   protected confirm(): void {
@@ -532,6 +546,6 @@ export class CloseChapterDialog {
     // Only what was ticked. An untouched sheet keeps nothing at all, which is
     // what "propose" has to mean.
     const kept = this.proposals().filter((_, i) => this.ticked().has(i));
-    this.ref.close({ summary, entries: kept.map((proposal) => entryFrom(proposal, newId())) });
+    this.answer({ summary, entries: kept.map((proposal) => entryFrom(proposal, newId())) });
   }
 }
