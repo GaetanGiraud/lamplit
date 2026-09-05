@@ -14,6 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ChapterStore } from '../../store/chapter-store';
 import { SettingsStore } from '../../store/settings-store';
+import { Layout } from '../../core/layout';
 import { withDirection } from '../../core/prompt-builder';
 import { TOKEN_ESTIMATOR, formatTokens } from '../../core/tokens';
 import { DialogsService } from '../../shared/dialogs.service';
@@ -32,6 +33,11 @@ import { TextValue } from '../../shared/text-value';
  * as the page will and hands back markdown; `draft` holds that markdown and is
  * what everything else here reads. The author's direction stays a plain field:
  * it is an instruction, and formatting means nothing to it.
+ *
+ * Under a finger both of those change, and neither is about width. A phone
+ * keyboard has a Return key and no Shift+Return, so Enter is a new line and
+ * Send is the button that says Send; and a key pressed with nothing focused
+ * cannot happen at all, so nothing listens for one.
  */
 @Component({
   selector: 'li-composer',
@@ -56,7 +62,7 @@ import { TextValue } from '../../shared/text-value';
                 class="prose"
                 style="--rows-min: 3; --rows-max: 14"
                 label="What happens next"
-                submitOnEnter
+                [submitOnEnter]="!layout.coarse()"
                 [value]="draft()"
                 [placeholder]="placeholder()"
                 (valueChange)="onDraft($event)"
@@ -138,7 +144,7 @@ import { TextValue } from '../../shared/text-value';
                       class="send"
                       [disabled]="!canSend()"
                       (click)="send()"
-                      matTooltip="Enter to send, Shift+Enter for a new line"
+                      [matTooltip]="sendTooltip()"
                     >
                       Send
                     </button>
@@ -150,9 +156,9 @@ import { TextValue } from '../../shared/text-value';
             <!-- The pill is developer mode's; the trimming note is everyone's,
                  because a chapter quietly dropping its own beginning is
                  something the writer has to be told about either way. -->
-            @if (settings.ui().developerMode || prompt().dropped > 0) {
+            @if (pill() || prompt().dropped > 0) {
               <div class="strip">
-                @if (settings.ui().developerMode) {
+                @if (pill()) {
                   <button
                     class="li-pill"
                     type="button"
@@ -176,6 +182,8 @@ import { TextValue } from '../../shared/text-value';
     </div>
   `,
   styles: `
+    @use '../../../breakpoints' as bp;
+
     /* Part of the page now, not a shelf over it: no rule, no tint and nothing
        blurred behind it, because there is nothing behind it. The box draws its
        own border and that is the whole of the furniture. */
@@ -184,7 +192,7 @@ import { TextValue } from '../../shared/text-value';
     }
 
     .column {
-      width: min(var(--li-measure), calc(100% - 2.5rem));
+      width: var(--li-column);
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -227,6 +235,13 @@ import { TextValue } from '../../shared/text-value';
       align-items: center;
       gap: 0.1rem;
       margin-right: auto;
+    }
+
+    /* Five controls and no margin to spare: they wrap rather than squeeze. */
+    @include bp.phone {
+      .footer {
+        flex-wrap: wrap;
+      }
     }
 
     .buttons {
@@ -342,12 +357,24 @@ import { TextValue } from '../../shared/text-value';
     button.li-pill:hover {
       color: var(--li-ink-soft);
     }
+
+    /* Big enough to be pressed at all, which the quiet words are not. */
+    @include bp.touch {
+      .quiet {
+        padding: 0.5rem 0.65rem;
+      }
+
+      .mark {
+        padding: 0.5rem 0.6rem;
+      }
+    }
   `,
 })
 export class Composer {
   protected readonly chapters = inject(ChapterStore);
   protected readonly settings = inject(SettingsStore);
   protected readonly dialogs = inject(DialogsService);
+  protected readonly layout = inject(Layout);
 
   // Not `required`: a chapter with no scene, no connection or a closed status
   // has the reason and the way out of it where the box would be, and the
@@ -383,6 +410,20 @@ export class Composer {
   });
 
   protected readonly contextTooltip = 'Everything this request will send. Click to read it.';
+
+  /**
+   * The context pill, and the prompt preview behind it. Developer mode's, and
+   * so the app's rather than the story's — which is why the phone layout does
+   * not offer it, along with everything else that was set up on the computer.
+   */
+  protected readonly pill = computed(
+    () => this.settings.ui().developerMode && !this.layout.phone(),
+  );
+
+  /** There is no Shift+Enter on a phone keyboard, and no need to mention one. */
+  protected readonly sendTooltip = computed(() =>
+    this.layout.coarse() ? 'Send it' : 'Enter to send, Shift+Enter for a new line',
+  );
 
   protected readonly canSend = computed(
     () =>
@@ -458,6 +499,10 @@ export class Composer {
   /**
    * A letter pressed with nothing focused goes into the composer.
    *
+   * On a touch screen it does not happen at all: the shortcut exists so that a
+   * writer need not go and find the box with the mouse, and a finger goes to
+   * the box to type in the first place.
+   *
    * "Nothing focused" is `document.body` and only that, which is what makes
    * this safe rather than clever: a dialog, a menu, another field or a button
    * all hold focus themselves, so none of them is interrupted, and Space on a
@@ -471,6 +516,10 @@ export class Composer {
    * about.
    */
   protected onDocumentKey(event: KeyboardEvent): void {
+    // Nothing to catch under a finger: there is no keyboard on screen until
+    // the box has the focus, so a keystroke that arrived with nothing focused
+    // came from somewhere this cannot reason about.
+    if (this.layout.coarse()) return;
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key.length !== 1 || event.key === ' ') return;
     if (document.activeElement && document.activeElement !== document.body) return;
@@ -484,6 +533,9 @@ export class Composer {
 
   /** The author's field: Enter sends from there too, and Shift+Enter is a newline. */
   protected onKey(event: KeyboardEvent): void {
+    // Except under a finger, where it is a new line, as it is in the prose box
+    // above it: a phone keyboard's Return has no Shift beside it.
+    if (this.layout.coarse()) return;
     // Ctrl/Cmd+Enter belongs to the global regenerate shortcut, so it does not send.
     if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.metaKey) return;
     event.preventDefault();

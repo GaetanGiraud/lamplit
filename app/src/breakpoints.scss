@@ -1,0 +1,35 @@
+// The one breakpoint, and the one question the layout ever asks.
+//
+// Above it there is room for a bar of named buttons, a panel beside the page
+// and a sheet floating in the middle of it. Below it there is not, so the app
+// is the phone layout: a wordmark, a dot and one menu; the panel and the
+// dialogs as full sheets; the story edge to edge between them.
+//
+// Nothing sniffs at a user agent and nothing asks how big the screen is. A
+// desktop window dragged this narrow gets the phone layout too, which is the
+// point of writing it as a width — it is the room there is, not the device.
+//
+// `--li-phone-width` in styles.scss is this number handed to the app's
+// TypeScript, which has the same question to answer in two places where CSS
+// cannot: which items the one menu holds, and whether Enter sends. See
+// `core/layout.ts`.
+$phone-width: 48rem;
+
+/// The phone layout: this width and under.
+@mixin phone {
+  @media (max-width: $phone-width) {
+    @content;
+  }
+}
+
+/// A finger rather than a pointer.
+///
+/// Deliberately not the same question as `phone`. A narrow window on a laptop
+/// is the phone *layout* and still has a keyboard and a mouse, so what belongs
+/// here is only what a finger changes: how big a target has to be, and the
+/// shortcuts that mean nothing without keys to press.
+@mixin touch {
+  @media (pointer: coarse) {
+    @content;
+  }
+}

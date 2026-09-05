@@ -43,7 +43,7 @@ import { MessageItem } from './message-item';
     }
 
     .column {
-      width: min(var(--li-measure), calc(100% - 2.5rem));
+      width: var(--li-column);
       margin: 0 auto;
       padding: 1.25rem 0 0;
     }

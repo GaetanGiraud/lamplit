@@ -35,7 +35,7 @@ import { chapterTitle } from '../../core/prompt-builder';
   `,
   styles: `
     .row {
-      width: min(var(--li-measure), calc(100% - 2.5rem));
+      width: var(--li-column);
       margin: 0 auto;
       display: flex;
       align-items: center;

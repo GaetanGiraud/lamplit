@@ -1,7 +1,8 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DEFAULT_NARRATOR_PROMPT } from '../../core/defaults';
 import { characterColour } from '../../core/character-colours';
+import { Layout } from '../../core/layout';
 import { Character, PanelSection } from '../../core/models';
 import { firstLine, isOneAtATime } from '../../core/prompt-builder';
 import { DialogsService } from '../../shared/dialogs.service';
@@ -24,6 +25,17 @@ import { StoryStore } from '../../store/story-store';
 const PANEL_PUSH_WIDTH = 1100;
 
 /**
+ * The swipe that opens it on a phone, where there is no rail to press.
+ *
+ * A drag that starts within `EDGE_ZONE` of the right-hand side and travels
+ * `SWIPE_DISTANCE` to the left, further across than up or down, is the panel
+ * being pulled out. The zone is narrow and the direction is checked so that a
+ * finger scrolling the story near the edge is never mistaken for one.
+ */
+const EDGE_ZONE = 24;
+const SWIPE_DISTANCE = 48;
+
+/**
  * The chapter's own fields, beside the page instead of over it.
  *
  * The scene, the narrator's instructions, the persona and the cast are what
@@ -34,6 +46,12 @@ const PANEL_PUSH_WIDTH = 1100;
  *
  * Nothing about the app itself is in here. Preferences, the connection and the
  * sampling parameters are not chapter fields and stay behind their own sheets.
+ *
+ * On a phone the thin rail down the side is gone — it would be a fifteenth of
+ * the screen spent on a handle — and the panel is a sheet instead: opened from
+ * the one menu or by pulling it in from the right edge, closed by its own
+ * button, by Escape, or by the back gesture, which on a phone is what a reader
+ * will try first.
  */
 @Component({
   selector: 'li-chapter-panel',
@@ -250,7 +268,7 @@ const PANEL_PUSH_WIDTH = 1100;
           }
         </div>
       </aside>
-    } @else {
+    } @else if (!layout.phone()) {
       <button
         type="button"
         class="handle"
@@ -264,6 +282,8 @@ const PANEL_PUSH_WIDTH = 1100;
     }
   `,
   styles: `
+    @use '../../../breakpoints' as bp;
+
     /* The host is the thin edge — and it stays the thin edge in the covering
        layout too, where the panel is lifted out of the flow and the page keeps
        every pixel it had. */
@@ -281,6 +301,15 @@ const PANEL_PUSH_WIDTH = 1100;
 
     :host(.open.overlay) {
       width: 1.9rem;
+    }
+
+    /* No rail at all on a phone: the story gets the whole width, and the panel
+       is reached from the menu or from the edge of the screen. */
+    @include bp.phone {
+      :host,
+      :host(.open) {
+        width: 0;
+      }
     }
 
     .handle {
@@ -338,6 +367,15 @@ const PANEL_PUSH_WIDTH = 1100;
       box-shadow: -18px 0 48px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 45%));
     }
 
+    /* A sheet rather than a drawer: the whole width, because 12% of a phone
+       screen showing the story it is covering is not a glimpse of anything. */
+    @include bp.phone {
+      :host(.overlay) .panel {
+        width: 100%;
+        border-left: 0;
+      }
+    }
+
     .top {
       flex: none;
       display: flex;
@@ -363,6 +401,12 @@ const PANEL_PUSH_WIDTH = 1100;
       min-height: 0;
       overflow-y: auto;
       padding: 0.2rem 0 1.5rem;
+    }
+
+    @include bp.phone {
+      .scroll {
+        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+      }
     }
 
     .block {
@@ -576,6 +620,35 @@ const PANEL_PUSH_WIDTH = 1100;
       color: var(--li-ink);
       background: color-mix(in srgb, var(--li-accent) 14%, transparent);
     }
+
+    /* Everything in here is sized for a pointer that lands on one pixel. A
+       finger does not, so the three controls a row carries grow — the switch
+       and its knob in step, so it still reads as one thing sliding. */
+    @include bp.touch {
+      .head {
+        padding: 0.85rem;
+      }
+
+      .icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        font-size: 1.05rem;
+      }
+
+      .in-scene {
+        width: 2.1rem;
+        height: 1.15rem;
+      }
+
+      .knob {
+        width: 0.68rem;
+        height: 0.68rem;
+      }
+
+      .in-scene[aria-checked='true'] .knob {
+        transform: translateX(0.84rem);
+      }
+    }
   `,
   host: {
     '[class.open]': 'open()',
@@ -587,6 +660,7 @@ export class ChapterPanel {
   protected readonly chapters = inject(ChapterStore);
   protected readonly stories = inject(StoryStore);
   protected readonly story = this.stories.story;
+  protected readonly layout = inject(Layout);
   private readonly settings = inject(SettingsStore);
   private readonly dialogs = inject(DialogsService);
 
@@ -621,12 +695,113 @@ export class ChapterPanel {
     return count === 1 ? '1 character' : `${count} characters`;
   });
 
+  /** Where a drag from the right-hand edge started, while it is still a drag. */
+  private swipe: { x: number; y: number } | null = null;
+
+  /** Whether the history entry standing for the open sheet is ours to pop. */
+  private pushed = false;
+
   constructor() {
     const query = matchMedia(`(min-width: ${PANEL_PUSH_WIDTH}px)`);
     const listen = () => this.wide.set(query.matches);
     listen();
     query.addEventListener('change', listen);
-    inject(DestroyRef).onDestroy(() => query.removeEventListener('change', listen));
+
+    const back = () => this.onBack();
+    addEventListener('popstate', back);
+
+    // By hand, and passive, rather than as host listeners. A host listener
+    // runs a change detection pass after every event it takes, and `touchmove`
+    // fires all the way down a scroll — for a handler whose answer is almost
+    // always "not this one". The single move that does open the panel sets a
+    // signal, which schedules a pass by itself.
+    const touch = { passive: true } as const;
+    const start = (event: TouchEvent) => this.onTouchStart(event);
+    const move = (event: TouchEvent) => this.onTouchMove(event);
+    const end = () => (this.swipe = null);
+    document.addEventListener('touchstart', start, touch);
+    document.addEventListener('touchmove', move, touch);
+    document.addEventListener('touchend', end, touch);
+    document.addEventListener('touchcancel', end, touch);
+
+    inject(DestroyRef).onDestroy(() => {
+      query.removeEventListener('change', listen);
+      removeEventListener('popstate', back);
+      document.removeEventListener('touchstart', start);
+      document.removeEventListener('touchmove', move);
+      document.removeEventListener('touchend', end);
+      document.removeEventListener('touchcancel', end);
+    });
+
+    this.followWithHistory();
+  }
+
+  /**
+   * The back gesture closes the sheet, because on a phone it is the first
+   * thing a reader will try and the alternative is leaving the app mid-story.
+   *
+   * A history entry is pushed when the sheet opens and popped when it closes,
+   * whichever way it was closed — so the two stay in step and back never has
+   * to guess. Watching `open()` rather than doing this inside the openers is
+   * what makes that true: the menu, the shortcut, the swipe and the settings
+   * document all set the same signal, and only one of them is on this file.
+   *
+   * The state it opens in is not pushed. A phone that reloads with the panel
+   * remembered open has one screen of history, and back should still be the
+   * way out of the app.
+   */
+  private followWithHistory(): void {
+    let shown = untracked(this.open);
+    effect(() => {
+      const open = this.open();
+      if (open === shown) return;
+      shown = open;
+      if (open) {
+        if (!this.layout.phone() || this.pushed) return;
+        this.pushed = true;
+        history.pushState({ liPanel: true }, '');
+      } else if (this.pushed) {
+        // Closed some other way — the button, Escape, the scrim. The entry
+        // that stood for it goes with it, and the `popstate` that answers
+        // finds nothing left to do.
+        this.pushed = false;
+        history.back();
+      }
+    });
+  }
+
+  /** The gesture itself: our entry is gone, so the sheet goes with it. */
+  private onBack(): void {
+    if (!this.pushed) return;
+    this.pushed = false;
+    this.setOpen(false);
+  }
+
+  /**
+   * A finger pulling the sheet in from the right-hand side of the screen.
+   *
+   * Only where there is no rail to press, only from the outer inch of the
+   * screen, and only when it travels further across than up: a reader
+   * scrolling the story with their thumb against the edge is doing something
+   * else, and this must never take the page away from them.
+   */
+  private onTouchStart(event: TouchEvent): void {
+    this.swipe = null;
+    if (!this.layout.phone() || this.open() || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    if (!touch || innerWidth - touch.clientX > EDGE_ZONE) return;
+    this.swipe = { x: touch.clientX, y: touch.clientY };
+  }
+
+  private onTouchMove(event: TouchEvent): void {
+    const from = this.swipe;
+    const touch = event.touches[0];
+    if (!from || !touch) return;
+    const across = from.x - touch.clientX;
+    const down = Math.abs(from.y - touch.clientY);
+    if (across < SWIPE_DISTANCE || across <= down) return;
+    this.swipe = null;
+    this.setOpen(true);
   }
 
   protected isOpen(section: PanelSection): boolean {

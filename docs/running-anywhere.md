@@ -1,6 +1,6 @@
 # Running it anywhere
 
-[← Documentation](README.md) · Previous: [The desktop app](desktop.md) · Next: [Upgrading](upgrading.md)
+[← Documentation](README.md) · Previous: [The desktop app](desktop.md) · Next: [On your phone](on-your-phone.md)
 
 ---
 
@@ -118,6 +118,9 @@ likely to be on and scan that code; the wrong one simply will not load.
 
 **New code** makes a fresh code and unpairs every phone that has ever scanned one. Use it if a
 phone goes missing, or if you shared on a network you would rather not have.
+
+What the app looks like once the phone is in — the one menu, the panel as a sheet, and adding it to
+the home screen — is [On your phone](on-your-phone.md).
 
 Two things are worth being plain about:
 

@@ -136,6 +136,26 @@ describe('Composer', () => {
     };
     range.getClientRects ??= () => [];
     range.getBoundingClientRect ??= () => new DOMRect();
+
+    // And no media-query engine either, which `Layout` asks the width and the
+    // pointer with. Nothing matches: these specs are the composer with a
+    // keyboard in front of it, which is what a query matching nothing means.
+    // Anything asserting the phone layout belongs in the phone project under
+    // e2e/specs/phone, where there is a real viewport to be narrow.
+    //
+    // Assigned rather than filled in only if missing, because the DOM types say
+    // it is always there and jsdom says otherwise. Both spellings of the
+    // listener: the CDK, which every Material overlay in here goes through,
+    // still uses the deprecated pair, and a half-written stand-in is worse than
+    // none — without `matchMedia` at all the CDK has a fallback of its own, and
+    // defining it takes that away.
+    window.matchMedia = (() => ({
+      matches: false,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
   });
 
   beforeEach(() => {

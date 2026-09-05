@@ -239,6 +239,8 @@ export interface MessageEdit {
     </article>
   `,
   styles: `
+    @use '../../../breakpoints' as bp;
+
     .message {
       position: relative;
       padding: 0.9rem 0 1.1rem;
@@ -544,6 +546,18 @@ export interface MessageEdit {
       .rail,
       .more {
         transition: none;
+      }
+    }
+
+    /* Where there is no rail there is only this, so it is the whole of what a
+       message offers and has to be a target rather than a hint. Nothing hovers
+       on a touch screen either, so it is simply there. */
+    @include bp.touch {
+      .more {
+        width: 2.75rem;
+        height: 2.75rem;
+        margin-right: -0.6rem;
+        opacity: 1;
       }
     }
   `,

@@ -1,6 +1,6 @@
 # Upgrading
 
-[← Documentation](README.md) · Previous: [Running it anywhere](running-anywhere.md) · Next: [Development](development.md)
+[← Documentation](README.md) · Previous: [On your phone](on-your-phone.md) · Next: [Development](development.md)
 
 ---
 

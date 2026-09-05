@@ -25,9 +25,11 @@ New here? Start with **[Getting started](getting-started.md)**.
 8. **[The desktop app](desktop.md)** — one download, one icon, and where it keeps your stories.
 9. **[Running it anywhere](running-anywhere.md)** — the zip: one download, one call, on any
    machine that has Node.js.
-10. **[Upgrading](upgrading.md)** — getting the new version, carrying your stories across, and
+10. **[On your phone](on-your-phone.md)** — reading and writing on a phone: getting in, what is
+    there, what is not, and the home-screen icon.
+11. **[Upgrading](upgrading.md)** — getting the new version, carrying your stories across, and
     which build you are running.
-11. **[Development](development.md)** — repo layout, npm scripts, the test suites, and how these
+12. **[Development](development.md)** — repo layout, npm scripts, the test suites, and how these
     screenshots are made.
 
 Alongside the guide: **[Release notes](releases.md)** — what changed in each version, which is

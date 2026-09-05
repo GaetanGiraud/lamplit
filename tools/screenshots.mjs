@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test';
+import { chromium, devices } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createServer as createSocket } from 'node:net';
@@ -25,6 +25,19 @@ const BUILT_APP = join(ROOT, 'app', 'dist', 'app', 'browser');
 
 /** Wide enough for the modals, short enough to read at a glance on GitHub. */
 const VIEWPORT = { width: 1240, height: 800 };
+
+/**
+ * And the other layout. A Pixel 7's own profile — its user agent, its coarse
+ * pointer, its touch events — but a 390-wide viewport, which is the narrow end
+ * of what people actually hold, and two device pixels per CSS pixel rather
+ * than the phone's 2.625, because these are read at a couple of inches wide on
+ * a documentation page and not on the phone itself.
+ */
+const PHONE = {
+  ...devices['Pixel 7'],
+  viewport: { width: 390, height: 760 },
+  deviceScaleFactor: 2,
+};
 
 // -- the story the pictures tell ---------------------------------------------
 
@@ -220,6 +233,8 @@ try {
   await firstRun();
   await freshServer({ withStory: true });
   await theApp();
+  await freshServer({ withStory: true });
+  await onAPhone();
   await socialCard();
 } finally {
   await browser.close();
@@ -463,6 +478,44 @@ async function theApp() {
   await context.setOffline(false);
 
   await close();
+}
+
+/**
+ * The same story, the same server, a phone in front of it.
+ *
+ * A fresh data folder rather than the one `theApp` has just written a chapter
+ * into, so the picture is the demo story as the guide describes it — and the
+ * page a reader would actually arrive at from the QR code, which is the story
+ * where they left it.
+ */
+async function onAPhone() {
+  const context = await browser.newContext({
+    ...PHONE,
+    colorScheme: 'dark',
+    reducedMotion: 'reduce',
+  });
+  const page = await context.newPage();
+  await page.goto(`http://127.0.0.1:${appPort}/`);
+  await page.locator('article[data-role]').first().waitFor();
+  await page.waitForTimeout(1200);
+
+  await shot(page, 'phone-reading', 'the same chapter on a phone: the story, and the box');
+
+  // The one menu, and the whole of what a phone is offered: the story, the
+  // world, the chapters, the panel, and this chapter's own turning points.
+  await page.getByRole('button', { name: 'More actions' }).click();
+  await page.getByRole('menu').waitFor();
+  await page.waitForTimeout(400);
+  await shot(page, 'phone-menu', 'the one menu the phone layout puts everything behind');
+
+  // And the panel it opens, which is a sheet at this width rather than a
+  // column beside the page.
+  await page.getByRole('menuitem', { name: 'Chapter panel' }).click();
+  await page.getByRole('button', { name: 'Close the chapter panel' }).waitFor();
+  await page.waitForTimeout(500);
+  await shot(page, 'phone-panel', 'the chapter panel as a full-height sheet');
+
+  await context.close();
 }
 
 /**

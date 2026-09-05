@@ -107,6 +107,8 @@ const PINNED_SLACK = 96;
     </section>
   `,
   styles: `
+    @use '../../../breakpoints' as bp;
+
     :host {
       display: block;
       height: 100%;
@@ -146,6 +148,17 @@ const PINNED_SLACK = 96;
     .tail {
       flex: none;
       height: 33vh;
+    }
+
+    /* Dynamic viewport units, because on a phone a third of the screen is a
+       third of what can be seen right now — the address bar and the keyboard both take from it.
+       The home bar is drawn over the foot of the page, and this is where the
+       page pays it back: it is the last thing in the scroller, so nothing the
+       story is made of is ever under it. */
+    @include bp.phone {
+      .tail {
+        height: calc(33dvh + env(safe-area-inset-bottom));
+      }
     }
 
     /* A strip of nothing, the width of the column, stuck a finger's width above
@@ -197,6 +210,13 @@ const PINNED_SLACK = 96;
       stroke-width: 1.5;
       stroke-linecap: round;
       stroke-linejoin: round;
+    }
+
+    @include bp.touch {
+      .jump {
+        width: 2.75rem;
+        height: 2.75rem;
+      }
     }
 
     /* The same margin the message actions ask for, so the two line up. */

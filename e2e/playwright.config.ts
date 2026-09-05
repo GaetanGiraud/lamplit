@@ -25,7 +25,30 @@ export default defineConfig({
   // without.
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   use: { trace: 'retain-on-failure' },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  /**
+   * Two projects, because there are two layouts and only one of them can be
+   * had by making a desktop window narrow. `specs/phone/` is the phone: a
+   * Pixel 7 profile, which brings a 412px viewport, a coarse pointer, touch
+   * events and no hover — and it is that pointer, not the width, that decides
+   * whether Enter sends, whether a message's actions are a rail or a menu, and
+   * whether the app listens for a key pressed at nothing.
+   *
+   * Everything else stays on the desktop, and stays there deliberately: those
+   * specs press Preferences, hover for a rail and drag the window about, none
+   * of which a phone can do or is offered.
+   */
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: 'phone/**',
+    },
+    {
+      name: 'phone',
+      use: { ...devices['Pixel 7'] },
+      testMatch: 'phone/**/*.spec.ts',
+    },
+  ],
   webServer: [
     {
       command: `node fake-openai-server.mjs`,

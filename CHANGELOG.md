@@ -392,6 +392,29 @@ the story is there — the same story, the same files, saved back to the same co
   when you shut it down is sharing when it starts. It works the same in the zip and in the desktop
   app.
 
+**And a layout for it, once it is there.** A phone got the desktop app scaled down: a bar of six
+buttons, a panel that flipped to an overlay, sheets floating in the middle of a 390-pixel screen.
+Below 48rem there is now one layout, for one purpose — carry on the story you started at the desk.
+
+- **The bar is the wordmark, the save dot and one menu.** Tap the wordmark for which story and
+  chapter you are in, and the others; tap **⋯** for Story, World, Chapters, the chapter panel, and
+  this chapter's own turning points.
+- **The story runs edge to edge**, with the box to write in at the end of it, exactly as it does on
+  the computer.
+- **The chapter panel is a sheet**, opened from that menu or pulled in from the right-hand edge,
+  and closed by the back gesture. Playing one character at a time works from it as it always has.
+- **Every sheet is the whole screen**, with its buttons where a thumb is rather than at the end of
+  a scroll, and nothing is left under the address bar, the home bar or the notch.
+- **Enter makes a new line and Send sends**, because a phone keyboard has no Shift+Enter to break
+  a line with. A message's actions are behind the **⋯** under it.
+- **Preferences, Parameters, Connection, About and What's new are not offered.** They are the app
+  rather than the story, they were settled on the computer, and the phone is already reading the
+  answers out of the same `settings.json`.
+- **Add it to the home screen** for the app's own icon and a window with no browser chrome. There
+  is no offline mode and no service worker: with the computer asleep there is nothing to read, and
+  a cached shell would be a nicer-looking way of saying so.
+- A narrow window on a desktop gets the same layout. Nothing anywhere asks what device this is.
+
 **Two devices writing one story no longer lose one of them.** Every document now carries a
 revision, and a save says which revision it was based on. A save based on one that has moved on is
 refused rather than applied, the page reloads that document and says **"Changed on another device;

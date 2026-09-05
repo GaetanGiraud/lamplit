@@ -88,6 +88,13 @@ the settings decides how well the endpoint speaks JSON: `fake/no-json-schema` re
 `response_format` with a 400 and answers inside a ```json fence, the way an endpoint that has
 never heard of schemas does; any other id takes the schema and answers with a bare object.
 
+Two projects, because there are two layouts. `chromium` is a desktop window and everything under
+`e2e/specs/`; `phone` is a Pixel 7 profile and `e2e/specs/phone/`, which is where the phone layout
+is tested — a coarse pointer, no hover, and a 412px viewport. It is that pointer rather than the
+width that decides whether Enter sends and whether a message's actions are a rail or a menu, and
+it cannot be had by making a desktop window narrow. See [On your phone](on-your-phone.md) for what
+the layout is.
+
 **Every** spec runs against the real server serving the real production build, on its own port
 with its own empty data folder — the `server` fixture in `specs/fixtures.ts`. There is no dev
 server in the suite and no browser-storage mode to fall back on, so a spec seeds by writing JSON

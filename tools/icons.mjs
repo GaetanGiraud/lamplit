@@ -7,15 +7,16 @@ import { fileURLToPath } from 'node:url';
  * `npm run icons` — the raster icons, from app/public/favicon.svg.
  *
  * favicon.svg is the source and the one modern browsers use. This produces the
- * three that still have to be bitmaps: favicon.ico for the browsers that ignore
- * SVG icons, apple-touch-icon.png for the home screen, and electron/icons/
- * icon.png for the desktop build — electron-builder makes the per-platform
- * icons from that one, provided it is at least 256 px.
+ * ones that still have to be bitmaps: favicon.ico for the browsers that ignore
+ * SVG icons, apple-touch-icon.png for the home screen on iOS, icon-192.png and
+ * icon-512.png for the web manifest that gives Android the same, and
+ * electron/icons/icon.png for the desktop build — electron-builder makes the
+ * per-platform icons from that one, provided it is at least 256 px.
  *
  * The website has a tab too, and GitHub Pages serves docs/ as it is, so the
  * three browser icons are written into docs/ in the same breath rather than
  * copied by hand later: one source, two destinations, and no drift between the
- * app's tab and the site's. Edit the SVG, run this, commit all seven.
+ * app's tab and the site's. Edit the SVG, run this, commit everything it wrote.
  *
  * Rasterising is done by the browser Playwright already brings, so there is no
  * image library in the dependency list for two files that change once a year.
@@ -34,6 +35,12 @@ const SOURCE = join(PUBLIC, 'favicon.svg');
 /** What actually gets asked for: the tab, the bookmark bar, and the desktop. */
 const ICO_SIZES = [16, 32, 48];
 const APPLE_SIZE = 180;
+/**
+ * app/public/manifest.webmanifest names these two, and a browser will not
+ * offer "Add to Home Screen" without a 192 — 512 is what it then draws the
+ * splash from. iOS takes the apple-touch-icon instead and ignores both.
+ */
+const MANIFEST_SIZES = [192, 512];
 /** electron-builder's minimum is 256; 512 is what it wants for Linux. */
 const DESKTOP_SIZE = 512;
 
@@ -42,7 +49,7 @@ const browser = await chromium.launch();
 const rendered = new Map();
 
 try {
-  for (const size of [...ICO_SIZES, APPLE_SIZE, DESKTOP_SIZE]) {
+  for (const size of [...ICO_SIZES, APPLE_SIZE, ...MANIFEST_SIZES, DESKTOP_SIZE]) {
     rendered.set(size, await render(svg, size));
   }
 } finally {
@@ -55,11 +62,15 @@ for (const dir of [PUBLIC, SITE]) {
   await writeFile(join(dir, 'favicon.ico'), favicon);
   await writeFile(join(dir, 'apple-touch-icon.png'), rendered.get(APPLE_SIZE));
 }
+for (const size of MANIFEST_SIZES) {
+  await writeFile(join(PUBLIC, `icon-${size}.png`), rendered.get(size));
+}
 await writeFile(join(SITE, 'favicon.svg'), svg);
 await writeFile(join(DESKTOP, 'icon.png'), rendered.get(DESKTOP_SIZE));
 
 console.log(`favicon.ico             ${ICO_SIZES.join(', ')} px   app/public/, docs/`);
 console.log(`apple-touch-icon.png    ${APPLE_SIZE} px         app/public/, docs/`);
+console.log(`icon-<n>.png            ${MANIFEST_SIZES.join(', ')} px   app/public/`);
 console.log(`favicon.svg             copied        docs/`);
 console.log(`electron/icons/icon.png ${DESKTOP_SIZE} px`);
 

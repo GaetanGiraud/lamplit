@@ -142,24 +142,6 @@ test('a letter pressed inside a dialog stays in the dialog', async ({ page, app 
   await expect(composer(page)).toHaveText('');
 });
 
-test('at 390px the chapter is text until the end of it', async ({ page, app }) => {
-  await page.setViewportSize({ width: 390, height: 780 });
-  await app.open();
-
-  await send(page, '!long');
-  await waitForTurn(page);
-  await scroller(page).evaluate((el) => el.scrollTo(0, 0));
-
-  expect(await composerOnScreen(page)).toBe(false);
-  // And nothing else is holding the foot of the screen either.
-  const toolbar = await page.locator('li-chapter-toolbar').evaluate((el) => {
-    const port = el.closest('.page')!.getBoundingClientRect();
-    const own = el.getBoundingClientRect();
-    return own.bottom > port.top && own.top < port.bottom;
-  });
-  expect(toolbar).toBe(false);
-});
-
 test('the composer grows as it is written into without pushing itself off the page', async ({
   page,
   app,

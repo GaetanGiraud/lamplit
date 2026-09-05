@@ -4,13 +4,27 @@
     <meta charset="utf-8" />
     <title>Lamplit</title>
     <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- `viewport-fit=cover` lets the page reach into the notch and the home
+         bar, which is only safe because the stylesheet pays `env(safe-area-inset-*)`
+         back on the bar, the sheets and the foot of the story.
+         `interactive-widget=resizes-content` makes the on-screen keyboard shrink
+         the viewport rather than slide over it, which is what makes `dvh`
+         mean "the part you can actually see" while you are typing. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <meta name="color-scheme" content="dark light" />
     <!-- The .ico first, the SVG after it: browsers take the last one they
          understand, so anything modern gets the scalable mark. -->
     <link rel="icon" href="favicon.ico" sizes="32x32" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <!-- Added to the home screen, Lamplit opens as itself: its own icon, no
+         browser chrome, the page colour behind it. There is no service worker
+         and there will not be one — the app is a window onto a server on your
+         desk, and it has nothing to say offline. -->
+    <link rel="manifest" href="manifest.webmanifest" />
   </head>
   <body>
     <!-- Angular replaces everything inside <app-root> when it bootstraps, and

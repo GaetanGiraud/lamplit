@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Layout } from '../core/layout';
 import { chapterTitle } from '../core/prompt-builder';
 import { SettingsStore } from '../store/settings-store';
 import { ChapterStore } from '../store/chapter-store';
@@ -13,6 +14,14 @@ import { SaveStatusIndicator } from './save-status';
 /**
  * The one bar that is always there: which story and chapter are open, which
  * model is answering, and the way into everything that opens over the page.
+ *
+ * On a phone it is three things and no more — the wordmark, the save dot and
+ * one menu — because the bar is the only furniture on a screen whose whole
+ * purpose is the story under it. What the menu drops is not arbitrary:
+ * Parameters, Preferences, Connection, About and What's new are the app being
+ * set up rather than the story being written, and they were set up on the
+ * computer that is serving this page. The four that stay — Story, World,
+ * Chapters, and the chapter panel — are the story itself.
  */
 @Component({
   selector: 'li-top-bar',
@@ -21,13 +30,29 @@ import { SaveStatusIndicator } from './save-status';
     <header class="bar">
       <div class="identity">
         <span class="wordmark">Lamplit</span>
+        <!-- The one thing in the bar that says where you are. On a phone there
+             is no room for it to say it, so it says what this is instead and
+             the menu it opens does the rest. -->
         <button matButton class="here" [matMenuTriggerFor]="storiesMenu">
-          <span class="label">
-            <span class="story">{{ stories.story().title }}</span
-            >&ngsp;·&ngsp;<span class="chapter">{{ chapterLabel() }}</span>
-          </span>
+          @if (layout.phone()) {
+            <span class="mark">Lamplit</span>
+          } @else {
+            <span class="label">
+              <span class="story">{{ stories.story().title }}</span
+              >&ngsp;·&ngsp;<span class="chapter">{{ chapterLabel() }}</span>
+            </span>
+          }
         </button>
         <mat-menu #storiesMenu="matMenu">
+          <!-- The bar has no room to say where you are, so the tap that offers
+               the other stories says it first. -->
+          @if (layout.phone()) {
+            <div class="where" role="presentation">
+              <span class="story">{{ stories.story().title }}</span>
+              <span class="chapter">{{ chapterLabel() }}</span>
+            </div>
+            <hr />
+          }
           @for (story of stories.stories(); track story.id) {
             <button mat-menu-item (click)="stories.select(story.id)">
               {{ story.id === stories.story().id ? '• ' : '' }}{{ story.title }}
@@ -44,38 +69,49 @@ import { SaveStatusIndicator } from './save-status';
       <div class="actions">
         <li-save-status />
 
-        <!-- Quiet on purpose: a newer Lamplit exists, and that is all. No
-             modal, no banner, nothing over the page being written. -->
-        @if (updates.available(); as release) {
+        @if (!layout.phone()) {
+          <!-- Quiet on purpose: a newer Lamplit exists, and that is all. No
+               modal, no banner, nothing over the page being written. -->
+          @if (updates.available(); as release) {
+            <button
+              class="li-pill available"
+              type="button"
+              (click)="dialogs.openWhatsNew()"
+              matTooltip="Read what changed in it"
+            >
+              {{ release.version }} available
+            </button>
+          }
+
           <button
-            class="li-pill available"
-            type="button"
-            (click)="dialogs.openWhatsNew()"
-            matTooltip="Read what changed in it"
+            matButton
+            class="model"
+            [class.unset]="!settings.isConnected()"
+            (click)="dialogs.openConnection()"
+            [matTooltip]="connectionTooltip()"
           >
-            {{ release.version }} available
+            <span class="dot" [class.live]="settings.isConnected()"></span>
+            {{ modelLabel() }}
           </button>
+
+          <button matButton (click)="dialogs.openStory()">Story</button>
+          <button matButton (click)="dialogs.openWorld()">World</button>
+          <button matButton (click)="dialogs.openChapters()">Chapters</button>
+          <button matButton (click)="dialogs.openParameters()">Parameters</button>
+          <button matButton (click)="dialogs.openPreferences()">Preferences</button>
         }
-
-        <button
-          matButton
-          class="model"
-          [class.unset]="!settings.isConnected()"
-          (click)="dialogs.openConnection()"
-          [matTooltip]="connectionTooltip()"
-        >
-          <span class="dot" [class.live]="settings.isConnected()"></span>
-          {{ modelLabel() }}
-        </button>
-
-        <button matButton (click)="dialogs.openStory()">Story</button>
-        <button matButton (click)="dialogs.openWorld()">World</button>
-        <button matButton (click)="dialogs.openChapters()">Chapters</button>
-        <button matButton (click)="dialogs.openParameters()">Parameters</button>
-        <button matButton (click)="dialogs.openPreferences()">Preferences</button>
 
         <button matButton [matMenuTriggerFor]="more" aria-label="More actions">⋯</button>
         <mat-menu #more="matMenu">
+          <!-- The four names the phone's bar has nowhere to put. Everything
+               under them is about this chapter and is offered at every width. -->
+          @if (layout.phone()) {
+            <button mat-menu-item (click)="dialogs.openStory()">Story…</button>
+            <button mat-menu-item (click)="dialogs.openWorld()">World…</button>
+            <button mat-menu-item (click)="dialogs.openChapters()">Chapters…</button>
+            <button mat-menu-item (click)="settings.setSidebarOpen(true)">Chapter panel</button>
+            <hr />
+          }
           <button mat-menu-item (click)="dialogs.newChapter()">New chapter…</button>
           <button mat-menu-item (click)="dialogs.openScene(chapters.chapter().id)">
             Edit this scene…
@@ -83,13 +119,17 @@ import { SaveStatusIndicator } from './save-status';
           <button mat-menu-item [disabled]="chapters.isEmpty()" (click)="clear()">
             Clear this chapter
           </button>
-          <hr />
-          <button mat-menu-item (click)="dialogs.openAbout()">About Lamplit…</button>
+          @if (!layout.phone()) {
+            <hr />
+            <button mat-menu-item (click)="dialogs.openAbout()">About Lamplit…</button>
+          }
         </mat-menu>
       </div>
     </header>
   `,
   styles: `
+    @use '../../breakpoints' as bp;
+
     .bar {
       display: flex;
       align-items: center;
@@ -102,6 +142,16 @@ import { SaveStatusIndicator } from './save-status';
       backdrop-filter: blur(10px);
     }
 
+    /* Under a notch, or beside one in landscape: the bar is the top of the
+       page, so it is the thing that pays for reaching into it. */
+    @include bp.phone {
+      .bar {
+        height: calc(3rem + env(safe-area-inset-top));
+        padding: env(safe-area-inset-top) calc(0.4rem + env(safe-area-inset-right)) 0
+          calc(0.5rem + env(safe-area-inset-left));
+      }
+    }
+
     .identity {
       display: flex;
       align-items: center;
@@ -110,7 +160,10 @@ import { SaveStatusIndicator } from './save-status';
       overflow: hidden;
     }
 
-    .wordmark {
+    /* The wordmark, whether it is standing on its own or being carried by the
+       button — which is what the phone layout does with it. */
+    .wordmark,
+    .mark {
       flex: none;
       font-family: var(--li-serif);
       font-size: 1.05rem;
@@ -127,6 +180,22 @@ import { SaveStatusIndicator } from './save-status';
       overflow: hidden;
       min-width: 0;
       max-width: 30rem;
+    }
+
+    /* Where the tap says you are, when the bar has no room to. */
+    .where {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      padding: 0.5rem 1rem 0.35rem;
+      max-width: 16rem;
+    }
+
+    .where .story,
+    .where .chapter {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     /* One line that ellipsises as a whole: story first, chapter trimmed. */
@@ -157,7 +226,10 @@ import { SaveStatusIndicator } from './save-status';
       gap: 0.15rem;
     }
 
-    /* Narrow windows keep the story and the model; the wordmark can go. */
+    /* Narrow windows keep the story and the model; the wordmark can go. And on
+       a phone it is the other way round — the story and the chapter move into
+       the menu, and the button carries the wordmark itself — so this span,
+       standing on its own beside it, is gone at both widths. */
     @media (max-width: 980px) {
       .wordmark {
         display: none;
@@ -210,6 +282,7 @@ import { SaveStatusIndicator } from './save-status';
   `,
 })
 export class TopBar {
+  protected readonly layout = inject(Layout);
   protected readonly settings = inject(SettingsStore);
   protected readonly stories = inject(StoryStore);
   protected readonly chapters = inject(ChapterStore);

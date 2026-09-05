@@ -2,7 +2,6 @@ import type { Locator } from '@playwright/test';
 import { expect, test } from './fixtures';
 import {
   act,
-  actFromMenu,
   assistantMessages,
   CHAPTER_ID,
   composer,
@@ -307,22 +306,6 @@ test.describe('writing a chapter', () => {
       await expect(message.getByRole('button', { name: 'Message actions' })).toBeHidden();
     });
   }
-
-  test('at 390px nothing is over the text and the ⋯ opens the actions', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 800 });
-    await send(page, 'Two lines, please.');
-    await waitForTurn(page);
-
-    const message = assistantMessages(page).first();
-    await message.hover();
-    // No margin to write in, so the rail is not drawn at all.
-    await expect(message.locator('.rail')).toBeHidden();
-
-    await actFromMenu(page, message, 'Copy');
-    // The menu closed on the action, which is all the app can promise about a
-    // clipboard a headless browser may refuse.
-    await expect(page.getByRole('menu')).toHaveCount(0);
-  });
 
   test('the context pill reflects what will be sent', async ({ page, server }) => {
     // The pill is developer mode's; the beforeEach opened the app without it.
