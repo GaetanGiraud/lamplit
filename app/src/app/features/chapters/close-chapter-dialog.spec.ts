@@ -40,7 +40,6 @@ class FakeStories {
     world: { summary: { useDefault: true, prompt: '' }, extractLore: false },
   } as Story);
   setSummaryPrompt = () => undefined;
-  saveLore = () => undefined;
 }
 
 describe('CloseChapterDialog', () => {

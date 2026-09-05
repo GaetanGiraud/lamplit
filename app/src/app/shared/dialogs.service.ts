@@ -4,6 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { DEFAULT_STORY_TITLE } from '../core/defaults';
 import { ChapterStore } from '../store/chapter-store';
 import { StoryStore } from '../store/story-store';
+import type { ChapterClose } from '../features/chapters/close-chapter-dialog';
 import type { NewStoryData, StorySetup } from '../features/story/new-story-dialog';
 import { ConfirmData, TextPromptData } from './small-dialogs';
 
@@ -176,17 +177,17 @@ export class DialogsService {
   async closeChapter(): Promise<void> {
     const chapter = this.chapters.chapter();
     const { CloseChapterDialog } = await import('../features/chapters/close-chapter-dialog');
-    const ref = this.dialog.open<InstanceType<typeof CloseChapterDialog>, undefined, string>(
+    const ref = this.dialog.open<InstanceType<typeof CloseChapterDialog>, undefined, ChapterClose>(
       CloseChapterDialog,
       { width: '42rem', maxWidth: '95vw', autoFocus: 'dialog' },
     );
-    const summary = await firstValueFrom(ref.afterClosed());
+    const closed = await firstValueFrom(ref.afterClosed());
     // Backing out of the review leaves the chapter open and starts nothing. Any
     // empty answer is a back-out: the sheet will not confirm without a summary,
     // and closing a chapter on nothing would replace the story so far with it.
-    if (!summary?.trim()) return;
+    if (!closed?.summary.trim()) return;
 
-    this.chapters.closeChapter(chapter.id, summary);
+    this.chapters.closeChapter(chapter.id, closed.summary, closed.entries);
     await this.startChapter(chapter.scene);
   }
 

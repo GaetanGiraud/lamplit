@@ -1,5 +1,5 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { CastChange, Chapter, ChapterMessage, Story, TokenUsage } from '../core/models';
+import { CastChange, Chapter, ChapterMessage, LoreEntry, Story, TokenUsage } from '../core/models';
 import { LORE_SCHEMA, LoreProposal, buildLorePrompt, readProposals } from '../core/lore-extraction';
 import { ModelClient } from '../core/model-client';
 import {
@@ -304,10 +304,18 @@ export class ChapterStore {
   }
 
   /**
-   * Nothing is discarded: the chapter keeps its messages and its own summary,
-   * while the story so far is replaced by the rewritten one.
+   * Closing a chapter, as one act.
+   *
+   * Three documents move together — the entries the writer kept, the chapter's
+   * own status and summary, and the story so far the summary replaces — and
+   * there is no state of the world in which some of them should happen and the
+   * rest should not. The entries go first, because they are what the chapter
+   * established and the chapter is about to stop being the one being written.
+   *
+   * Nothing is discarded: the chapter keeps its messages and its own summary.
    */
-  closeChapter(id: string, summary: string): void {
+  closeChapter(id: string, summary: string, entries: readonly LoreEntry[] = []): void {
+    this.stories.saveLore(entries);
     this.patchChapter(id, () => ({ status: 'closed', summary: summary.trim() }));
     this.stories.replaceStorySoFar(summary);
   }

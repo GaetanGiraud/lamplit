@@ -5,8 +5,8 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DEFAULT_SUMMARY_INSTRUCTION } from '../../core/defaults';
 import { LoreProposal, entryFrom } from '../../core/lore-extraction';
-import { TokenUsage } from '../../core/models';
-import { formatTokens } from '../../core/tokens';
+import { LoreEntry } from '../../core/models';
+import { tokenCost } from '../../core/tokens';
 import { newId } from '../../store/documents';
 import { ChapterStore } from '../../store/chapter-store';
 import { StoryStore } from '../../store/story-store';
@@ -15,11 +15,14 @@ import { TextValue } from '../../shared/text-value';
 import { chapterTitle } from '../../core/prompt-builder';
 import { countWords } from '../../shared/editor-field';
 
-/** What a request cost, when the provider said. Empty when it did not. */
-function cost(usage: TokenUsage | undefined): string {
-  if (!usage?.completionTokens) return '';
-  const asked = usage.promptTokens ? `${formatTokens(usage.promptTokens)} in · ` : '';
-  return `${asked}${formatTokens(usage.completionTokens)} out`;
+/**
+ * What the writer settled on: the summary the chapter is folded in by, and the
+ * entries they ticked. Nothing here is written by the sheet — closing a
+ * chapter is one act, and it happens in one place.
+ */
+export interface ChapterClose {
+  summary: string;
+  entries: LoreEntry[];
 }
 
 /**
@@ -375,7 +378,7 @@ function cost(usage: TokenUsage | undefined): string {
   `,
 })
 export class CloseChapterDialog {
-  private readonly ref = inject(MatDialogRef<CloseChapterDialog, string | undefined>);
+  private readonly ref = inject(MatDialogRef<CloseChapterDialog, ChapterClose | undefined>);
   private readonly chapters = inject(ChapterStore);
   protected readonly stories = inject(StoryStore);
   protected readonly story = this.stories.story;
@@ -457,7 +460,7 @@ export class CloseChapterDialog {
 
     this.busy.set(false);
     this.controller = null;
-    this.summaryCost.set(cost(result.usage));
+    this.summaryCost.set(tokenCost(result.usage));
     if (result.error) this.error.set(result.error);
     // Streamed text is already in the signal; the final text wins if it differs.
     else if (result.text) this.summary.set(result.text);
@@ -486,7 +489,7 @@ export class CloseChapterDialog {
     this.loreController = null;
     this.proposing.set(false);
     this.proposed.set(true);
-    this.loreCost.set(cost(result.usage));
+    this.loreCost.set(tokenCost(result.usage));
     if (result.error) {
       this.loreError.set(`No entries came back: ${result.error}`);
       return;
@@ -526,10 +529,9 @@ export class CloseChapterDialog {
   protected confirm(): void {
     const summary = this.summary().trim();
     if (!summary) return;
+    // Only what was ticked. An untouched sheet keeps nothing at all, which is
+    // what "propose" has to mean.
     const kept = this.proposals().filter((_, i) => this.ticked().has(i));
-    // Filed before the chapter closes, and only what was ticked. An untouched
-    // sheet writes nothing at all, which is what "propose" has to mean.
-    this.stories.saveLore(kept.map((proposal) => entryFrom(proposal, newId())));
-    this.ref.close(summary);
+    this.ref.close({ summary, entries: kept.map((proposal) => entryFrom(proposal, newId())) });
   }
 }

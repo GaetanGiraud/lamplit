@@ -8,7 +8,7 @@ import { renderStoryHtml } from '../../core/formatting';
 import { withDirection } from '../../core/prompt-builder';
 import { SpeakerLabel } from '../../core/speakers';
 import { budgetThatFits } from '../../core/model-errors';
-import { formatTokens } from '../../core/tokens';
+import { tokenCost } from '../../core/tokens';
 import { ProseEditor } from '../../shared/prose-editor';
 import { TextValue } from '../../shared/text-value';
 
@@ -610,10 +610,8 @@ export class MessageItem {
 
     const parts: string[] = [];
     if (meta.model) parts.push(meta.model);
-    if (this.showTokens() && meta.completionTokens) {
-      const prompt = meta.promptTokens ? `${formatTokens(meta.promptTokens)} in · ` : '';
-      parts.push(`${prompt}${formatTokens(meta.completionTokens)} out`);
-    }
+    const cost = this.showTokens() ? tokenCost(meta) : '';
+    if (cost) parts.push(cost);
     if (meta.aborted) parts.push('stopped');
     else if (meta.interrupted) parts.push(meta.interrupted);
     else if (meta.finishReason === 'length') parts.push('cut off at the reply limit');
