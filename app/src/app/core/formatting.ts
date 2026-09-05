@@ -95,6 +95,31 @@ const PURIFY_CONFIG = {
 };
 
 /**
+ * The two things the allowlist alone cannot say.
+ *
+ * A link in an answer is the one link on the page the app did not write. Left
+ * as it comes, following it navigates the single-page app off the story: the
+ * turn still streaming is lost with the page, and the composer's draft with
+ * it. Every link the app renders itself already opens in a new tab, so these
+ * do too.
+ *
+ * And `class` has to stay on the allowlist, because a highlighted code block
+ * is nothing but classed spans — but outside `code` and `pre` it lets raw HTML
+ * in a message borrow the app's own styling and restyle its own text. Strip it
+ * there and leave it where the highlighter put it.
+ */
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (!(node instanceof Element)) return;
+  if (node.tagName === 'A') {
+    node.setAttribute('target', '_blank');
+    node.setAttribute('rel', 'noreferrer noopener');
+  }
+  if (node.hasAttribute('class') && !node.closest('code, pre')) {
+    node.removeAttribute('class');
+  }
+});
+
+/**
  * Markdown -> safe HTML, and nothing else. What release notes want: they are
  * ordinary markdown written for GitHub, not story prose, so none of the
  * book-setting below has any business with them.

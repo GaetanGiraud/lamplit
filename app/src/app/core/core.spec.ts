@@ -326,6 +326,26 @@ describe('renderStoryHtml', () => {
     expect(unsafe).not.toContain('<img');
   });
 
+  it('sends a link in an answer to a new tab, so the story stays on screen', () => {
+    // Following a link in place would navigate the app off the page, taking a
+    // turn still streaming and the composer's draft with it.
+    const html = renderStoryHtml('Read [the notice](https://example.com/notice).', plain);
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noreferrer noopener"');
+  });
+
+  it('does not let raw HTML in a message borrow the classes the app styles', () => {
+    const html = renderStoryHtml('<span class="speech">not speech</span> he said.', plain);
+    expect(html).not.toContain('class="speech">not speech');
+    expect(html).toContain('not speech');
+  });
+
+  it('keeps the classes the highlighter put inside a code block', () => {
+    const html = renderStoryHtml(['```json', '{"a": 1}', '```'].join('\n'), plain);
+    expect(html).toContain('class="hljs language-json"');
+    expect(html).toContain('class="hljs-');
+  });
+
   it('renders nothing for nothing', () => {
     expect(renderStoryHtml('', plain)).toBe('');
   });
@@ -361,6 +381,12 @@ describe('renderMarkdown', () => {
     const html = renderMarkdown('<img src=x onerror=alert(1)>**bold**');
     expect(html).not.toContain('onerror');
     expect(html).toContain('<strong>bold</strong>');
+  });
+
+  it('sends release-note links to a new tab too', () => {
+    const html = renderMarkdown('See [the release](https://example.com/release).');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noreferrer noopener"');
   });
 
   it('renders nothing for nothing', () => {
