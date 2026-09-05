@@ -120,8 +120,38 @@ It asks three things, and then gets out of the way.
   </li>
 </ul>
 
-<!-- #39's licence card — "What you are getting, and what you take on" — goes
-     here, between the slots and the note, as a <details class="li-card">. -->
+<details class="li-card">
+  <summary>What you are getting, and what you take on</summary>
+
+  <p>
+    Lamplit costs nothing and is yours to keep: the <b>MIT licence</b> lets you use it, copy it,
+    change it, pass it on, and sell what you make of it. The one condition is that the copyright
+    notice travels with any copy you hand on.
+  </p>
+
+  <p>
+    Nobody promises it works. It comes as it is, with no warranty of any kind: the licence
+    says in capital letters that its authors owe you nothing if it loses a chapter, mis-spends
+    your credit or refuses to start. That is the deal with all free software.
+  </p>
+
+  <p>
+    Nobody paid to sign the installer, which is
+    <a href="desktop.html#if-it-will-not-start">why Windows objects</a>. What you write goes to the
+    provider you chose and nobody else, on their prices and their terms.
+    <a href="your-data.html">Your stories are files</a> on your own machine, so backing them up is
+    yours to do. The app phones home for one thing, the
+    <a href="upgrading.html">version check</a>, and that can be switched off.
+  </p>
+
+  <p>
+    This card is an explanation, not the licence: that is
+    <a href="https://github.com/lamplit-app/lamplit/blob/main/LICENSE">LICENSE</a>, and the notices
+    for the pieces Lamplit bundles are in
+    <a href="https://github.com/lamplit-app/lamplit/blob/main/NOTICE">NOTICE</a>. If the two ever
+    disagree, the files win.
+  </p>
+</details>
 
 <p class="li-quiet">
 Each download is about 110 MB, nearly all of it the browser engine the window is made of.
